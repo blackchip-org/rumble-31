@@ -2,6 +2,7 @@
 
 import { cardConsole } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
+import { MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
 import { turnStartLine } from "../log.ts";
 import type { Action, PlayerView, Strategy } from "../game/types.ts";
 import { exchange, knock, trade } from "../game/types.ts";
@@ -27,14 +28,14 @@ export function announceTurn(seat: number, inner: Strategy, out: Writer): Strate
 
 // thinking wraps a strategy so that, before deciding, it writes the
 // "Seat's turn" log line, then pauses for a random duration between
-// 500ms and 2 seconds, simulating a bot thinking. Intended for bot
-// seats only.
+// MIN_BOT_THINK_TIME and MAX_BOT_THINK_TIME, simulating a bot
+// thinking. Intended for bot seats only.
 export function thinking(seat: number, inner: Strategy, out: Writer): Strategy {
   return announceTurn(
     seat,
     {
       decide(v: PlayerView): Action | Promise<Action> {
-        clock.sleep(500 + Math.random() * 1500);
+        clock.sleep(MIN_BOT_THINK_TIME + Math.random() * (MAX_BOT_THINK_TIME - MIN_BOT_THINK_TIME));
         return inner.decide(v);
       },
     },

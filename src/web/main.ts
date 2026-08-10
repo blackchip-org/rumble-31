@@ -4,6 +4,7 @@
 
 import { score } from "../card/score.ts";
 import { Bot } from "../bot/bot.ts";
+import { MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
 import { newGame } from "../game/game.ts";
 import { seatName } from "../game/seat.ts";
 import type { Action, Hand, PlayerView, Strategy, TurnRecord } from "../game/types.ts";
@@ -66,16 +67,19 @@ function setActiveSeat(seat: number): void {
 
 // withTurnUi wraps a seat's strategy so that, before deciding, it
 // highlights that seat's panel and logs the "Seat's turn" line — and
-// for bots, also pauses for a random duration between 500ms and 2
-// seconds, the non-blocking, setTimeout-based analog of cli/cli.ts's
-// thinking(), which pauses via a blocking sleep instead.
+// for bots, also pauses for a random duration between
+// MIN_BOT_THINK_TIME and MAX_BOT_THINK_TIME, the non-blocking,
+// setTimeout-based analog of cli/cli.ts's thinking(), which pauses via
+// a blocking sleep instead.
 function withTurnUi(seat: number, inner: Strategy): Strategy {
   return {
     async decide(v: PlayerView): Promise<Action> {
       setActiveSeat(seat);
       appendLogLine(logEl, turnStartLine(seat));
       if (seat !== 0) {
-        await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1500));
+        await new Promise((resolve) =>
+          setTimeout(resolve, MIN_BOT_THINK_TIME + Math.random() * (MAX_BOT_THINK_TIME - MIN_BOT_THINK_TIME)),
+        );
       }
       return inner.decide(v);
     },

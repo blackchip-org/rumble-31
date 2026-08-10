@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseCard } from "../card/card.ts";
+import { MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
 import type { Hand, Pot, PlayerView, Action } from "../game/types.ts";
 import { trade, exchange, knock, strategyFunc } from "../game/types.ts";
 import { Human, announceTurn, thinking } from "./cli.ts";
@@ -118,7 +119,7 @@ test("announceTurn writes the turn-start line before delegating", () => {
   assert.equal(out.toString(), "South's turn\n");
 });
 
-test("thinking announces the turn, sleeps 500ms-2s, and delegates to the wrapped strategy", () => {
+test("thinking announces the turn, sleeps MIN_BOT_THINK_TIME-MAX_BOT_THINK_TIME, and delegates to the wrapped strategy", () => {
   const { slept, restore } = withMockSleep();
   try {
     const inner = strategyFunc(() => knock());
@@ -129,7 +130,7 @@ test("thinking announces the turn, sleeps 500ms-2s, and delegates to the wrapped
     assert.deepEqual(got, knock());
     assert.equal(out.toString(), "North's turn\n");
     assert.equal(slept.length, 1);
-    assert.ok((slept[0] as number) >= 500 && (slept[0] as number) < 2000);
+    assert.ok((slept[0] as number) >= MIN_BOT_THINK_TIME && (slept[0] as number) < MAX_BOT_THINK_TIME);
   } finally {
     restore();
   }
