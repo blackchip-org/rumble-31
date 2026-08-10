@@ -2,13 +2,13 @@
 // bots, until the game ends. Mirrors src/main.ts's (the CLI's) flow,
 // rendering to the DOM instead of a Writer.
 
-import { cardToString } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { Bot } from "../bot/bot.ts";
-import type { RoundOutcome, Game } from "../game/game.ts";
 import { newGame } from "../game/game.ts";
 import { seatName } from "../game/seat.ts";
 import type { Action, Hand, PlayerView, Strategy, TurnRecord } from "../game/types.ts";
+import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnStartLine, turnLines } from "../log.ts";
+import { version } from "../version.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
 import { renderStrikes, setPanelState, setScore } from "./panels.ts";
 import { appendLogLine, renderBacks, renderCards } from "./render.ts";
@@ -65,16 +65,16 @@ function setActiveSeat(seat: number): void {
 }
 
 // withTurnUi wraps a seat's strategy so that, before deciding, it
-// highlights that seat's panel — and for bots, also logs "seat <seat>
-// is thinking..." and pauses for a random duration between 500ms and 2
+// highlights that seat's panel and logs the "Seat's turn" line — and
+// for bots, also pauses for a random duration between 500ms and 2
 // seconds, the non-blocking, setTimeout-based analog of cli/cli.ts's
 // thinking(), which pauses via a blocking sleep instead.
 function withTurnUi(seat: number, inner: Strategy): Strategy {
   return {
     async decide(v: PlayerView): Promise<Action> {
       setActiveSeat(seat);
+      appendLogLine(logEl, turnStartLine(seat));
       if (seat !== 0) {
-        appendLogLine(logEl, `${seatName(seat)} is thinking...`);
         await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1500));
       }
       return inner.decide(v);
@@ -96,66 +96,20 @@ function pauseBetweenRounds(ms: number): Promise<void> {
   });
 }
 
-// renderTurn logs only publicly known information for every seat, human
-// and bot alike: the action taken, and for exchanges/trades, the pot
-// afterward. It never logs a hand. Mirrors cli/cli.ts's newNarrator.
+// renderTurn logs the turn per src/log.ts, then keeps South's own
+// hand/score panel live across every turn (it's otherwise only
+// refreshed at deal time and on South's own turns — e.g. a bot's
+// exchange doesn't touch South's hand, but South's own trade/exchange
+// does, and DomActionPrompt isn't asked again until South's next turn).
 function renderTurn(rec: TurnRecord): void {
-  switch (rec.action.type) {
-    case "knock":
-      appendLogLine(logEl, `${seatName(rec.seat)} knocks`);
-      break;
-    case "exchange":
-      appendLogLine(
-        logEl,
-        rec.turnIndex === 0
-          ? `${seatName(rec.seat)} exchanges their entire hand with the pot`
-          : `${seatName(rec.seat)} exchanges their entire hand with the pot and knocks`,
-      );
-      appendLogLine(logEl, `pot: ${rec.potAfter.map(cardToString).join(" ")}`);
-      break;
-    case "trade":
-      appendLogLine(logEl, `${seatName(rec.seat)} trades with the pot`);
-      appendLogLine(logEl, `pot: ${rec.potAfter.map(cardToString).join(" ")}`);
-      break;
+  for (const line of turnLines(rec)) {
+    appendLogLine(logEl, line);
   }
 
-  // South's own hand/score panel is otherwise only refreshed at deal
-  // time and on South's own turns — keep it live across every turn
-  // (e.g. a bot's exchange doesn't touch South's hand, but South's own
-  // trade/exchange does, and DomActionPrompt isn't asked again until
-  // South's next turn).
   if (rec.seat === 0) {
     renderCards(seatOf(0).hand, rec.handAfter);
     setScore(seatOf(0).score, rec.scoreAfter);
   }
-}
-
-function printRoundRecap(roundNum: number, outcome: RoundOutcome, strikes: readonly number[]): void {
-  appendLogLine(logEl, `round ${roundNum} result:`);
-  for (const pr of outcome.result.players) {
-    let note = "";
-    if (outcome.eliminated.includes(pr.seat)) {
-      note = " (struck, eliminated)";
-    } else if (outcome.struck.includes(pr.seat)) {
-      note = " (struck)";
-    }
-    appendLogLine(
-      logEl,
-      `${seatName(pr.seat)}  hand ${pr.hand.map(cardToString).join(" ")}  score ${pr.score.toFixed(1)}  rank ${pr.rank}  strikes ${strikes[pr.seat] as number}${note}`,
-    );
-
-    setScore(seatOf(pr.seat).score, pr.score);
-  }
-}
-
-function printGameResult(g: Game): void {
-  appendLogLine(logEl, "=== game over ===");
-  for (let seat = 0; seat < 4; seat++) {
-    appendLogLine(logEl, `${seatName(seat)}  ${g.strikes[seat]} strikes${g.eliminated[seat] ? " (eliminated)" : ""}`);
-  }
-  const winners = g.winners();
-  appendLogLine(logEl, `winners: [${winners.map(seatName).join(" ")}]`);
-  appendLogLine(logEl, winners.includes(0) ? "You won the game!" : "You did not win this game.");
 }
 
 async function main(): Promise<void> {
@@ -174,42 +128,40 @@ async function main(): Promise<void> {
     renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
   }
 
-  let interactive = !g.eliminated[0];
-  if (!interactive) {
-    appendLogLine(logEl, "You start this game already eliminated.");
+  for (const line of gameStartLines(seed, version)) {
+    appendLogLine(logEl, line);
   }
 
-  for (let roundNum = 1; g.active(); roundNum++) {
-    if (interactive) {
-      appendLogLine(logEl, `=== round ${roundNum} ===`);
-      g.onDeal = (pot, hands) => {
-        renderCards(potEl, pot);
-        for (let seat = 1; seat < 4; seat++) {
-          if (!g.eliminated[seat]) {
-            renderBacks(seatOf(seat).hand, 3);
-            setScore(seatOf(seat).score, null);
-          }
+  for (let roundNum = 1; g.active() && !g.eliminated[0]; roundNum++) {
+    g.onDeal = (pot, hands) => {
+      renderCards(potEl, pot);
+      for (let seat = 1; seat < 4; seat++) {
+        if (!g.eliminated[seat]) {
+          renderBacks(seatOf(seat).hand, 3);
+          setScore(seatOf(seat).score, null);
         }
-        // South's own hand and score are always public, so they're
-        // revealed as soon as they're dealt rather than waiting for
-        // South's first turn (firstSeat, and so turn order, varies by
-        // round).
-        const southHand = hands.get(0) as Hand;
-        renderCards(seatOf(0).hand, southHand);
-        setScore(seatOf(0).score, score(southHand));
-      };
-      g.onTurn = renderTurn;
-    } else {
-      g.onDeal = undefined;
-      g.onTurn = undefined;
-    }
+      }
+      // South's own hand and score are always public, so they're
+      // revealed as soon as they're dealt rather than waiting for
+      // South's first turn (turn order varies by round).
+      const southHand = hands.get(0) as Hand;
+      renderCards(seatOf(0).hand, southHand);
+      setScore(seatOf(0).score, score(southHand));
+
+      for (const line of roundStartLines(roundNum, pot, southHand)) {
+        appendLogLine(logEl, line);
+      }
+    };
+    g.onTurn = renderTurn;
 
     const outcome = await g.playRound();
-    if (!interactive) {
-      continue;
-    }
 
-    printRoundRecap(roundNum, outcome, g.strikes);
+    for (const line of roundRecapLines(outcome, g.strikes)) {
+      appendLogLine(logEl, line);
+    }
+    for (const pr of outcome.result.players) {
+      setScore(seatOf(pr.seat).score, pr.score);
+    }
     for (let seat = 0; seat < 4; seat++) {
       renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
       if (g.eliminated[seat]) {
@@ -218,18 +170,15 @@ async function main(): Promise<void> {
       }
     }
 
-    if (outcome.eliminated.includes(0)) {
-      appendLogLine(logEl, "You have been eliminated. The rest of the game will play out silently...");
-      interactive = false;
-      continue;
-    }
-    if (g.active()) {
+    if (g.active() && !g.eliminated[0]) {
       appendLogLine(logEl, "Starting next round... (click to skip)");
       await pauseBetweenRounds(3000);
     }
   }
 
-  printGameResult(g);
+  for (const line of gameEndLines(g)) {
+    appendLogLine(logEl, line);
+  }
 }
 
 main().catch((err: unknown) => {

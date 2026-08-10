@@ -65,3 +65,6 @@ Between rounds, play pauses for three seconds before the next round
 starts automatically. The log panel notes the pause. Clicking anywhere
 on the screen skips the remainder of the wait.
 
+The game ends immediately the moment South is eliminated, per
+specs/cli.md — the rest of the bots' contest is never played out.
+

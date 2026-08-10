@@ -49,10 +49,16 @@ export function renderBacks(container: HTMLElement, count: number): void {
 }
 
 // appendLogLine appends one line of text to container (the running game
-// log) and scrolls it into view.
+// log) and scrolls it into view. An empty line renders as a <br> — an
+// empty <p> has no line box to give it height, so it wouldn't be
+// visible as a blank line otherwise.
 export function appendLogLine(container: HTMLElement, text: string): void {
-  const p = document.createElement("p");
-  p.textContent = text;
-  container.appendChild(p);
+  if (text === "") {
+    container.appendChild(document.createElement("br"));
+  } else {
+    const p = document.createElement("p");
+    p.textContent = text;
+    container.appendChild(p);
+  }
   container.scrollTop = container.scrollHeight;
 }

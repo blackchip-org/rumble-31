@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseCard, cardConsole } from "../card/card.ts";
-import type { Hand, Pot, PlayerView, TurnRecord, Action } from "../game/types.ts";
+import { parseCard } from "../card/card.ts";
+import type { Hand, Pot, PlayerView, Action } from "../game/types.ts";
 import { trade, exchange, knock, strategyFunc } from "../game/types.ts";
-import { Human, dealPot, thinking, newNarrator, renderCards } from "./cli.ts";
+import { Human, announceTurn, thinking } from "./cli.ts";
 import { arrayLineReader, bufferWriter, clock } from "./io.ts";
 
 function mustHand(...notation: [string, string, string]): Hand {
@@ -108,97 +108,17 @@ test("Human.decide", () => {
   }
 });
 
-test("newNarrator", () => {
-  const cases: Array<{ name: string; rec: TurnRecord; wantContains: string[]; wantExcludes?: string[] }> = [
-    {
-      name: "trade reveals only the seat and the public pot",
-      rec: {
-        turnIndex: 1,
-        seat: 1,
-        action: trade(0, 0),
-        handBefore: mustHand("7h", "8c", "9s"),
-        handAfter: mustHand("Ah", "8c", "9s"),
-        potBefore: mustPot("Ah", "Kd", "Qc"),
-        potAfter: mustPot("7h", "Kd", "Qc"),
-        scoreAfter: 0,
-      },
-      wantContains: ["West", cardConsole(parseCard("7h")), cardConsole(parseCard("Kd")), cardConsole(parseCard("Qc"))],
-      wantExcludes: [cardConsole(parseCard("8c")), cardConsole(parseCard("9s"))],
-    },
-    {
-      name: "knock reveals nothing about the hand",
-      rec: {
-        turnIndex: 1,
-        seat: 3,
-        action: knock(),
-        handBefore: mustHand("7h", "8c", "9s"),
-        handAfter: mustHand("7h", "8c", "9s"),
-        potBefore: mustPot("Ah", "Kd", "Qc"),
-        potAfter: mustPot("Ah", "Kd", "Qc"),
-        scoreAfter: 0,
-      },
-      wantContains: ["East", "knocks"],
-      wantExcludes: [cardConsole(parseCard("7h")), cardConsole(parseCard("8c")), cardConsole(parseCard("9s"))],
-    },
-    {
-      name: "exchange on the round's first turn does not mention knocking",
-      rec: {
-        turnIndex: 0,
-        seat: 0,
-        action: exchange(),
-        handBefore: mustHand("7h", "8c", "9s"),
-        handAfter: mustHand("Ah", "Kd", "Qc"),
-        potBefore: mustPot("Ah", "Kd", "Qc"),
-        potAfter: mustPot("7h", "8c", "9s"),
-        scoreAfter: 0,
-      },
-      wantContains: ["South", "exchanges"],
-      wantExcludes: ["knock"],
-    },
-    {
-      name: "exchange after the first turn also announces a knock",
-      rec: {
-        turnIndex: 4,
-        seat: 2,
-        action: exchange(),
-        handBefore: mustHand("7h", "8c", "9s"),
-        handAfter: mustHand("Ah", "Kd", "Qc"),
-        potBefore: mustPot("Ah", "Kd", "Qc"),
-        potAfter: mustPot("7h", "8c", "9s"),
-        scoreAfter: 0,
-      },
-      wantContains: ["North", "exchanges", "knocks"],
-    },
-  ];
+test("announceTurn writes the turn-start line before delegating", () => {
+  const inner = strategyFunc(() => knock());
+  const out = bufferWriter();
+  const strat = announceTurn(0, inner, out);
 
-  for (const { name, rec, wantContains, wantExcludes } of cases) {
-    const out = bufferWriter();
-    newNarrator(out)(rec);
-    const got = out.toString();
-    for (const want of wantContains) {
-      assert.ok(got.includes(want), `${name}: output ${JSON.stringify(got)} should contain ${JSON.stringify(want)}`);
-    }
-    for (const exclude of wantExcludes ?? []) {
-      assert.ok(!got.includes(exclude), `${name}: output ${JSON.stringify(got)} should NOT contain ${JSON.stringify(exclude)}`);
-    }
-  }
+  const got = strat.decide(baseView({}));
+  assert.deepEqual(got, knock());
+  assert.equal(out.toString(), "South's turn\n");
 });
 
-test("dealPot prints each card after a 100ms pacing sleep", () => {
-  const { slept, restore } = withMockSleep();
-  try {
-    const pot = mustPot("7h", "8c", "9s");
-    const out = bufferWriter();
-    dealPot(out, pot);
-
-    assert.equal(out.toString(), `initial pot: ${renderCards(pot)}\n`);
-    assert.deepEqual(slept, [100, 100, 100]);
-  } finally {
-    restore();
-  }
-});
-
-test("thinking announces the seat, sleeps 500ms-2s, and delegates to the wrapped strategy", () => {
+test("thinking announces the turn, sleeps 500ms-2s, and delegates to the wrapped strategy", () => {
   const { slept, restore } = withMockSleep();
   try {
     const inner = strategyFunc(() => knock());
@@ -207,7 +127,7 @@ test("thinking announces the seat, sleeps 500ms-2s, and delegates to the wrapped
 
     const got = strat.decide(baseView({}));
     assert.deepEqual(got, knock());
-    assert.ok(out.toString().includes("North is thinking..."));
+    assert.equal(out.toString(), "North's turn\n");
     assert.equal(slept.length, 1);
     assert.ok((slept[0] as number) >= 500 && (slept[0] as number) < 2000);
   } finally {

@@ -30,15 +30,13 @@ afterward. A bot's hand is never shown, matching the game engine's
 rule that a strategy never sees another player's hand.
 
 The CLI plays a full game, per specs/rules.md, not a single round. After each
-round the player is still part of, show that round's final hands, scores, ranks,
-and the current number of strikes, noting which seats were struck and which
-were eliminated, then pause for the player to press enter before the next round
-is dealt.
+round the player is still part of, show that round's recap (see specs/log.md
+for the exact log format), then pause for the player to press enter before
+the next round is dealt.
 
-Once the player is eliminated, the rest of the game plays out
-silently: no more dealing delays, thinking delays, turn narration,
-recaps, or pauses. Only the game's final result — every seat's
-strike count and the winner(s) — is shown once it ends.
+The game ends immediately the moment the player is eliminated — the
+rest of the bots' contest is never played out. Only the game's final
+result is shown once it ends.
 
 Wherever a seat is shown to the player, it is identified by its
 cardinal name (South, West, North, East — see specs/rules.md), not its
@@ -50,8 +48,7 @@ cards as follows:
 - When showing the initial pot, simulate dealing with a 100ms sleep before
 showing each card
 - When its a bot's turn, simulate its thinking with a random sleep between
-500ms and 2 seconds. Before sleeping print out "x is thinking..." where
-x is the cardinal name of the bot's seat
+500ms and 2 seconds
 
 ## Command Line Options
 
@@ -63,4 +60,6 @@ given for each player. This is a sequence of four digits, where the first
 digit is the strikes to give to seat 0, the second digit is the strikes to
 give to seat 1, the third to seat 2, and the fourth to seat 3. For example,
 "-strikes 1121" will give each seat a strike except for seat 2, which gets
-two. A seat given 3 or more strikes starts the game already eliminated.
+two. A seat given 3 or more strikes starts the game already eliminated. If
+that seat is seat 0, the game is over before it starts: no rounds are
+played at all.

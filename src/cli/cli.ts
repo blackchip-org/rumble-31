@@ -2,8 +2,8 @@
 
 import { cardConsole } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
-import { seatName } from "../game/seat.ts";
-import type { Action, Pot, PlayerView, Strategy, TurnRecord } from "../game/types.ts";
+import { turnStartLine } from "../log.ts";
+import type { Action, PlayerView, Strategy } from "../game/types.ts";
 import { exchange, knock, trade } from "../game/types.ts";
 import type { LineReader, Writer } from "./io.ts";
 import { clock } from "./io.ts";
@@ -14,58 +14,32 @@ export function renderCards(cards: readonly Card[]): string {
   return cards.map(cardConsole).join(" ");
 }
 
-// dealPot prints the pot label followed by each of its cards, pausing
-// 100ms before each to simulate dealing.
-export function dealPot(out: Writer, pot: Pot): void {
-  out.write("initial pot: ");
-  pot.forEach((c, i) => {
-    clock.sleep(100);
-    if (i > 0) {
-      out.write(" ");
-    }
-    out.write(cardConsole(c));
-  });
-  out.write("\n");
-}
-
-// thinking wraps a strategy so that, before deciding, it prints "seat
-// <seat> is thinking..." to out and pauses for a random duration
-// between 500ms and 2 seconds, simulating a bot thinking. Intended for
-// bot seats only.
-export function thinking(seat: number, inner: Strategy, out: Writer): Strategy {
+// announceTurn wraps a strategy so that, before deciding, it writes the
+// "Seat's turn" log line. Used for every seat, human included.
+export function announceTurn(seat: number, inner: Strategy, out: Writer): Strategy {
   return {
     decide(v: PlayerView): Action | Promise<Action> {
-      out.write(`${seatName(seat)} is thinking...\n`);
-      clock.sleep(500 + Math.random() * 1500);
+      out.write(`${turnStartLine(seat)}\n`);
       return inner.decide(v);
     },
   };
 }
 
-// newNarrator returns a function suitable for a Round's onTurn field. It
-// prints only publicly known information for every seat, human and bot
-// alike: the action taken, and for exchanges/trades, the pot
-// afterward. It never prints a hand.
-export function newNarrator(out: Writer): (rec: TurnRecord) => void {
-  return (rec: TurnRecord) => {
-    switch (rec.action.type) {
-      case "knock":
-        out.write(`\n${seatName(rec.seat)} knocks\n`);
-        break;
-      case "exchange":
-        if (rec.turnIndex === 0) {
-          out.write(`\n${seatName(rec.seat)} exchanges their entire hand with the pot\n`);
-        } else {
-          out.write(`\n${seatName(rec.seat)} exchanges their entire hand with the pot and knocks\n`);
-        }
-        out.write(`pot: ${renderCards(rec.potAfter)}\n`);
-        break;
-      case "trade":
-        out.write(`\n${seatName(rec.seat)} trades with the pot\n`);
-        out.write(`pot: ${renderCards(rec.potAfter)}\n`);
-        break;
-    }
-  };
+// thinking wraps a strategy so that, before deciding, it writes the
+// "Seat's turn" log line, then pauses for a random duration between
+// 500ms and 2 seconds, simulating a bot thinking. Intended for bot
+// seats only.
+export function thinking(seat: number, inner: Strategy, out: Writer): Strategy {
+  return announceTurn(
+    seat,
+    {
+      decide(v: PlayerView): Action | Promise<Action> {
+        clock.sleep(500 + Math.random() * 1500);
+        return inner.decide(v);
+      },
+    },
+    out,
+  );
 }
 
 function parseStrictInt(s: string): number | undefined {

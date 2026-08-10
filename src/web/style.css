@@ -290,7 +290,7 @@ body {
   position: fixed;
   right: 1.25rem;
   bottom: 1.25rem;
-  width: 320px;
+  width: 400px;
   max-height: min(260px, 28vh);
   background: var(--panel);
   border: 1px solid var(--panel-border);
