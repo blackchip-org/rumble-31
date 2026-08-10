@@ -1,15 +1,27 @@
-import type { Card, Suit } from "../card/card.ts";
+import type { Card, Rank, Suit } from "../card/card.ts";
+import cardsUrl from "../../assets/cards.png";
+import { SHEET_COLS, SHEET_ROWS, TILE_H, TILE_W, tilePosition } from "./cardSheet.ts";
 
-// suitGlyph and suitClass mirror card.ts's own console rendering
-// (specs/cards.md), but as a Unicode glyph plus a CSS class instead of
-// an ANSI escape.
-const SUIT_GLYPH: Record<Suit, string> = { s: "♠", h: "♥", d: "♦", c: "♣" };
-const SUIT_CLASS: Record<Suit, string> = { s: "suit-black", h: "suit-red", d: "suit-green", c: "suit-blue" };
+// DISPLAY_W/H is the on-screen size of one card, scaled down from the
+// sheet's native 147x169 tile while keeping its aspect ratio.
+const DISPLAY_W = 64;
+const DISPLAY_H = (TILE_H / TILE_W) * DISPLAY_W;
+
+const RANK_NAME: Record<Rank, string> = { A: "Ace", "7": "7", "8": "8", "9": "9", T: "10", J: "Jack", Q: "Queen", K: "King" };
+const SUIT_NAME: Record<Suit, string> = { s: "Spades", h: "Hearts", d: "Diamonds", c: "Clubs" };
 
 export function cardEl(c: Card): HTMLElement {
-  const el = document.createElement("span");
-  el.className = `card ${SUIT_CLASS[c.suit]}`;
-  el.textContent = `${c.rank}${SUIT_GLYPH[c.suit]}`;
+  const { row, col } = tilePosition(c);
+
+  const el = document.createElement("div");
+  el.className = "card";
+  el.setAttribute("role", "img");
+  el.setAttribute("aria-label", `${RANK_NAME[c.rank]} of ${SUIT_NAME[c.suit]}`);
+  el.style.width = `${DISPLAY_W}px`;
+  el.style.height = `${DISPLAY_H}px`;
+  el.style.backgroundImage = `url(${cardsUrl})`;
+  el.style.backgroundSize = `${SHEET_COLS * DISPLAY_W}px ${SHEET_ROWS * DISPLAY_H}px`;
+  el.style.backgroundPosition = `${-(col - 1) * DISPLAY_W}px ${-(row - 1) * DISPLAY_H}px`;
   return el;
 }
 

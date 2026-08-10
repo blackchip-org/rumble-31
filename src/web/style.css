@@ -35,32 +35,14 @@ h1 {
 .cards {
   display: flex;
   gap: 0.5rem;
-  min-height: 3rem;
+  min-height: 4.75rem;
 }
 
 .card {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.5rem;
-  padding: 0.5rem 0.25rem;
-  background: #fff;
+  flex-shrink: 0;
+  background-repeat: no-repeat;
   border-radius: 6px;
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.suit-black {
-  color: #111;
-}
-.suit-red {
-  color: #c62828;
-}
-.suit-green {
-  color: #2e7d32;
-}
-.suit-blue {
-  color: #1565c0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .actions {
