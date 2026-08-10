@@ -1,6 +1,6 @@
 import { newGame } from "./game.ts";
 import { Rng } from "../rng.ts";
-import type { Pot, Result, Strategy, TurnRecord } from "./types.ts";
+import type { Hand, Pot, Result, Strategy, TurnRecord } from "./types.ts";
 
 // GameOutcome records one game's result within a match: the seats
 // struck this round, and any eliminated as a result.
@@ -20,9 +20,9 @@ export class Match {
   strikes: [number, number, number, number];
   eliminated: [boolean, boolean, boolean, boolean];
 
-  // onDeal, if set, is called with each game's freshly dealt pot before
-  // that game's first turn.
-  onDeal: ((pot: Pot) => void) | undefined;
+  // onDeal, if set, is called with each game's freshly dealt pot, and
+  // every dealt-in seat's hand, before that game's first turn.
+  onDeal: ((pot: Pot, hands: ReadonlyMap<number, Hand>) => void) | undefined;
   // onTurn, if set, is passed through to each game's own onTurn.
   onTurn: ((rec: TurnRecord) => void) | undefined;
 
@@ -72,7 +72,10 @@ export class Match {
     const seats = active.map((seat) => ({ seat, strategy: strategies[seat] as Strategy }));
 
     const g = newGame(this.rng.nextSeed(), seats);
-    this.onDeal?.(g.pot);
+    this.onDeal?.(
+      g.pot,
+      new Map(g.players.map((p) => [p.seat, p.hand])),
+    );
     g.onTurn = this.onTurn;
 
     const { result } = await g.run();

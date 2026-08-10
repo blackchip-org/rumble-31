@@ -1,71 +1,89 @@
-import type { PlayerView } from "../game/types.ts";
-import type { ActionPrompt } from "./actionPrompt.ts";
+import { score } from "../card/score.ts";
+import type { Action, PlayerView, Strategy } from "../game/types.ts";
+import { exchange, knock } from "../game/types.ts";
+import { setScore } from "./panels.ts";
 import { renderCards } from "./render.ts";
+import { TradeSelection } from "./tradeSelection.ts";
 
-interface Choice {
-  value: number;
-  label: string;
-}
-
-// optionLabel returns the button text for menu option n out of max
-// options, matching the CLI's own wording (cli/cli.ts's Human.decide).
-function optionLabel(n: number, max: number): string {
-  switch (n) {
-    case 1:
-      return "Trade one card with the pot";
-    case 2:
-      return max === 2 ? "Exchange your entire hand with the pot" : "Exchange your entire hand with the pot (this also knocks)";
-    case 3:
-      return "Knock";
-    default:
-      throw new Error(`domActionPrompt: no label for option ${n}`);
-  }
-}
-
-// DomActionPrompt is the real, browser-backed ActionPrompt: it renders
-// the pot/hand into the given elements and turns each choice into a row
-// of buttons in actionsEl, resolving once one is clicked.
-export class DomActionPrompt implements ActionPrompt {
+// DomActionPrompt is South's Strategy: it renders the pot and the
+// player's hand (score box included — South's score is always public),
+// then resolves once the player either clicks a hand-card/pot-card pair
+// (a trade, in either order) or clicks the standing Take Pot / Knock
+// buttons. Knock is disabled on the game's first turn, when it isn't a
+// legal move.
+export class DomActionPrompt implements Strategy {
   private potEl: HTMLElement;
   private handEl: HTMLElement;
-  private actionsEl: HTMLElement;
+  private scoreEl: HTMLElement;
+  private takePotBtn: HTMLButtonElement;
+  private knockBtn: HTMLButtonElement;
 
-  constructor(potEl: HTMLElement, handEl: HTMLElement, actionsEl: HTMLElement) {
+  constructor(potEl: HTMLElement, handEl: HTMLElement, scoreEl: HTMLElement, takePotBtn: HTMLButtonElement, knockBtn: HTMLButtonElement) {
     this.potEl = potEl;
     this.handEl = handEl;
-    this.actionsEl = actionsEl;
+    this.scoreEl = scoreEl;
+    this.takePotBtn = takePotBtn;
+    this.knockBtn = knockBtn;
   }
 
-  render(view: PlayerView): void {
+  decide(view: PlayerView): Promise<Action> {
     renderCards(this.potEl, view.pot);
     renderCards(this.handEl, view.hand);
-  }
+    setScore(this.scoreEl, score(view.hand));
 
-  chooseOption(max: number): Promise<number> {
-    const choices: Choice[] = [];
-    for (let n = 1; n <= max; n++) {
-      choices.push({ value: n, label: optionLabel(n, max) });
-    }
-    return this.choose(choices);
-  }
+    const handCards = Array.from(this.handEl.children) as HTMLElement[];
+    const potCards = Array.from(this.potEl.children) as HTMLElement[];
+    const selection = new TradeSelection();
 
-  chooseCardIndex(label: string): Promise<number> {
-    const choices: Choice[] = [0, 1, 2].map((i) => ({ value: i, label: `${label}: position ${i + 1}` }));
-    return this.choose(choices);
-  }
-
-  private choose(choices: readonly Choice[]): Promise<number> {
     return new Promise((resolve) => {
-      this.actionsEl.replaceChildren();
-      for (const choice of choices) {
-        const btn = document.createElement("button");
-        btn.textContent = choice.label;
-        btn.addEventListener("click", () => {
-          this.actionsEl.replaceChildren();
-          resolve(choice.value);
+      let settled = false;
+
+      const syncSelection = () => {
+        handCards.forEach((el, i) => el.classList.toggle("is-selected", selection.handIndex() === i));
+        potCards.forEach((el, i) => el.classList.toggle("is-selected", selection.potIndex() === i));
+      };
+
+      const finish = (action: Action) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        this.takePotBtn.disabled = true;
+        this.knockBtn.disabled = true;
+        this.takePotBtn.removeEventListener("click", onTakePot);
+        this.knockBtn.removeEventListener("click", onKnock);
+        handCards.forEach((el) => el.classList.remove("is-selected"));
+        potCards.forEach((el) => el.classList.remove("is-selected"));
+        resolve(action);
+      };
+
+      const onTakePot = () => finish(exchange());
+      const onKnock = () => finish(knock());
+
+      this.takePotBtn.disabled = false;
+      this.knockBtn.disabled = view.isFirstTurnOfGame;
+      this.takePotBtn.addEventListener("click", onTakePot);
+      this.knockBtn.addEventListener("click", onKnock);
+
+      handCards.forEach((el, i) => {
+        el.addEventListener("click", () => {
+          selection.clickHand(i);
+          syncSelection();
+          if (selection.ready()) {
+            finish(selection.action());
+          }
         });
-        this.actionsEl.appendChild(btn);
-      }
+      });
+
+      potCards.forEach((el, i) => {
+        el.addEventListener("click", () => {
+          selection.clickPot(i);
+          syncSelection();
+          if (selection.ready()) {
+            finish(selection.action());
+          }
+        });
+      });
     });
   }
 }
