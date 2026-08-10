@@ -3,7 +3,7 @@ Version v0.1, built on 9 Aug 2026 at 20:58
 You are South
 seed: 1
 
-=== game 1 ===
+=== round 1 ===
 initial pot: [47;30m 7♠  [0m [47;30m 8♠  [0m [47;34m 7♣  [0m
 East is thinking...
 
@@ -70,14 +70,14 @@ North is thinking...
 
 North knocks
 
-game 1 result:
+round 1 result:
   South  hand [47;31m Q♥  [0m [47;31m 9♥  [0m [47;31m J♥  [0m  score 29.0  rank 1  strikes 0
   West  hand [47;32m T♦  [0m [47;32m 9♦  [0m [47;32m 8♦  [0m  score 27.0  rank 3  strikes 0
   North  hand [47;34m 9♣  [0m [47;34m 7♣  [0m [47;34m K♣  [0m  score 26.0  rank 4  strikes 1  (struck)
   East  hand [47;30m 8♠  [0m [47;30m T♠  [0m [47;30m A♠  [0m  score 29.0  rank 1  strikes 0
 
 press enter to continue...
-=== game 2 ===
+=== round 2 ===
 initial pot: [47;34m 7♣  [0m [47;30m Q♠  [0m [47;30m A♠  [0m
 North is thinking...
 
@@ -125,14 +125,14 @@ North is thinking...
 
 North knocks
 
-game 2 result:
+round 2 result:
   South  hand [47;31m 9♥  [0m [47;30m 7♠  [0m [47;31m 7♥  [0m  score 16.0  rank 4  strikes 1  (struck)
   West  hand [47;31m K♥  [0m [47;31m J♥  [0m [47;31m T♥  [0m  score 30.0  rank 2  strikes 0
   North  hand [47;30m A♠  [0m [47;30m K♠  [0m [47;30m Q♠  [0m  score 31.0  rank 1  strikes 1
   East  hand [47;34m 9♣  [0m [47;34m Q♣  [0m [47;34m 7♣  [0m  score 26.0  rank 3  strikes 0
 
 press enter to continue...
-=== game 3 ===
+=== round 3 ===
 initial pot: [47;31m A♥  [0m [47;34m Q♣  [0m [47;31m J♥  [0m
 
 pot:       [47;31m A♥  [0m [47;34m Q♣  [0m [47;31m J♥  [0m
@@ -209,14 +209,14 @@ choose an action:
 South trades with the pot
 pot: [47;31m 7♥  [0m [47;30m 7♠  [0m [47;32m A♦  [0m
 
-game 3 result:
+round 3 result:
   South  hand [47;31m A♥  [0m [47;31m T♥  [0m [47;32m J♦  [0m  score 21.0  rank 3  strikes 1
   West  hand [47;32m K♦  [0m [47;32m 9♦  [0m [47;32m 7♦  [0m  score 26.0  rank 2  strikes 0
   North  hand [47;34m Q♣  [0m [47;30m 8♠  [0m [47;34m J♣  [0m  score 20.0  rank 4  strikes 2  (struck)
   East  hand [47;31m Q♥  [0m [47;31m J♥  [0m [47;31m 8♥  [0m  score 28.0  rank 1  strikes 0
 
 press enter to continue...
-=== game 4 ===
+=== round 4 ===
 initial pot: [47;34m J♣  [0m [47;31m K♥  [0m [47;32m K♦  [0m
 
 pot:       [47;34m J♣  [0m [47;31m K♥  [0m [47;32m K♦  [0m
@@ -300,14 +300,14 @@ North is thinking...
 
 North knocks
 
-game 4 result:
+round 4 result:
   South  hand [47;30m 8♠  [0m [47;31m A♥  [0m [47;32m J♦  [0m  score 11.0  rank 4  strikes 2  (struck)
   West  hand [47;31m Q♥  [0m [47;31m K♥  [0m [47;31m 8♥  [0m  score 28.0  rank 3  strikes 0
   North  hand [47;34m A♣  [0m [47;34m Q♣  [0m [47;34m J♣  [0m  score 31.0  rank 1  strikes 2
   East  hand [47;30m 7♠  [0m [47;32m 7♦  [0m [47;31m 7♥  [0m  score 30.5  rank 2  strikes 0
 
 press enter to continue...
-=== game 5 ===
+=== round 5 ===
 initial pot: [47;31m T♥  [0m [47;32m 9♦  [0m [47;31m 9♥  [0m
 West is thinking...
 
@@ -353,13 +353,13 @@ choose an action:
 South trades with the pot
 pot: [47;34m A♣  [0m [47;31m 7♥  [0m [47;31m 9♥  [0m
 
-game 5 result:
+round 5 result:
   South  hand [47;32m 8♦  [0m [47;31m Q♥  [0m [47;32m 7♦  [0m  score 15.0  rank 4  strikes 3  (struck, eliminated)
   West  hand [47;32m Q♦  [0m [47;32m 9♦  [0m [47;32m T♦  [0m  score 29.0  rank 1  strikes 0
   North  hand [47;30m J♠  [0m [47;34m 9♣  [0m [47;30m T♠  [0m  score 20.0  rank 2  strikes 2
   East  hand [47;31m T♥  [0m [47;30m 8♠  [0m [47;30m Q♠  [0m  score 18.0  rank 3  strikes 0
 
-You have been eliminated. The rest of the match will play out silently...
+You have been eliminated. The rest of the game will play out silently...
 North is thinking...
 East is thinking...
 West is thinking...
@@ -387,11 +387,11 @@ East is thinking...
 West is thinking...
 East is thinking...
 
-=== match over ===
+=== game over ===
   South  3 strikes  (eliminated)
   West  3 strikes  (eliminated)
   North  3 strikes  (eliminated)
   East  1 strikes
 
 winners: [East]
-You did not win this match.
+You did not win this game.

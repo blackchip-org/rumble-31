@@ -17,11 +17,11 @@ player's hand. If the player is trading with the pot, the first question
 should be which card to select from the pot followed by which card from
 the hand.
 
-The program ends when the match is over.
+The program ends when the game is over.
 
 On every turn, the player is offered a trade, an exchange, or a
-knock. On every turn but the game's first, the exchange option is
-labeled as also ending the game (knocking), since it does everywhere
+knock. On every turn but the round's first, the exchange option is
+labeled as also ending the round (knocking), since it does everywhere
 but the first turn.
 
 When a bot takes its turn, only publicly known information is shown:
@@ -29,15 +29,15 @@ the action it took (exchanged with the pot, or knocked) and the pot
 afterward. A bot's hand is never shown, matching the game engine's
 rule that a strategy never sees another player's hand.
 
-The CLI plays a full match, per specs/rules.md, not a single game. After each
-game the player is still part of, show that game's final hands, scores, ranks,
+The CLI plays a full game, per specs/rules.md, not a single round. After each
+round the player is still part of, show that round's final hands, scores, ranks,
 and the current number of strikes, noting which seats were struck and which
-were eliminated, then pause for the player to press enter before the next game
+were eliminated, then pause for the player to press enter before the next round
 is dealt.
 
-Once the player is eliminated, the rest of the match plays out
+Once the player is eliminated, the rest of the game plays out
 silently: no more dealing delays, thinking delays, turn narration,
-recaps, or pauses. Only the match's final result — every seat's
+recaps, or pauses. Only the game's final result — every seat's
 strike count and the winner(s) — is shown once it ends.
 
 Wherever a seat is shown to the player, it is identified by its
@@ -63,4 +63,4 @@ given for each player. This is a sequence of four digits, where the first
 digit is the strikes to give to seat 0, the second digit is the strikes to
 give to seat 1, the third to seat 2, and the fourth to seat 3. For example,
 "-strikes 1121" will give each seat a strike except for seat 2, which gets
-two. A seat given 3 or more strikes starts the match already eliminated.
+two. A seat given 3 or more strikes starts the game already eliminated.

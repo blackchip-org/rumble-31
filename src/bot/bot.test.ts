@@ -18,7 +18,7 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
     hand: mustHand("7c", "8d", "9s"),
     pot: mustPot("Kc", "Kd", "Ks"),
     seat: 0,
-    isFirstTurnOfGame: false,
+    isFirstTurnOfRound: false,
     ownTurnNumber: 1,
     ...overrides,
   };
@@ -99,7 +99,7 @@ test("decide on the first turn", () => {
     const v = baseView({
       hand: mustHand(...hand),
       pot: mustPot(...pot),
-      isFirstTurnOfGame: true,
+      isFirstTurnOfRound: true,
       ownTurnNumber: 1,
     });
     const b = new Bot();

@@ -10,14 +10,14 @@ of the following ranks:
 
 Other cards are removed and not used for this game. 
 
-A match always starts with four players, seated 0 through 3. As in
+A game always starts with four players, seated 0 through 3. As in
 Bridge, each seat also has a cardinal name: seat 0 is South, seat 1 is
 West, seat 2 is North, and seat 3 is East. Play proceeds clockwise
 through this order: South, West, North, East.
 
-At the beginning of each game, the deck is shuffled, three cards are
+At the beginning of each round, the deck is shuffled, three cards are
 dealt face-down to each player, and three cards are dealt face-up to a
-common pool of cards called the pot. In the first game of a match, the first 
+common pool of cards called the pot. In the first round of a game, the first 
 player is chosen randomly.
 
 The actions on a player's turn are to either:
@@ -28,11 +28,11 @@ The actions on a player's turn are to either:
 
 Exchanging all cards is also a knock except for the first player's first
 turn if they choose that action. Knocking itself is legal on any turn,
-including a game's first.
+including a round's first.
 
 When the turn is over, play continues to the next player in clockwise order. 
 
-The game ends when:
+The round ends when:
 
 - The next time it would be a player's turn if they knocked
 - Immediately when a player has three aces in their hand. 
@@ -56,10 +56,10 @@ Examples:
 - 7h 7d 7c: The total is 30.5
 - Ah Ad Ac: The total is 32
 
-A match is played over a series of games. When a game ends, the player
+A game is played over a series of rounds. When a round ends, the player
 with the lowest score receives a strike. If more than one player is tied
 for the lowest score, they all receive strikes. A player with three strikes
-is removed from the match: starting with the next game, they are no
-longer dealt a hand, do not take turns, and do not appear in game
+is removed from the game: starting with the next round, they are no
+longer dealt a hand, do not take turns, and do not appear in round
 results or the pot. The last remaining player is the winner of the
-match. 
+game. 

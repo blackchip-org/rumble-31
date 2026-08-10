@@ -6,12 +6,12 @@ import { fileURLToPath } from "node:url";
 import { parseCard } from "./card/card.ts";
 import { arrayLineReader, bufferWriter, clock } from "./cli/io.ts";
 import type { Hand } from "./game/types.ts";
-import type { GameOutcome } from "./game/match.ts";
+import type { RoundOutcome } from "./game/game.ts";
 
 function mustHand(...notation: [string, string, string]): Hand {
   return [parseCard(notation[0]), parseCard(notation[1]), parseCard(notation[2])];
 }
-import { parseStrikesArg, printGameRecap, run } from "./main.ts";
+import { parseStrikesArg, printRoundRecap, run } from "./main.ts";
 
 const testdataDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "testdata");
 
@@ -21,12 +21,12 @@ function withDisabledSleep(): () => void {
   return () => (clock.sleep = orig);
 }
 
-// A seat eliminated in an earlier game is simply absent from a later
-// game's result — printGameRecap only has to render whoever actually
+// A seat eliminated in an earlier round is simply absent from a later
+// round's result — printRoundRecap only has to render whoever actually
 // played, with a distinct label for anyone freshly struck/eliminated
 // this round, and their current strike count.
-test("printGameRecap labels struck and eliminated seats, shows strikes, and omits anyone else", () => {
-  const outcome: GameOutcome = {
+test("printRoundRecap labels struck and eliminated seats, shows strikes, and omits anyone else", () => {
+  const outcome: RoundOutcome = {
     result: {
       players: [
         { seat: 0, hand: mustHand("7c", "8d", "9s"), score: 27, rank: 3 },
@@ -41,7 +41,7 @@ test("printGameRecap labels struck and eliminated seats, shows strikes, and omit
   const strikes = [3, 1, 0, 2];
 
   const out = bufferWriter();
-  printGameRecap(out, 7, outcome, strikes);
+  printRoundRecap(out, 7, outcome, strikes);
 
   const got = out.toString();
   assert.ok(got.includes("South") && got.includes("strikes 3") && got.includes("(struck, eliminated)"));
@@ -74,7 +74,7 @@ test("parseStrikesArg", () => {
 });
 
 // End-to-end regression test: with seed 1 and no scripted input (every
-// prompt exhausts immediately and defaults), the match must always
+// prompt exhausts immediately and defaults), the game must always
 // play out to exactly this transcript. Any change to the deal, the
 // bots, the RNG, or the CLI text will show up here as a diff — the
 // fixture was captured from a real run and isn't hand-written.
@@ -91,9 +91,9 @@ test("run produces the recorded transcript for seed 1 with no input", async () =
 });
 
 // Regression test: -strikes lets a bot seat start already eliminated
-// (three or more debug strikes), which must exclude it from game 1's
+// (three or more debug strikes), which must exclude it from round 1's
 // deal and recap entirely, not just label it.
-test("run: a bot seat starting at 3 strikes is excluded from game 1 entirely", async () => {
+test("run: a bot seat starting at 3 strikes is excluded from round 1 entirely", async () => {
   const restore = withDisabledSleep();
   try {
     const out = bufferWriter();
@@ -104,8 +104,8 @@ test("run: a bot seat starting at 3 strikes is excluded from game 1 entirely", a
     });
 
     const got = out.toString();
-    const game1 = got.slice(got.indexOf("=== game 1 ==="), got.indexOf("game 1 result:"));
-    assert.ok(!game1.includes("West is thinking"), "eliminated seat 1 should never take a turn");
+    const round1 = got.slice(got.indexOf("=== round 1 ==="), got.indexOf("round 1 result:"));
+    assert.ok(!round1.includes("West is thinking"), "eliminated seat 1 should never take a turn");
   } finally {
     restore();
   }
@@ -115,7 +115,7 @@ test("run: a bot seat starting at 3 strikes is excluded from game 1 entirely", a
 // eliminated, which must skip interactive play entirely rather than
 // silently hang on a stdin read that never happens, or claim the
 // player was "just" eliminated.
-test("run: seat 0 starting at 3 strikes skips straight to the silent match summary", async () => {
+test("run: seat 0 starting at 3 strikes skips straight to the silent game summary", async () => {
   const restore = withDisabledSleep();
   try {
     const out = bufferWriter();
@@ -126,21 +126,21 @@ test("run: seat 0 starting at 3 strikes skips straight to the silent match summa
     });
 
     const got = out.toString();
-    assert.ok(got.includes("You start this match already eliminated."));
-    assert.ok(!got.includes("=== game 1 ==="), "no interactive game should be shown");
+    assert.ok(got.includes("You start this game already eliminated."));
+    assert.ok(!got.includes("=== round 1 ==="), "no interactive round should be shown");
     assert.ok(!got.includes("You have been eliminated."), "wasn't freshly eliminated, started that way");
-    assert.ok(got.includes("=== match over ==="));
+    assert.ok(got.includes("=== game over ==="));
   } finally {
     restore();
   }
 });
 
 // Exercises the reprompt paths (bad menu choice, bad card selection)
-// early in game 1, then lets input run dry: exhausted input safely
+// early in round 1, then lets input run dry: exhausted input safely
 // defaults (trade index 0/0, or an empty "press enter") rather than
-// hanging or erroring, so the match still reaches a final result with
+// hanging or erroring, so the game still reaches a final result with
 // no further scripting.
-test("invalid input is reprompted, then defaults until the match ends", async () => {
+test("invalid input is reprompted, then defaults until the game ends", async () => {
   const restore = withDisabledSleep();
   try {
     const input = "9\nbanana\n1\nzz\n0\n1\n1\n".split("\n").slice(0, -1);
@@ -149,9 +149,9 @@ test("invalid input is reprompted, then defaults until the match ends", async ()
 
     const got = out.toString();
     for (const want of [
-      "please enter a number from 1 to", // menu reprompt (seat 0's first decide isn't always the game's first turn)
+      "please enter a number from 1 to", // menu reprompt (seat 0's first decide isn't always the round's first turn)
       "please enter 1, 2, or 3",
-      "=== match over ===",
+      "=== game over ===",
       "winners:",
     ]) {
       assert.ok(got.includes(want), `output missing ${JSON.stringify(want)}`);

@@ -29,7 +29,7 @@ Run a single test file directly:
 node --test src/card/score.test.ts
 ```
 
-Play an interactive match:
+Play an interactive game:
 
 ```bash
 npm start

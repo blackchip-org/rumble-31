@@ -8,18 +8,18 @@ appropriate seat name for that player (e.g., North, South, East, West). Any
 card references (such as 7h, 8c, 9d) should be replaced with the actual
 cards for that event.
 
-When the match starts, it should write out the following by substituting
+When the game starts, it should write out the following by substituting
 0.0 with the actual version number, and X with the random number generator
 seed being used.
 
     Welcome to Rumble-31, v0.0
-    Starting match with seed X
+    Starting game with seed X
 
-The log for the start of each game looks like the following. X is the game
+The log for the start of each round looks like the following. X is the round
 number, and Seat shows with seat goes first. A blank line is emitted before
 the log message.
 
-    === Game X ===
+    === Round X ===
     Pot is dealt [7h 8c 9d]
     South is dealt [7h 8c 9d]
     Seat goes first
@@ -43,8 +43,3 @@ When a player knocks, use:
 After the player's action, the pot should be announced again:
 
     Pot is [7h 8c 9d]
-
-
-
-
-

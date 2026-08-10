@@ -1,5 +1,5 @@
 // Rumble-31 game engine types: dealing, turn order, the exchange/knock
-// actions, and end-of-game scoring, per specs/rules.md.
+// actions, and end-of-round scoring, per specs/rules.md.
 
 import type { Card } from "../card/card.ts";
 
@@ -24,15 +24,15 @@ export function trade(potIdx: number, handIdx: number): Action {
 }
 
 // exchange returns an action that swaps the entire hand with the pot.
-// It is legal on any turn. Except on the game's very first turn,
-// choosing it also ends the game the same way a knock does.
+// It is legal on any turn. Except on the round's very first turn,
+// choosing it also ends the round the same way a knock does.
 export function exchange(): Action {
   return { type: "exchange", potIndex: 0, handIndex: 0 };
 }
 
 // knock returns an action that ends the player's turn without
 // exchanging, starting the endgame. It is legal on any turn except the
-// game's first turn.
+// round's first turn.
 export function knock(): Action {
   return { type: "knock", potIndex: 0, handIndex: 0 };
 }
@@ -47,16 +47,16 @@ export interface PlayerView {
   // seat is the acting player's seat (0-3).
   seat: number;
 
-  // isFirstTurnOfGame is true only for the single decide() call made on
-  // the very first turn of the game.
-  isFirstTurnOfGame: boolean;
+  // isFirstTurnOfRound is true only for the single decide() call made on
+  // the very first turn of the round.
+  isFirstTurnOfRound: boolean;
 
   // ownTurnNumber is the 1-based count of this seat's own turns so far,
   // including the current one.
   ownTurnNumber: number;
 }
 
-// Strategy decides an action for a player given their view of the game.
+// Strategy decides an action for a player given their view of the round.
 // A synchronous Strategy (e.g. a bot, or the CLI's blocking-stdin human)
 // returns Action directly; one that waits on external input (e.g. a
 // browser click) returns a Promise<Action> instead.
@@ -91,7 +91,7 @@ export interface TurnRecord {
   scoreAfter: number;
 }
 
-// PlayerResult is a player's final hand, score, and rank at game end.
+// PlayerResult is a player's final hand, score, and rank at round end.
 export interface PlayerResult {
   seat: number;
   hand: Hand;
@@ -99,8 +99,8 @@ export interface PlayerResult {
   rank: number;
 }
 
-// Result is the final outcome of a game: every player's result (only
-// seats that took part in this game — an eliminated seat has none), and
+// Result is the final outcome of a round: every player's result (only
+// seats that took part in this round — an eliminated seat has none), and
 // the seat(s) that won (multiple seats if tied for first).
 export interface Result {
   players: PlayerResult[];

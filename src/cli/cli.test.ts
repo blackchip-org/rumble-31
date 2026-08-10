@@ -25,7 +25,7 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
     hand: mustHand("7h", "8c", "9s"),
     pot: mustPot("Kc", "Kd", "Ks"),
     seat: 0,
-    isFirstTurnOfGame: false,
+    isFirstTurnOfRound: false,
     ownTurnNumber: 1,
     ...overrides,
   };
@@ -100,7 +100,7 @@ test("Human.decide", () => {
   ];
 
   for (const { name, isFirstTurn, hand, pot, input, want } of cases) {
-    const v = baseView({ hand: mustHand(...hand), pot: mustPot(...pot), isFirstTurnOfGame: isFirstTurn });
+    const v = baseView({ hand: mustHand(...hand), pot: mustPot(...pot), isFirstTurnOfRound: isFirstTurn });
     const out = bufferWriter();
     const h = new Human(arrayLineReader(input.split("\n").slice(0, -1)), out);
     const got = h.decide(v);
@@ -141,7 +141,7 @@ test("newNarrator", () => {
       wantExcludes: [cardConsole(parseCard("7h")), cardConsole(parseCard("8c")), cardConsole(parseCard("9s"))],
     },
     {
-      name: "exchange on the game's first turn does not mention knocking",
+      name: "exchange on the round's first turn does not mention knocking",
       rec: {
         turnIndex: 0,
         seat: 0,

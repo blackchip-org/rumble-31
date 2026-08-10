@@ -42,7 +42,7 @@ export function thinking(seat: number, inner: Strategy, out: Writer): Strategy {
   };
 }
 
-// newNarrator returns a function suitable for a Game's onTurn field. It
+// newNarrator returns a function suitable for a Round's onTurn field. It
 // prints only publicly known information for every seat, human and bot
 // alike: the action taken, and for exchanges/trades, the pot
 // afterward. It never prints a hand.
@@ -95,7 +95,7 @@ export class Human implements Strategy {
     this.out.write("choose an action:\n");
     this.out.write("  [1] trade one card with the pot\n");
     this.out.write(
-      v.isFirstTurnOfGame
+      v.isFirstTurnOfRound
         ? "  [2] exchange your entire hand with the pot\n"
         : "  [2] exchange your entire hand with the pot (this also knocks)\n",
     );
@@ -111,7 +111,7 @@ export class Human implements Strategy {
   }
 
   // waitForEnter prints a prompt and reads (and discards) one line,
-  // pausing the player between games. Safe to call with input
+  // pausing the player between rounds. Safe to call with input
   // exhausted (returns immediately).
   waitForEnter(): void {
     this.out.write("\npress enter to continue...");

@@ -4,10 +4,10 @@ A player in Rumble 31 can be assigned to a bot.
 
 The basic strategy of the bot is this:
 
-- On the game's first turn only, exchange the entire hand with the pot
+- On the round's first turn only, exchange the entire hand with the pot
 if all three pot cards are of the same suit and that point value is
 greater than the point value in hand. The bot never exchanges on any
-other turn, since doing so would also knock, ending the game.
+other turn, since doing so would also knock, ending the round.
 - Otherwise, trade a card from the pot when it improves the score of
 the hand
 - If no card from the pot improves the score of the hand, trade for

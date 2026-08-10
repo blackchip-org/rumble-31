@@ -24,7 +24,7 @@ export class Rng {
   }
 
   // nextSeed derives a new 32-bit seed, for seeding an independent Rng
-  // (e.g. one per game within a match).
+  // (e.g. one per round within a game).
   nextSeed(): number {
     return Math.floor(this.next() * 0x100000000);
   }

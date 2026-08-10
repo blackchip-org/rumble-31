@@ -1,12 +1,12 @@
 // Rumble-31 browser client: the human is seat 0, playing against three
-// bots, until the match ends. Mirrors src/main.ts's (the CLI's) flow,
+// bots, until the game ends. Mirrors src/main.ts's (the CLI's) flow,
 // rendering to the DOM instead of a Writer.
 
 import { cardToString } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { Bot } from "../bot/bot.ts";
-import type { GameOutcome, Match } from "../game/match.ts";
-import { newMatch } from "../game/match.ts";
+import type { RoundOutcome, Game } from "../game/game.ts";
+import { newGame } from "../game/game.ts";
 import { seatName } from "../game/seat.ts";
 import type { Action, Hand, PlayerView, Strategy, TurnRecord } from "../game/types.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
@@ -82,9 +82,9 @@ function withTurnUi(seat: number, inner: Strategy): Strategy {
   };
 }
 
-// pauseBetweenGames resolves after ms, or as soon as the player clicks
+// pauseBetweenRounds resolves after ms, or as soon as the player clicks
 // anywhere on the page, whichever comes first.
-function pauseBetweenGames(ms: number): Promise<void> {
+function pauseBetweenRounds(ms: number): Promise<void> {
   return new Promise((resolve) => {
     const finish = () => {
       clearTimeout(timer);
@@ -130,8 +130,8 @@ function renderTurn(rec: TurnRecord): void {
   }
 }
 
-function printGameRecap(gameNum: number, outcome: GameOutcome, strikes: readonly number[]): void {
-  appendLogLine(logEl, `game ${gameNum} result:`);
+function printRoundRecap(roundNum: number, outcome: RoundOutcome, strikes: readonly number[]): void {
+  appendLogLine(logEl, `round ${roundNum} result:`);
   for (const pr of outcome.result.players) {
     let note = "";
     if (outcome.eliminated.includes(pr.seat)) {
@@ -148,14 +148,14 @@ function printGameRecap(gameNum: number, outcome: GameOutcome, strikes: readonly
   }
 }
 
-function printMatchResult(m: Match): void {
-  appendLogLine(logEl, "=== match over ===");
+function printGameResult(g: Game): void {
+  appendLogLine(logEl, "=== game over ===");
   for (let seat = 0; seat < 4; seat++) {
-    appendLogLine(logEl, `${seatName(seat)}  ${m.strikes[seat]} strikes${m.eliminated[seat] ? " (eliminated)" : ""}`);
+    appendLogLine(logEl, `${seatName(seat)}  ${g.strikes[seat]} strikes${g.eliminated[seat] ? " (eliminated)" : ""}`);
   }
-  const winners = m.winners();
+  const winners = g.winners();
   appendLogLine(logEl, `winners: [${winners.map(seatName).join(" ")}]`);
-  appendLogLine(logEl, winners.includes(0) ? "You won the match!" : "You did not win this match.");
+  appendLogLine(logEl, winners.includes(0) ? "You won the game!" : "You did not win this game.");
 }
 
 async function main(): Promise<void> {
@@ -163,7 +163,7 @@ async function main(): Promise<void> {
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn);
   const bots: [Bot, Bot, Bot] = [new Bot(), new Bot(), new Bot()];
 
-  const m = newMatch(seed, [withTurnUi(0, human), withTurnUi(1, bots[0]), withTurnUi(2, bots[1]), withTurnUi(3, bots[2])]);
+  const g = newGame(seed, [withTurnUi(0, human), withTurnUi(1, bots[0]), withTurnUi(2, bots[1]), withTurnUi(3, bots[2])]);
 
   statusEl.textContent = `You are ${seatName(0)}`;
 
@@ -171,21 +171,21 @@ async function main(): Promise<void> {
     renderBacks(seatOf(seat).hand, 3);
   }
   for (let seat = 0; seat < 4; seat++) {
-    renderStrikes(seatOf(seat).strikes, m.strikes[seat] as number);
+    renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
   }
 
-  let interactive = !m.eliminated[0];
+  let interactive = !g.eliminated[0];
   if (!interactive) {
-    appendLogLine(logEl, "You start this match already eliminated.");
+    appendLogLine(logEl, "You start this game already eliminated.");
   }
 
-  for (let gameNum = 1; m.active(); gameNum++) {
+  for (let roundNum = 1; g.active(); roundNum++) {
     if (interactive) {
-      appendLogLine(logEl, `=== game ${gameNum} ===`);
-      m.onDeal = (pot, hands) => {
+      appendLogLine(logEl, `=== round ${roundNum} ===`);
+      g.onDeal = (pot, hands) => {
         renderCards(potEl, pot);
         for (let seat = 1; seat < 4; seat++) {
-          if (!m.eliminated[seat]) {
+          if (!g.eliminated[seat]) {
             renderBacks(seatOf(seat).hand, 3);
             setScore(seatOf(seat).score, null);
           }
@@ -193,43 +193,43 @@ async function main(): Promise<void> {
         // South's own hand and score are always public, so they're
         // revealed as soon as they're dealt rather than waiting for
         // South's first turn (firstSeat, and so turn order, varies by
-        // game).
+        // round).
         const southHand = hands.get(0) as Hand;
         renderCards(seatOf(0).hand, southHand);
         setScore(seatOf(0).score, score(southHand));
       };
-      m.onTurn = renderTurn;
+      g.onTurn = renderTurn;
     } else {
-      m.onDeal = undefined;
-      m.onTurn = undefined;
+      g.onDeal = undefined;
+      g.onTurn = undefined;
     }
 
-    const outcome = await m.playGame();
+    const outcome = await g.playRound();
     if (!interactive) {
       continue;
     }
 
-    printGameRecap(gameNum, outcome, m.strikes);
+    printRoundRecap(roundNum, outcome, g.strikes);
     for (let seat = 0; seat < 4; seat++) {
-      renderStrikes(seatOf(seat).strikes, m.strikes[seat] as number);
-      if (m.eliminated[seat]) {
+      renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
+      if (g.eliminated[seat]) {
         setPanelState(seatOf(seat).panel, "eliminated");
         seatOf(seat).hand.replaceChildren();
       }
     }
 
     if (outcome.eliminated.includes(0)) {
-      appendLogLine(logEl, "You have been eliminated. The rest of the match will play out silently...");
+      appendLogLine(logEl, "You have been eliminated. The rest of the game will play out silently...");
       interactive = false;
       continue;
     }
-    if (m.active()) {
-      appendLogLine(logEl, "Starting next game... (click to skip)");
-      await pauseBetweenGames(3000);
+    if (g.active()) {
+      appendLogLine(logEl, "Starting next round... (click to skip)");
+      await pauseBetweenRounds(3000);
     }
   }
 
-  printMatchResult(m);
+  printGameResult(g);
 }
 
 main().catch((err: unknown) => {

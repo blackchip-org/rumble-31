@@ -5,9 +5,9 @@ import { exchange, knock, trade } from "../game/types.ts";
 
 // Bot implements the basic Rumble-31 bot strategy described in
 // specs/bots.md. A Bot carries state across turns (its own score
-// history) and is free to be reused across multiple games — e.g. for
-// the whole of a Match, where it keeps accumulating that tracking from
-// one game to the next.
+// history) and is free to be reused across multiple rounds — e.g. for
+// the whole of a Game, where it keeps accumulating that tracking from
+// one round to the next.
 export class Bot implements Strategy {
   lastScore: number;
   hasLastScore: boolean;
@@ -22,7 +22,7 @@ export class Bot implements Strategy {
   decide(v: PlayerView): Action {
     const s = score(v.hand);
 
-    if (v.isFirstTurnOfGame) {
+    if (v.isFirstTurnOfRound) {
       if (sameSuit(v.pot) && sum(v.pot) > s) {
         return exchange();
       }
