@@ -10,7 +10,10 @@ of the following ranks:
 
 Other cards are removed and not used for this game. 
 
-A match always starts with four players.
+A match always starts with four players, seated 0 through 3. As in
+Bridge, each seat also has a cardinal name: seat 0 is South, seat 1 is
+West, seat 2 is North, and seat 3 is East. Play proceeds clockwise
+through this order: South, West, North, East.
 
 At the beginning of each game, the deck is shuffled, three cards are
 dealt face-down to each player, and three cards are dealt face-up to a

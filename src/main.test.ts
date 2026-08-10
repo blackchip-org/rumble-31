@@ -44,10 +44,10 @@ test("printGameRecap labels struck and eliminated seats, shows strikes, and omit
   printGameRecap(out, 7, outcome, strikes);
 
   const got = out.toString();
-  assert.ok(got.includes("seat 0") && got.includes("strikes 3") && got.includes("(struck, eliminated)"));
-  assert.ok(got.includes("seat 2") && got.includes("strikes 0"));
-  assert.ok(got.includes("seat 3") && got.includes("strikes 2"));
-  assert.ok(!got.includes("seat 1"));
+  assert.ok(got.includes("South") && got.includes("strikes 3") && got.includes("(struck, eliminated)"));
+  assert.ok(got.includes("North") && got.includes("strikes 0"));
+  assert.ok(got.includes("East") && got.includes("strikes 2"));
+  assert.ok(!got.includes("West"));
 });
 
 test("parseStrikesArg", () => {
@@ -105,7 +105,7 @@ test("run: a bot seat starting at 3 strikes is excluded from game 1 entirely", a
 
     const got = out.toString();
     const game1 = got.slice(got.indexOf("=== game 1 ==="), got.indexOf("game 1 result:"));
-    assert.ok(!game1.includes("seat 1 is thinking"), "eliminated seat 1 should never take a turn");
+    assert.ok(!game1.includes("West is thinking"), "eliminated seat 1 should never take a turn");
   } finally {
     restore();
   }

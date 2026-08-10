@@ -2,6 +2,7 @@
 
 import { cardConsole } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
+import { seatName } from "../game/seat.ts";
 import type { Action, Pot, PlayerView, Strategy, TurnRecord } from "../game/types.ts";
 import { exchange, knock, trade } from "../game/types.ts";
 import type { LineReader, Writer } from "./io.ts";
@@ -34,7 +35,7 @@ export function dealPot(out: Writer, pot: Pot): void {
 export function thinking(seat: number, inner: Strategy, out: Writer): Strategy {
   return {
     decide(v: PlayerView): Action | Promise<Action> {
-      out.write(`seat ${seat} is thinking...\n`);
+      out.write(`${seatName(seat)} is thinking...\n`);
       clock.sleep(500 + Math.random() * 1500);
       return inner.decide(v);
     },
@@ -49,18 +50,18 @@ export function newNarrator(out: Writer): (rec: TurnRecord) => void {
   return (rec: TurnRecord) => {
     switch (rec.action.type) {
       case "knock":
-        out.write(`\nseat ${rec.seat} knocks\n`);
+        out.write(`\n${seatName(rec.seat)} knocks\n`);
         break;
       case "exchange":
         if (rec.turnIndex === 0) {
-          out.write(`\nseat ${rec.seat} exchanges their entire hand with the pot\n`);
+          out.write(`\n${seatName(rec.seat)} exchanges their entire hand with the pot\n`);
         } else {
-          out.write(`\nseat ${rec.seat} exchanges their entire hand with the pot and knocks\n`);
+          out.write(`\n${seatName(rec.seat)} exchanges their entire hand with the pot and knocks\n`);
         }
         out.write(`pot: ${renderCards(rec.potAfter)}\n`);
         break;
       case "trade":
-        out.write(`\nseat ${rec.seat} trades with the pot\n`);
+        out.write(`\n${seatName(rec.seat)} trades with the pot\n`);
         out.write(`pot: ${renderCards(rec.potAfter)}\n`);
         break;
     }

@@ -114,7 +114,7 @@ test("newNarrator", () => {
         potAfter: mustPot("7h", "Kd", "Qc"),
         scoreAfter: 0,
       },
-      wantContains: ["seat 1", cardConsole(parseCard("7h")), cardConsole(parseCard("Kd")), cardConsole(parseCard("Qc"))],
+      wantContains: ["West", cardConsole(parseCard("7h")), cardConsole(parseCard("Kd")), cardConsole(parseCard("Qc"))],
       wantExcludes: [cardConsole(parseCard("8c")), cardConsole(parseCard("9s"))],
     },
     {
@@ -129,7 +129,7 @@ test("newNarrator", () => {
         potAfter: mustPot("Ah", "Kd", "Qc"),
         scoreAfter: 0,
       },
-      wantContains: ["seat 3", "knocks"],
+      wantContains: ["East", "knocks"],
       wantExcludes: [cardConsole(parseCard("7h")), cardConsole(parseCard("8c")), cardConsole(parseCard("9s"))],
     },
     {
@@ -144,7 +144,7 @@ test("newNarrator", () => {
         potAfter: mustPot("7h", "8c", "9s"),
         scoreAfter: 0,
       },
-      wantContains: ["seat 0", "exchanges"],
+      wantContains: ["South", "exchanges"],
       wantExcludes: ["knock"],
     },
     {
@@ -159,7 +159,7 @@ test("newNarrator", () => {
         potAfter: mustPot("7h", "8c", "9s"),
         scoreAfter: 0,
       },
-      wantContains: ["seat 2", "exchanges", "knocks"],
+      wantContains: ["North", "exchanges", "knocks"],
     },
   ];
 
@@ -199,7 +199,7 @@ test("thinking announces the seat, sleeps 500ms-2s, and delegates to the wrapped
 
     const got = strat.decide(baseView({}));
     assert.deepEqual(got, knock());
-    assert.ok(out.toString().includes("seat 2 is thinking..."));
+    assert.ok(out.toString().includes("North is thinking..."));
     assert.equal(slept.length, 1);
     assert.ok((slept[0] as number) >= 500 && (slept[0] as number) < 2000);
   } finally {

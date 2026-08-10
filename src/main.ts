@@ -8,6 +8,7 @@ import type { LineReader, Writer } from "./cli/io.ts";
 import { stdinLineReader, streamWriter } from "./cli/io.ts";
 import type { GameOutcome, Match } from "./game/match.ts";
 import { newMatch } from "./game/match.ts";
+import { seatName } from "./game/seat.ts";
 import { loadBuildTime, version } from "./version.ts";
 
 // run plays one interactive match with seed: the human (reading from
@@ -27,7 +28,7 @@ export async function run(
 
   out.write("Welcome to Rumble-31\n");
   out.write(`Version v${ver}, built on ${buildTime}\n`);
-  out.write("You are seat 0\n");
+  out.write(`You are ${seatName(0)}\n`);
   out.write(`seed: ${seed}\n`);
 
   const human = new Human(reader, out);
@@ -87,7 +88,7 @@ export function printGameRecap(out: Writer, gameNum: number, outcome: GameOutcom
       note = "  (struck)";
     }
     out.write(
-      `  seat ${pr.seat}  hand ${renderCards(pr.hand)}  score ${pr.score.toFixed(1)}  rank ${pr.rank}  strikes ${strikes[pr.seat]}${note}\n`,
+      `  ${seatName(pr.seat)}  hand ${renderCards(pr.hand)}  score ${pr.score.toFixed(1)}  rank ${pr.rank}  strikes ${strikes[pr.seat]}${note}\n`,
     );
   }
 }
@@ -98,11 +99,11 @@ export function printMatchResult(out: Writer, m: Match): void {
   out.write("\n=== match over ===\n");
   for (let seat = 0; seat < 4; seat++) {
     const status = m.eliminated[seat] ? "  (eliminated)" : "";
-    out.write(`  seat ${seat}  ${m.strikes[seat]} strikes${status}\n`);
+    out.write(`  ${seatName(seat)}  ${m.strikes[seat]} strikes${status}\n`);
   }
 
   const winners = m.winners();
-  out.write(`\nwinners: [${winners.join(" ")}]\n`);
+  out.write(`\nwinners: [${winners.map(seatName).join(" ")}]\n`);
   if (winners.includes(0)) {
     out.write("You won the match!\n");
   } else {

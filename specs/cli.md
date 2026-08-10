@@ -4,8 +4,9 @@ A command line interface is implemented in the internal/cli package. A
 main file in cmd/rumble-31-cli/main.go is used to invoke the CLI.
 
 The command line interface allows a human player to play against three other
-bots. The player is always assigned to seat #0. The game should immediately
-start when invoking the command line interface.
+bots. The player is always assigned to seat #0 (South, per
+specs/rules.md). The game should immediately start when invoking the
+command line interface.
 
 When it is the player's turn, prompt them on which action to take depending
 on the legal actions for that turn. When a player needs to select a card,
@@ -39,14 +40,18 @@ silently: no more dealing delays, thinking delays, turn narration,
 recaps, or pauses. Only the match's final result — every seat's
 strike count and the winner(s) — is shown once it ends.
 
+Wherever a seat is shown to the player, it is identified by its
+cardinal name (South, West, North, East — see specs/rules.md), not its
+seat number.
+
 Delays (via Sleep) should be added to simulate bots thinking and for dealing
 cards as follows:
 
 - When showing the initial pot, simulate dealing with a 100ms sleep before
 showing each card
 - When its a bot's turn, simulate its thinking with a random sleep between
-500ms and 2 seconds. Before sleeping print out "seat x is thinking..." where
-x is the seat number of the bot
+500ms and 2 seconds. Before sleeping print out "x is thinking..." where
+x is the cardinal name of the bot's seat
 
 ## Command Line Options
 
