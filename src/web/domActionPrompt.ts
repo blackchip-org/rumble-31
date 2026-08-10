@@ -9,8 +9,7 @@ import { TradeSelection } from "./tradeSelection.ts";
 // player's hand (score box included — South's score is always public),
 // then resolves once the player either clicks a hand-card/pot-card pair
 // (a trade, in either order) or clicks the standing Take Pot / Knock
-// buttons. Knock is disabled on the game's first turn, when it isn't a
-// legal move.
+// buttons.
 export class DomActionPrompt implements Strategy {
   private potEl: HTMLElement;
   private handEl: HTMLElement;
@@ -61,7 +60,7 @@ export class DomActionPrompt implements Strategy {
       const onKnock = () => finish(knock());
 
       this.takePotBtn.disabled = false;
-      this.knockBtn.disabled = view.isFirstTurnOfGame;
+      this.knockBtn.disabled = false;
       this.takePotBtn.addEventListener("click", onTakePot);
       this.knockBtn.addEventListener("click", onKnock);
 

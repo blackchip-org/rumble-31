@@ -27,7 +27,8 @@ The actions on a player's turn are to either:
 - Knock
 
 Exchanging all cards is also a knock except for the first player's first
-turn if they choose that action. 
+turn if they choose that action. Knocking itself is legal on any turn,
+including a game's first.
 
 When the turn is over, play continues to the next player in clockwise order. 
 

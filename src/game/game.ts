@@ -77,7 +77,7 @@ export class Game {
 
       const action = await player.strategy.decide(view);
       try {
-        validateAction(isFirstTurn, action);
+        validateAction(action);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         throw new Error(`seat ${seat} turn ${turnIdx}: ${message}`);
@@ -222,9 +222,8 @@ function hasThreeAces(players: readonly Player[]): boolean {
   return players.some((p) => p.hand.every((c) => c.rank === "A"));
 }
 
-// validateAction rejects actions that are not legal for the given turn,
-// or that carry out-of-range indices.
-export function validateAction(isFirstTurn: boolean, a: Action): void {
+// validateAction rejects actions that carry out-of-range indices.
+export function validateAction(a: Action): void {
   switch (a.type) {
     case "trade":
       if (a.potIndex < 0 || a.potIndex > 2 || a.handIndex < 0 || a.handIndex > 2) {
@@ -232,12 +231,8 @@ export function validateAction(isFirstTurn: boolean, a: Action): void {
       }
       break;
     case "exchange":
-      // Legal on any turn.
-      break;
     case "knock":
-      if (isFirstTurn) {
-        throw new Error("knock is not legal on the game's first turn");
-      }
+      // Legal on any turn.
       break;
   }
 }

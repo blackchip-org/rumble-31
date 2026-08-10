@@ -41,8 +41,7 @@ Above South's player panel, is a panel of two buttons arranged horizontally:
 - "Knock": Clicking on this knocks
 
 These buttons are always visible. They are disabled outside of the
-player's turn. "Knock" is additionally disabled on the game's first
-turn, since knocking is not a legal move at that point.
+player's turn.
 
 To trade a card from a players hand with one from the pot, the player:
 

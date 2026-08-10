@@ -83,21 +83,18 @@ test("apply: knock changes nothing", () => {
 });
 
 test("validateAction", () => {
-  const cases: Array<{ name: string; isFirstTurn: boolean; action: Action; wantErr: boolean }> = [
-    { name: "trade legal any turn", isFirstTurn: false, action: trade(0, 0), wantErr: false },
-    { name: "trade legal on first turn", isFirstTurn: true, action: trade(2, 1), wantErr: false },
-    { name: "trade pot index out of range", isFirstTurn: false, action: trade(3, 0), wantErr: true },
-    { name: "trade hand index negative", isFirstTurn: false, action: trade(0, -1), wantErr: true },
-    { name: "exchange legal on first turn", isFirstTurn: true, action: exchange(), wantErr: false },
-    { name: "exchange legal on other turns too", isFirstTurn: false, action: exchange(), wantErr: false },
-    { name: "knock illegal on first turn", isFirstTurn: true, action: knock(), wantErr: true },
-    { name: "knock legal on other turns", isFirstTurn: false, action: knock(), wantErr: false },
+  const cases: Array<{ name: string; action: Action; wantErr: boolean }> = [
+    { name: "trade legal", action: trade(0, 0), wantErr: false },
+    { name: "trade pot index out of range", action: trade(3, 0), wantErr: true },
+    { name: "trade hand index negative", action: trade(0, -1), wantErr: true },
+    { name: "exchange legal", action: exchange(), wantErr: false },
+    { name: "knock legal", action: knock(), wantErr: false },
   ];
-  for (const { name, isFirstTurn, action, wantErr } of cases) {
+  for (const { name, action, wantErr } of cases) {
     if (wantErr) {
-      assert.throws(() => validateAction(isFirstTurn, action), name);
+      assert.throws(() => validateAction(action), name);
     } else {
-      assert.doesNotThrow(() => validateAction(isFirstTurn, action), name);
+      assert.doesNotThrow(() => validateAction(action), name);
     }
   }
 });

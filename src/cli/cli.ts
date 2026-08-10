@@ -92,19 +92,13 @@ export class Human implements Strategy {
     this.out.write(`\npot:       ${renderCards(v.pot)}\n`);
     this.out.write(`your hand: ${renderCards(v.hand)}\n`);
 
-    if (v.isFirstTurnOfGame) {
-      this.out.write("choose an action:\n");
-      this.out.write("  [1] trade one card with the pot\n");
-      this.out.write("  [2] exchange your entire hand with the pot\n");
-      if (this.chooseOption(2) === 2) {
-        return exchange();
-      }
-      return this.chooseTrade();
-    }
-
     this.out.write("choose an action:\n");
     this.out.write("  [1] trade one card with the pot\n");
-    this.out.write("  [2] exchange your entire hand with the pot (this also knocks)\n");
+    this.out.write(
+      v.isFirstTurnOfGame
+        ? "  [2] exchange your entire hand with the pot\n"
+        : "  [2] exchange your entire hand with the pot (this also knocks)\n",
+    );
     this.out.write("  [3] knock\n");
     const choice = this.chooseOption(3);
     if (choice === 2) {

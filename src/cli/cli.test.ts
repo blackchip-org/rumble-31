@@ -50,6 +50,14 @@ test("Human.decide", () => {
       want: exchange(),
     },
     {
+      name: "first turn knock",
+      isFirstTurn: true,
+      hand: ["7h", "8c", "9s"],
+      pot: ["Ah", "Kd", "Qc"],
+      input: "3\n",
+      want: knock(),
+    },
+    {
       name: "later turn trade",
       isFirstTurn: false,
       hand: ["7h", "8c", "9s"],

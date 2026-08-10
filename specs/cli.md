@@ -19,10 +19,10 @@ the hand.
 
 The program ends when the match is over.
 
-On the game's first turn, the player is offered a trade or an
-exchange. On every other turn, the player is offered a trade, an
-exchange, or a knock; the exchange option is labeled as also ending
-the game (knocking), since it does everywhere but the first turn.
+On every turn, the player is offered a trade, an exchange, or a
+knock. On every turn but the game's first, the exchange option is
+labeled as also ending the game (knocking), since it does everywhere
+but the first turn.
 
 When a bot takes its turn, only publicly known information is shown:
 the action it took (exchanged with the pot, or knocked) and the pot

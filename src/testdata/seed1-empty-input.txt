@@ -140,6 +140,7 @@ your hand: [47;31m 8♥  [0m [47;31m T♥  [0m [47;32m J♦  [0m
 choose an action:
   [1] trade one card with the pot
   [2] exchange your entire hand with the pot
+  [3] knock
 > pot card to take (1-3): hand card to give up (1-3): 
 South trades with the pot
 pot: [47;31m 8♥  [0m [47;34m Q♣  [0m [47;31m J♥  [0m
@@ -223,6 +224,7 @@ your hand: [47;30m 7♠  [0m [47;31m A♥  [0m [47;32m J♦  [0m
 choose an action:
   [1] trade one card with the pot
   [2] exchange your entire hand with the pot
+  [3] knock
 > pot card to take (1-3): hand card to give up (1-3): 
 South trades with the pot
 pot: [47;30m 7♠  [0m [47;31m K♥  [0m [47;32m K♦  [0m
