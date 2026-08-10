@@ -99,12 +99,12 @@ test("simultaneous elimination of the last two seats ends the match in a tie", (
 // shared across all four seats.
 const quickPlay: Strategy = strategyFunc((v: PlayerView) => (v.isFirstTurnOfGame ? trade(0, 0) : knock()));
 
-test("run plays a full match to a valid conclusion", () => {
+test("run plays a full match to a valid conclusion", async () => {
   for (const seed of [1, 2, 3, 42]) {
     const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
     const m = newMatch(seed, strategies);
 
-    const { winners, log } = m.run();
+    const { winners, log } = await m.run();
 
     assert.ok(winners.length > 0, `seed=${seed}: winners is empty`);
     for (const seat of winners) {
@@ -127,7 +127,7 @@ test("run plays a full match to a valid conclusion", () => {
   }
 });
 
-test("playGame deals once, narrates turns, and picks up strategy swaps next game", () => {
+test("playGame deals once, narrates turns, and picks up strategy swaps next game", async () => {
   const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
   const m = newMatch(1, strategies);
 
@@ -136,7 +136,7 @@ test("playGame deals once, narrates turns, and picks up strategy swaps next game
   let turnCalls = 0;
   m.onTurn = () => turnCalls++;
 
-  m.playGame();
+  await m.playGame();
   assert.equal(dealtCalls, 1);
   assert.ok(turnCalls > 0);
 
@@ -157,14 +157,14 @@ test("playGame deals once, narrates turns, and picks up strategy swaps next game
     }
   };
 
-  m.playGame();
+  await m.playGame();
   assert.equal(firstActionType, "exchange");
 });
 
 // Regression test: a seat eliminated in an earlier game must not be
 // dealt a hand, take a turn, or appear in the result of a later game —
 // only bookkeeping (strikes/eliminated) should persist for it.
-test("playGame excludes an already-eliminated seat from dealing, turns, and results", () => {
+test("playGame excludes an already-eliminated seat from dealing, turns, and results", async () => {
   const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
   const m = new Match({
     strategies,
@@ -176,7 +176,7 @@ test("playGame excludes an already-eliminated seat from dealing, turns, and resu
   const turnSeats = new Set<number>();
   m.onTurn = (rec) => turnSeats.add(rec.seat);
 
-  const outcome = m.playGame();
+  const outcome = await m.playGame();
 
   assert.deepEqual(
     outcome.result.players.map((pr) => pr.seat).sort((a, b) => a - b),
@@ -189,14 +189,14 @@ test("playGame excludes an already-eliminated seat from dealing, turns, and resu
 // each seat's strike count directly, and a seat starting at 3 or more
 // must already be eliminated — consistent with applyResult's own
 // threshold for strikes earned through play.
-test("newMatch seeds initial strikes, eliminating any seat starting at 3 or more", () => {
+test("newMatch seeds initial strikes, eliminating any seat starting at 3 or more", async () => {
   const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
   const m = newMatch(1, strategies, [3, 1, 0, 4]);
 
   assert.deepEqual(m.strikes, [3, 1, 0, 4]);
   assert.deepEqual(m.eliminated, [true, false, false, true]);
 
-  const outcome = m.playGame();
+  const outcome = await m.playGame();
   assert.deepEqual(
     outcome.result.players.map((pr) => pr.seat).sort((a, b) => a - b),
     [1, 2],

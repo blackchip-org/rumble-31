@@ -63,7 +63,7 @@ export class Match {
   // playGame plays one game of the match, using the current strategies,
   // and applies its strikes and eliminations. It must only be called
   // while active() is true.
-  playGame(): GameOutcome {
+  async playGame(): Promise<GameOutcome> {
     if (!this.strategies || !this.rng) {
       throw new Error("Match.playGame: strategies and rng are required (use newMatch)");
     }
@@ -75,7 +75,7 @@ export class Match {
     this.onDeal?.(g.pot);
     g.onTurn = this.onTurn;
 
-    const { result } = g.run();
+    const { result } = await g.run();
 
     const { struck, eliminated } = this.applyResult(active, result);
     return { result, struck, eliminated };
@@ -83,10 +83,10 @@ export class Match {
 
   // run plays games until the match is over, for callers that don't need
   // to observe each game as it happens.
-  run(): { winners: number[]; log: GameOutcome[] } {
+  async run(): Promise<{ winners: number[]; log: GameOutcome[] }> {
     const log: GameOutcome[] = [];
     while (this.active()) {
-      log.push(this.playGame());
+      log.push(await this.playGame());
     }
     return { winners: this.winners(), log };
   }

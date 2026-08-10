@@ -16,12 +16,12 @@ import { loadBuildTime, version } from "./version.ts";
 // silently and only the final result is shown. opts.initialStrikes
 // seeds each seat's strike count (for -strikes debugging); a seat
 // starting at 3 or more is already eliminated before game 1.
-export function run(
+export async function run(
   seed: number,
   reader: LineReader,
   out: Writer,
   opts?: { version?: string; buildTime?: string; initialStrikes?: [number, number, number, number] },
-): void {
+): Promise<void> {
   const ver = opts?.version ?? version;
   const buildTime = opts?.buildTime ?? loadBuildTime();
 
@@ -54,7 +54,7 @@ export function run(
       m.onTurn = undefined;
     }
 
-    const outcome = m.playGame();
+    const outcome = await m.playGame();
     if (!interactive) {
       continue;
     }
@@ -174,5 +174,5 @@ if (isMainModule()) {
     process.stderr.write(`${message}\n`);
     process.exit(1);
   }
-  run(seed, stdinLineReader(), streamWriter(process.stdout), { initialStrikes });
+  await run(seed, stdinLineReader(), streamWriter(process.stdout), { initialStrikes });
 }

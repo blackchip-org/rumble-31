@@ -1,0 +1,101 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #1b1b1f;
+  color: #eee;
+}
+
+#app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+h1 {
+  margin-bottom: 0;
+}
+
+#status {
+  color: #999;
+  margin-top: 0.25rem;
+}
+
+.row h2 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #999;
+  margin: 1rem 0 0.5rem;
+}
+
+.cards {
+  display: flex;
+  gap: 0.5rem;
+  min-height: 3rem;
+}
+
+.card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  padding: 0.5rem 0.25rem;
+  background: #fff;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.suit-black {
+  color: #111;
+}
+.suit-red {
+  color: #c62828;
+}
+.suit-green {
+  color: #2e7d32;
+}
+.suit-blue {
+  color: #1565c0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  min-height: 2.5rem;
+}
+
+.actions button {
+  padding: 0.6rem 1rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #2a2a30;
+  color: #eee;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.actions button:hover {
+  background: #3a3a42;
+}
+
+.log {
+  border-top: 1px solid #333;
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.log p {
+  margin: 0.15rem 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: #ccc;
+}

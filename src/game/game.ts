@@ -42,7 +42,7 @@ export class Game {
   // time). Once the game has ended, every other player gets exactly one
   // more turn and the game ends before the player who ended it would
   // act again. Returns the final result and a log of every turn taken.
-  run(): { result: Result; log: TurnRecord[] } {
+  async run(): Promise<{ result: Result; log: TurnRecord[] }> {
     if (hasThreeAces(this.players)) {
       return { result: this.computeResult(), log: [] };
     }
@@ -75,7 +75,7 @@ export class Game {
         ownTurnNumber: ownTurnNum.get(seat) as number,
       };
 
-      const action = player.strategy.decide(view);
+      const action = await player.strategy.decide(view);
       try {
         validateAction(isFirstTurn, action);
       } catch (err) {

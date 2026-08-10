@@ -139,7 +139,7 @@ test("computeResult picks a single winner even with other ties", () => {
   assert.deepEqual(result.winners, [0]);
 });
 
-test("run: knock ends the game after one full lap", () => {
+test("run: knock ends the game after one full lap", async () => {
   const pass = strategyFunc(() => trade(0, 0));
   const knockOnce = (): Strategy => {
     let called = false;
@@ -164,7 +164,7 @@ test("run: knock ends the game after one full lap", () => {
   );
   g.firstSeat = 0;
 
-  const { log } = g.run();
+  const { log } = await g.run();
 
   // Seat 0 exchanges (turn 0), seat 1 knocks (turn 1), seats 2 and 3
   // each get one more turn (turns 2, 3), seat 0 gets its promised extra
@@ -177,7 +177,7 @@ test("run: knock ends the game after one full lap", () => {
   assert.equal(log[1]?.action.type, "knock");
 });
 
-test("run: onTurn callback fires once per logged turn, in order", () => {
+test("run: onTurn callback fires once per logged turn, in order", async () => {
   const pass = strategyFunc(() => trade(0, 0));
   const knockOnce = (): Strategy => {
     let called = false;
@@ -205,13 +205,13 @@ test("run: onTurn callback fires once per logged turn, in order", () => {
   const seen: TurnRecord[] = [];
   g.onTurn = (rec) => seen.push(rec);
 
-  const { log } = g.run();
+  const { log } = await g.run();
 
   assert.equal(seen.length, log.length);
   assert.deepEqual(seen, log);
 });
 
-test("run: three aces mid-round ends the game immediately", () => {
+test("run: three aces mid-round ends the game immediately", async () => {
   // Seat 0 exchanges its 7h for the pot's third ace, completing three
   // aces mid-round; the game must stop right there.
   const drawAce = strategyFunc(() => trade(2, 0));
@@ -231,11 +231,11 @@ test("run: three aces mid-round ends the game immediately", () => {
   );
   g.firstSeat = 0;
 
-  const { log } = g.run();
+  const { log } = await g.run();
   assert.equal(log.length, 1);
 });
 
-test("run: three aces already dealt ends the game with no turns", () => {
+test("run: three aces already dealt ends the game with no turns", async () => {
   const neverCalled = strategyFunc((): Action => {
     throw new Error("strategy invoked when three aces were already dealt");
   });
@@ -251,11 +251,11 @@ test("run: three aces already dealt ends the game with no turns", () => {
     [neverCalled, neverCalled, neverCalled, neverCalled],
   );
 
-  const { log } = g.run();
+  const { log } = await g.run();
   assert.equal(log.length, 0);
 });
 
-test("run: isFirstTurnOfGame is true for exactly one decide call", () => {
+test("run: isFirstTurnOfGame is true for exactly one decide call", async () => {
   let firstTurnCalls = 0;
   const spy = (): Strategy =>
     strategyFunc((v: PlayerView) => {
@@ -290,11 +290,11 @@ test("run: isFirstTurnOfGame is true for exactly one decide call", () => {
   );
   g.firstSeat = 0;
 
-  g.run();
+  await g.run();
   assert.equal(firstTurnCalls, 1);
 });
 
-test("run: the view passed to a strategy matches ground truth", () => {
+test("run: the view passed to a strategy matches ground truth", async () => {
   const seatHands: [
     [string, string, string],
     [string, string, string],
@@ -323,10 +323,10 @@ test("run: the view passed to a strategy matches ground truth", () => {
   (g.players[2] as Player).strategy = checker(2);
   (g.players[3] as Player).strategy = checker(3);
 
-  g.run();
+  await g.run();
 });
 
-test("run: exchanging on the game's first turn does not end it", () => {
+test("run: exchanging on the game's first turn does not end it", async () => {
   // Seat 0 exchanges on the game's very first turn, which must not end
   // the game; seat 1 then knocks to end it, proving seat 0's exchange
   // was just a swap.
@@ -354,14 +354,14 @@ test("run: exchanging on the game's first turn does not end it", () => {
   );
   g.firstSeat = 0;
 
-  const { log } = g.run();
+  const { log } = await g.run();
 
   assert.equal(log.length, 5, "game must not have ended at seat 0's first-turn exchange");
   assert.equal(log[0]?.action.type, "exchange");
   assert.equal(log[1]?.action.type, "knock");
 });
 
-test("run: exchanging after the first turn acts as a knock", () => {
+test("run: exchanging after the first turn acts as a knock", async () => {
   const pass = strategyFunc(() => trade(0, 0));
   const exchangeOnce = (): Strategy => {
     let called = false;
@@ -386,7 +386,7 @@ test("run: exchanging after the first turn acts as a knock", () => {
   );
   g.firstSeat = 0;
 
-  const { log } = g.run();
+  const { log } = await g.run();
 
   // Seat 1's exchange (turn 1, not the game's first turn) must end the
   // game exactly like a knock: seats 2, 3, and 0 each get one more
@@ -445,7 +445,7 @@ test("newGame deals only to the given seats when fewer than four are active", ()
   assert.ok([0, 2, 3].includes(g.firstSeat));
 });
 
-test("run cycles turn order among sparse seats in clockwise (ascending, wrapping) order", () => {
+test("run cycles turn order among sparse seats in clockwise (ascending, wrapping) order", async () => {
   const pass = strategyFunc(() => trade(0, 0));
   const knockOnce = (): Strategy => {
     let called = false;
@@ -465,7 +465,7 @@ test("run cycles turn order among sparse seats in clockwise (ascending, wrapping
   }));
   const g = new Game(mustPot("Ah", "Ac", "Ad"), players, 0);
 
-  const { log } = g.run();
+  const { log } = await g.run();
 
   // Seat 0 acts, seat 2 knocks, seat 3 gets one more turn, then seat 0
   // gets its promised extra lap turn, then the game stops before seat 2

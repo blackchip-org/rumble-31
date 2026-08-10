@@ -57,8 +57,11 @@ export interface PlayerView {
 }
 
 // Strategy decides an action for a player given their view of the game.
+// A synchronous Strategy (e.g. a bot, or the CLI's blocking-stdin human)
+// returns Action directly; one that waits on external input (e.g. a
+// browser click) returns a Promise<Action> instead.
 export interface Strategy {
-  decide(view: PlayerView): Action;
+  decide(view: PlayerView): Action | Promise<Action>;
 }
 
 // strategyFunc adapts a plain function to the Strategy interface.

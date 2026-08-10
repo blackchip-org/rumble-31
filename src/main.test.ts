@@ -78,12 +78,12 @@ test("parseStrikesArg", () => {
 // play out to exactly this transcript. Any change to the deal, the
 // bots, the RNG, or the CLI text will show up here as a diff — the
 // fixture was captured from a real run and isn't hand-written.
-test("run produces the recorded transcript for seed 1 with no input", () => {
+test("run produces the recorded transcript for seed 1 with no input", async () => {
   const restore = withDisabledSleep();
   try {
     const want = fs.readFileSync(path.join(testdataDir, "seed1-empty-input.txt"), "utf8");
     const out = bufferWriter();
-    run(1, arrayLineReader([]), out, { version: "0.1", buildTime: "9 Aug 2026 at 20:58" });
+    await run(1, arrayLineReader([]), out, { version: "0.1", buildTime: "9 Aug 2026 at 20:58" });
     assert.equal(out.toString(), want);
   } finally {
     restore();
@@ -93,11 +93,11 @@ test("run produces the recorded transcript for seed 1 with no input", () => {
 // Regression test: -strikes lets a bot seat start already eliminated
 // (three or more debug strikes), which must exclude it from game 1's
 // deal and recap entirely, not just label it.
-test("run: a bot seat starting at 3 strikes is excluded from game 1 entirely", () => {
+test("run: a bot seat starting at 3 strikes is excluded from game 1 entirely", async () => {
   const restore = withDisabledSleep();
   try {
     const out = bufferWriter();
-    run(1, arrayLineReader([]), out, {
+    await run(1, arrayLineReader([]), out, {
       version: "0.1",
       buildTime: "unknown",
       initialStrikes: [0, 3, 0, 0],
@@ -115,11 +115,11 @@ test("run: a bot seat starting at 3 strikes is excluded from game 1 entirely", (
 // eliminated, which must skip interactive play entirely rather than
 // silently hang on a stdin read that never happens, or claim the
 // player was "just" eliminated.
-test("run: seat 0 starting at 3 strikes skips straight to the silent match summary", () => {
+test("run: seat 0 starting at 3 strikes skips straight to the silent match summary", async () => {
   const restore = withDisabledSleep();
   try {
     const out = bufferWriter();
-    run(1, arrayLineReader([]), out, {
+    await run(1, arrayLineReader([]), out, {
       version: "0.1",
       buildTime: "unknown",
       initialStrikes: [3, 0, 0, 0],
@@ -140,12 +140,12 @@ test("run: seat 0 starting at 3 strikes skips straight to the silent match summa
 // defaults (trade index 0/0, or an empty "press enter") rather than
 // hanging or erroring, so the match still reaches a final result with
 // no further scripting.
-test("invalid input is reprompted, then defaults until the match ends", () => {
+test("invalid input is reprompted, then defaults until the match ends", async () => {
   const restore = withDisabledSleep();
   try {
     const input = "9\nbanana\n1\nzz\n0\n1\n1\n".split("\n").slice(0, -1);
     const out = bufferWriter();
-    run(1, arrayLineReader(input), out, { version: "0.1", buildTime: "unknown" });
+    await run(1, arrayLineReader(input), out, { version: "0.1", buildTime: "unknown" });
 
     const got = out.toString();
     for (const want of [

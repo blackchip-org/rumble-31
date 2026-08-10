@@ -33,7 +33,7 @@ export function dealPot(out: Writer, pot: Pot): void {
 // bot seats only.
 export function thinking(seat: number, inner: Strategy, out: Writer): Strategy {
   return {
-    decide(v: PlayerView): Action {
+    decide(v: PlayerView): Action | Promise<Action> {
       out.write(`seat ${seat} is thinking...\n`);
       clock.sleep(500 + Math.random() * 1500);
       return inner.decide(v);
