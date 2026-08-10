@@ -291,7 +291,7 @@ body {
   right: 1.25rem;
   bottom: 1.25rem;
   width: 320px;
-  max-height: 45vh;
+  max-height: min(260px, 28vh);
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 10px;
@@ -302,6 +302,10 @@ body {
 
 .log {
   overflow-y: auto;
+  /* Without this, a flex child won't shrink below its content's
+     height, so it grows the panel past max-height instead of
+     scrolling. */
+  min-height: 0;
 }
 
 .log p {
