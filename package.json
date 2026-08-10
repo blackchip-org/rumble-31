@@ -1,0 +1,20 @@
+{
+  "name": "rumble-31",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rumble-31 card game engine, CLI only for now.",
+  "type": "module",
+  "bin": {
+    "rumble-31-cli": "./bin/rumble-31-cli"
+  },
+  "scripts": {
+    "prepare": "node scripts/gen-buildtime.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'src/**/*.test.ts'",
+    "start": "node src/main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
