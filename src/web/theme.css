@@ -1,0 +1,35 @@
+/* Theme tokens: colors and typography. Edit values here to restyle
+   the app without touching layout/component rules in style.css. */
+:root {
+  /* ---------- colors ---------- */
+  --bg: #1b1b1f;
+  --panel: #202024;
+  --panel-border: #333338;
+  --ink: #eee;
+  --ink-dim: #999;
+  --ink-faint: #666;
+  --accent: #d9a441;
+  --accent-dim: #6b5628;
+  --good: #4caf7d;
+  --bad: #e0596b;
+
+  /* ---------- fonts ---------- */
+  --font-body: system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+  --font-weight-bold: 600;
+
+  --font-size-base: clamp(16px, 0.6vw + 12px, 20px);
+  --font-size-h1: 1.1rem;
+  --font-size-label: 0.68rem;
+  --font-size-tag: 0.62rem;
+  --font-size-score: 0.95rem;
+  --font-size-strike: 0.6rem;
+
+  --letter-spacing-label: 0.09em;
+  --letter-spacing-tag: 0.08em;
+
+  /* ---------- log window text (independent of the rest) ---------- */
+  --font-log: ui-monospace, monospace;
+  --font-weight-log: 400;
+  --font-size-log: clamp(0.8rem, 0.45vw + 0.65rem, 0.95rem);
+}
