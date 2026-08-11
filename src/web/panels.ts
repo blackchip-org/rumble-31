@@ -26,6 +26,20 @@ export function setScore(el: HTMLElement, value: number | null): void {
 
 export type PanelState = "turn" | "eliminated" | "none";
 
+// setWon toggles a seat panel's end-of-round win highlight. Independent
+// of setPanelState since a win never coincides with turn/eliminated.
+export function setWon(panelEl: HTMLElement, won: boolean): void {
+  panelEl.classList.toggle("is-won", won);
+}
+
+// setStruck toggles a seat panel's end-of-round strike highlight.
+// Independent of setPanelState since a struck seat may simultaneously
+// be eliminated (its strike was the third) — see .is-struck.is-eliminated
+// in style.css for that combined look.
+export function setStruck(panelEl: HTMLElement, struck: boolean): void {
+  panelEl.classList.toggle("is-struck", struck);
+}
+
 // setPanelState toggles a seat panel's turn/eliminated visuals and its
 // state tag's text; only one state applies at a time.
 export function setPanelState(panelEl: HTMLElement, state: PanelState): void {

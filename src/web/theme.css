@@ -12,6 +12,9 @@
   --accent-dim: #6b5628;
   --good: #4caf7d;
   --bad: #e0596b;
+  --bad-glow: rgba(224, 89, 107, 0.4);
+  --win: #ffffff;
+  --win-glow: rgba(255, 255, 255, 0.35);
 
   /* ---------- fonts ---------- */
   --font-body: system-ui, sans-serif;

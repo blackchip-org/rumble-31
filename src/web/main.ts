@@ -14,8 +14,8 @@ import { version } from "../version.ts";
 import dealSoundUrl from "../../assets/deal.wav";
 import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
-import { renderStrikes, setPanelState, setScore } from "./panels.ts";
-import { appendLogLine, backEl, cardEl, initCardSheetVars, renderCards } from "./render.ts";
+import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
+import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, renderCards } from "./render.ts";
 
 // sleep resolves after ms.
 function sleep(ms: number): Promise<void> {
@@ -130,11 +130,26 @@ function pauseBetweenRounds(ms: number): Promise<void> {
   return new Promise((resolve) => {
     const finish = () => {
       clearTimeout(timer);
-      document.removeEventListener("click", finish);
+      document.removeEventListener("click", onClick);
       resolve();
     };
+    const onClick = () => finish();
     const timer = setTimeout(finish, ms);
-    document.addEventListener("click", finish);
+    // Attaching this listener is deferred to a fresh task rather than
+    // done immediately: when South's own action ends the round (only
+    // possible when West is the knocker, since turn order wraps
+    // South-West-North-East-South), the click that resolves South's
+    // DomActionPrompt promise is still bubbling up through `document`
+    // at this exact point — browsers run a microtask checkpoint after
+    // each listener invocation during a single event's dispatch, which
+    // is what lets this whole call chain (Round.run -> Game.playRound
+    // -> this function) run to completion *before* that same click
+    // finishes bubbling. Attaching synchronously here would let that
+    // stale click immediately satisfy the listener and skip the pause
+    // before the player ever sees it. A deferred setTimeout(0) only
+    // attaches once the click's dispatch (and everything chained off
+    // it) has fully finished, so only a genuinely new click can match.
+    setTimeout(() => document.addEventListener("click", onClick), 0);
   });
 }
 
@@ -171,6 +186,11 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
     appendLogLine(logEl, line);
   }
 
+  for (let seat = 0; seat < 4; seat++) {
+    setWon(seatOf(seat).panel, false);
+    setStruck(seatOf(seat).panel, false);
+  }
+
   const activeSeats = [0, 1, 2, 3].filter((seat) => hands.has(seat));
   for (const seat of activeSeats) {
     seatOf(seat).hand.replaceChildren();
@@ -200,6 +220,7 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 
 async function main(): Promise<void> {
   initCardSheetVars();
+  initStrikeBlinkVar();
   unlockDealSoundOnFirstGesture();
 
   const seed = Date.now();
@@ -224,11 +245,24 @@ async function main(): Promise<void> {
 
     const outcome = await g.playRound();
 
+    // The round's over, so nobody's "on turn" anymore — clear it before
+    // applying this round's win/strike highlights, or whoever last
+    // acted would keep is-turn's amber glow through the pause.
+    for (let seat = 0; seat < 4; seat++) {
+      setPanelState(seatOf(seat).panel, g.eliminated[seat] ? "eliminated" : "none");
+    }
+
     for (const line of roundRecapLines(outcome, g.strikes)) {
       appendLogLine(logEl, line);
     }
     for (const pr of outcome.result.players) {
       setScore(seatOf(pr.seat).score, pr.score);
+    }
+    for (const seat of outcome.result.winners) {
+      setWon(seatOf(seat).panel, true);
+    }
+    for (const seat of outcome.struck) {
+      setStruck(seatOf(seat).panel, true);
     }
     for (let seat = 0; seat < 4; seat++) {
       renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);

@@ -11,3 +11,8 @@ export const MAX_BOT_THINK_TIME = 2000;
 // whole animation around one second; it's proportionally shorter with
 // fewer seats active.
 export const DEAL_ANIMATION_DELAY = 65;
+
+// STRIKE_HIGHLIGHT_BLINK_INTERVAL is the number of milliseconds each
+// on/off phase of the end-of-round red strike highlight is shown
+// before toggling.
+export const STRIKE_HIGHLIGHT_BLINK_INTERVAL = 400;

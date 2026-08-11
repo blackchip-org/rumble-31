@@ -1,5 +1,6 @@
 import type { Card, Rank, Suit } from "../card/card.ts";
 import cardsUrl from "../../assets/cards.png";
+import { STRIKE_HIGHLIGHT_BLINK_INTERVAL } from "../config.ts";
 import { BACK_TILE, SHEET_COLS, SHEET_ROWS, TILE_H, TILE_W, tilePosition, type TilePosition } from "./cardSheet.ts";
 
 const RANK_NAME: Record<Rank, string> = { A: "Ace", "7": "7", "8": "8", "9": "9", T: "10", J: "Jack", Q: "Queen", K: "King" };
@@ -24,6 +25,13 @@ export function initCardSheetVars(): void {
   // Chromium accepts it). Multiplying by a plain number sidesteps that
   // entirely.
   root.setProperty("--tile-aspect", `${TILE_H / TILE_W}`);
+}
+
+// initStrikeBlinkVar publishes STRIKE_HIGHLIGHT_BLINK_INTERVAL as a CSS
+// custom property, so style.css's blink animation duration stays in
+// sync with the configurable constant. Call once at startup.
+export function initStrikeBlinkVar(): void {
+  document.documentElement.style.setProperty("--strike-blink-interval", `${STRIKE_HIGHLIGHT_BLINK_INTERVAL}ms`);
 }
 
 // tileEl builds one card-sized div showing the sheet's tile at

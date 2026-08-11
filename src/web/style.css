@@ -223,6 +223,60 @@ body {
   filter: grayscale(0.6);
 }
 
+.panel.is-won {
+  border-color: var(--win);
+  box-shadow:
+    0 0 0 1px var(--win),
+    0 0 22px -6px var(--win-glow);
+}
+
+/* Blink stops are placed close together (49%/50% and 99%/100%) so the
+   browser's default interpolation between animatable properties
+   (border-color, box-shadow, opacity, filter) collapses to a near-
+   instant snap, reading as a hard on/off blink rather than a fade. */
+.panel.is-struck {
+  animation: panel-strike-blink calc(var(--strike-blink-interval) * 2) infinite;
+}
+
+@keyframes panel-strike-blink {
+  0%, 49% {
+    border-color: var(--bad);
+    box-shadow:
+      0 0 0 1px var(--bad),
+      0 0 22px -6px var(--bad-glow);
+  }
+  50%, 100% {
+    border-color: var(--panel-border);
+    box-shadow: none;
+  }
+}
+
+/* A strike that eliminates the player blinks between the panel's
+   normal look (with the red highlight) and its dimmed "eliminated"
+   look, instead of showing the highlight over a static dimmed panel.
+   Higher specificity than either .is-struck or .is-eliminated alone,
+   so this rule wins over both. */
+.panel.is-struck.is-eliminated {
+  animation: panel-strike-blink-eliminated calc(var(--strike-blink-interval) * 2) infinite;
+}
+
+@keyframes panel-strike-blink-eliminated {
+  0%, 49% {
+    opacity: 1;
+    filter: grayscale(0);
+    border-color: var(--bad);
+    box-shadow:
+      0 0 0 1px var(--bad),
+      0 0 22px -6px var(--bad-glow);
+  }
+  50%, 100% {
+    opacity: 0.45;
+    filter: grayscale(0.6);
+    border-color: var(--panel-border);
+    box-shadow: none;
+  }
+}
+
 .panel-head {
   display: flex;
   align-items: center;

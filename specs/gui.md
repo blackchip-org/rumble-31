@@ -35,6 +35,24 @@ the following:
     - XXO: Two strikes
     - XXX: Three strikes
 
+The player panel should highlight in the following conditions:
+
+- A yellowish highlight when it is the player's turn
+- A white highlight at the end of the round when the player has won
+- A blinking red highlight at the end of the round when the player receives a
+strike
+
+Each highlight uses its own color, defined as a separate theme variable, so
+any of the three can be restyled independently. The red strike highlight's
+blink interval is a configurable constant.
+
+The win/strike highlights are shown for as long as the pause between rounds
+lasts (including being cut short if the player skips the pause by clicking),
+and clear once the next round's deal begins. If a player's strike eliminates
+them, the panel blinks between its normal appearance (with the red
+highlight) and the dimmed "eliminated" appearance described below, rather
+than showing the highlight over a static dimmed panel.
+
 A player eliminated from the game (three strikes) keeps their panel in
 its usual place in the layout, but the panel is dimmed and tagged
 "eliminated", and shows no cards.
