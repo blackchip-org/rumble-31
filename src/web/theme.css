@@ -49,6 +49,7 @@
   --win: #ffffff; /* winning panel's border color */
   --win-glow: rgba(255, 255, 255, 0.35); /* glow behind a winning
                                              panel's border */
+  --knock: #7fa8d9; /* knocked state tag color/border */
 
   /* ---------- main screen (independently restylable) ---------- */
   --main-bg: #1b5e3a; /* felt-green main screen background */
@@ -67,14 +68,15 @@
                                                           app-wide */
   --font-size-h1: 1.1rem; /* header title */
   --font-size-label: 0.68rem; /* seat label, pot label */
-  --font-size-tag: 0.62rem; /* turn/eliminated state tag */
+  --font-size-tag: 0.62rem; /* turn/eliminated/knocked/strike state tag */
   --font-size-score: 0.95rem; /* score box and action buttons */
   --font-size-strike: 0.6rem; /* strike indicator dots */
   --font-size-title: clamp(3rem, 8vw + 1rem, 6.5rem); /* main screen
                                                             title */
 
   --letter-spacing-label: 0.09em; /* seat label, pot label */
-  --letter-spacing-tag: 0.08em; /* turn/eliminated state tag */
+  --letter-spacing-tag: 0.08em; /* turn/eliminated/knocked/strike state
+                                    tag */
 
   /* ---------- log window text (independent of the rest) ---------- */
   --font-log: ui-monospace, monospace; /* game log entries */

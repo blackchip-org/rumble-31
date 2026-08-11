@@ -324,7 +324,9 @@ body {
 }
 
 .panel.is-turn .state-tag,
-.panel.is-eliminated .state-tag {
+.panel.is-eliminated .state-tag,
+.panel.is-knocked .state-tag,
+.panel.is-strike .state-tag {
   visibility: visible;
 }
 
@@ -336,6 +338,16 @@ body {
 .panel.is-eliminated .state-tag {
   color: var(--bad);
   border-color: var(--bad);
+}
+
+.panel.is-strike .state-tag {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+.panel.is-knocked .state-tag {
+  color: var(--knock);
+  border-color: var(--knock);
 }
 
 .row-bottom {

@@ -112,11 +112,12 @@ function seatOf(seat: number): SeatEls {
 }
 
 // setActiveSeat highlights whichever seat is currently deciding,
-// leaving already-eliminated panels' dimmed state alone.
+// leaving already-eliminated panels' dimmed state, and the current
+// round's knocked panel (if any), alone.
 function setActiveSeat(seat: number): void {
   for (let s = 0; s < 4; s++) {
     const panel = seatOf(s).panel;
-    if (panel.classList.contains("is-eliminated")) {
+    if (panel.classList.contains("is-eliminated") || panel.classList.contains("is-knocked")) {
       continue;
     }
     setPanelState(panel, s === seat ? "turn" : "none");
@@ -197,6 +198,14 @@ async function animateTurnCards(rec: TurnRecord): Promise<void> {
   }
 }
 
+// seatKnocked reports whether any seat is currently tagged "knocked"
+// this round — a round only ever has one knocker (round.ts's own
+// knocked/knockerSeat), so once a panel is tagged, later qualifying
+// actions don't move the tag.
+function seatKnocked(): boolean {
+  return seatEls.some((s) => s.panel.classList.contains("is-knocked"));
+}
+
 // renderTurn logs the turn per src/log.ts, plays its trade animation,
 // then keeps the pot and South's own hand/score panel live across every
 // turn. The pot is otherwise only rendered at deal time and when
@@ -210,6 +219,14 @@ async function animateTurnCards(rec: TurnRecord): Promise<void> {
 async function renderTurn(rec: TurnRecord): Promise<void> {
   for (const line of turnLines(rec)) {
     appendLogLine(logEl, line);
+  }
+
+  // Mirrors round.ts's own knock detection (a knock, or an exchange on
+  // any turn but the round's very first) to tag the knocker's panel.
+  // The tag is cleared with the rest of the turn state once the round
+  // ends (see the roundNum loop in main()).
+  if (!seatKnocked() && (rec.action.type === "knock" || (rec.action.type === "exchange" && rec.turnIndex !== 0))) {
+    setPanelState(seatOf(rec.seat).panel, "knocked");
   }
 
   await animateTurnCards(rec);
@@ -237,6 +254,7 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   for (let seat = 0; seat < 4; seat++) {
     setWon(seatOf(seat).panel, false);
     setStruck(seatOf(seat).panel, false);
+    setPanelState(seatOf(seat).panel, hands.has(seat) ? "none" : "eliminated");
   }
 
   const activeSeats = [0, 1, 2, 3].filter((seat) => hands.has(seat));
@@ -279,6 +297,7 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   for (let seat = 0; seat < 4; seat++) {
     setWon(seatOf(seat).panel, false);
     setStruck(seatOf(seat).panel, false);
+    setPanelState(seatOf(seat).panel, hands.has(seat) ? "none" : "eliminated");
   }
 
   for (const [seat, hand] of hands) {
@@ -340,9 +359,9 @@ async function main(): Promise<void> {
 
     const outcome = await g.playRound();
 
-    // The round's over, so nobody's "on turn" anymore — clear it before
-    // applying this round's win/strike highlights, or whoever last
-    // acted would keep is-turn's amber glow through the pause.
+    // The round's over, so nobody's "on turn" or "knocked" anymore —
+    // clear both before applying this round's win/strike highlights, or
+    // whoever last acted/knocked would keep that tag through the pause.
     for (let seat = 0; seat < 4; seat++) {
       setPanelState(seatOf(seat).panel, g.eliminated[seat] ? "eliminated" : "none");
     }
@@ -358,6 +377,13 @@ async function main(): Promise<void> {
     }
     for (const seat of outcome.struck) {
       setStruck(seatOf(seat).panel, true);
+      // A struck seat that this same strike eliminated already got the
+      // "eliminated" tag above (g.eliminated is updated inside
+      // playRound, before outcome is returned) — "strike" only tags a
+      // seat that survives the strike.
+      if (!g.eliminated[seat]) {
+        setPanelState(seatOf(seat).panel, "strike");
+      }
     }
     for (let seat = 0; seat < 4; seat++) {
       renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);

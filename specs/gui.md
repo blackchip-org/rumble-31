@@ -53,9 +53,18 @@ them, the panel blinks between its normal appearance (with the red
 highlight) and the dimmed "eliminated" appearance described below, rather
 than showing the highlight over a static dimmed panel.
 
+A player struck this round, but not eliminated by that strike, has
+their panel tagged "strike" for as long as the win/strike highlights
+are shown, clearing at the same time those highlights do.
+
 A player eliminated from the game (three strikes) keeps their panel in
 its usual place in the layout, but the panel is dimmed and tagged
-"eliminated", and shows no cards.
+"eliminated", and shows no cards. A player eliminated by this round's
+strike is tagged "eliminated" instead of "strike".
+
+The player who knocks (see specs/rules.md) has their panel tagged
+"knocked" for the rest of that round. The tag is removed as soon as the
+round ends.
 
 In the center of the screen is the pot panel, showing the three cards in
 the pot arranged horizontally.
