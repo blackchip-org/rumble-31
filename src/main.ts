@@ -8,6 +8,7 @@ import type { LineReader, Writer } from "./cli/io.ts";
 import { clock, stdinLineReader, streamWriter } from "./cli/io.ts";
 import { newGame } from "./game/game.ts";
 import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnLines } from "./log.ts";
+import { parseStrikesDigits } from "./game/strikes.ts";
 import type { Hand } from "./game/types.ts";
 import { version } from "./version.ts";
 
@@ -92,28 +93,16 @@ export function parseStrikesArg(argv: readonly string[]): [number, number, numbe
     const arg = argv[i] as string;
     const eq = /^--?strikes=(.+)$/.exec(arg);
     if (eq?.[1] !== undefined) {
-      return parseStrikesValue(eq[1]);
+      return parseStrikesDigits(eq[1]);
     }
     if (arg === "--strikes" || arg === "-strikes") {
       const next = argv[i + 1];
       if (next !== undefined) {
-        return parseStrikesValue(next);
+        return parseStrikesDigits(next);
       }
     }
   }
   return [0, 0, 0, 0];
-}
-
-function parseStrikesValue(value: string): [number, number, number, number] {
-  if (!/^\d{4}$/.test(value)) {
-    throw new Error(`invalid -strikes value ${JSON.stringify(value)}: expected exactly 4 digits`);
-  }
-  return [Number(value[0]), Number(value[1]), Number(value[2]), Number(value[3])] as [
-    number,
-    number,
-    number,
-    number,
-  ];
 }
 
 function isMainModule(): boolean {

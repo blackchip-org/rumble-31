@@ -2,6 +2,7 @@ import type { Card } from "../card/card.ts";
 import { newDeck, shuffleDeck } from "../card/deck.ts";
 import { score } from "../card/score.ts";
 import { Rng } from "../rng.ts";
+import { cardToString } from "../card/card.ts";
 import type {
   Action,
   Hand,
@@ -13,6 +14,18 @@ import type {
   Strategy,
   TurnRecord,
 } from "./types.ts";
+
+// RoundDealOverride lets a round's deal skip its normal fully-random
+// setup for debugging (specs/params.md): assignedHands/assignedPot
+// pre-populate specific seats/the pot with fixed cards instead of
+// dealing them from the shuffled deck, and firstSeat fixes who acts
+// first instead of picking randomly. Only ever used for a game's very
+// first round — see Game.pendingInitialDeal.
+export interface RoundDealOverride {
+  assignedHands?: Map<number, Hand>;
+  assignedPot?: Pot;
+  firstSeat?: number;
+}
 
 // Round holds the state of a single Rumble-31 round in progress, among
 // whichever seats are taking part (2 to 4 — a seat eliminated from the
@@ -172,18 +185,28 @@ export class Round {
 // newRound deals a new round among the given seats (one strategy per
 // seat, 2 to 4 of them — an eliminated seat is simply left out) and
 // picks the first seat to act, all derived from seed so a round is
-// fully reproducible.
-export function newRound(seed: number, seats: ReadonlyArray<{ seat: number; strategy: Strategy }>): Round {
+// fully reproducible. override, when given, pre-populates specific
+// seats/the pot and/or fixes the first seat, per RoundDealOverride —
+// see Game.playRound, which only ever passes one for a game's first
+// round.
+export function newRound(
+  seed: number,
+  seats: ReadonlyArray<{ seat: number; strategy: Strategy }>,
+  override?: RoundDealOverride,
+): Round {
   const rng = new Rng(seed);
 
-  const deck = newDeck();
-  shuffleDeck(deck, rng);
-
-  const { hands, pot } = dealCards(
-    deck,
-    seats.map((s) => s.seat),
-  );
-  const firstSeat = seats[rng.intn(seats.length)]?.seat as number;
+  const { hands, pot } = override
+    ? dealCardsWithOverride(
+        rng,
+        seats.map((s) => s.seat),
+        override,
+      )
+    : dealCards(
+        shuffledDeck(rng),
+        seats.map((s) => s.seat),
+      );
+  const firstSeat = override?.firstSeat ?? (seats[rng.intn(seats.length)]?.seat as number);
 
   const players: Player[] = seats.map((s) => ({
     seat: s.seat,
@@ -192,6 +215,13 @@ export function newRound(seed: number, seats: ReadonlyArray<{ seat: number; stra
   }));
 
   return new Round(pot, players, firstSeat);
+}
+
+// shuffledDeck returns a full, freshly-shuffled deck.
+function shuffledDeck(rng: Rng): Card[] {
+  const deck = newDeck();
+  shuffleDeck(deck, rng);
+  return deck;
 }
 
 // dealCards splits the top 3 * seats.length cards of the deck into
@@ -216,6 +246,44 @@ function dealCards(deck: readonly Card[], seats: readonly number[]): { hands: Ma
     handsOut.set(seat, cards as unknown as Hand);
   }
   return { hands: handsOut, pot: pot as unknown as Pot };
+}
+
+// dealCardsWithOverride deals a round per RoundDealOverride, per
+// specs/params.md: seats/the pot named in override use their assigned
+// cards untouched; a fresh deck, minus every assigned card, is
+// shuffled and dealt round-robin (dealCards' own order) to fill
+// whichever seats/the pot weren't assigned.
+function dealCardsWithOverride(
+  rng: Rng,
+  seats: readonly number[],
+  override: RoundDealOverride,
+): { hands: Map<number, Hand>; pot: Pot } {
+  const assignedHands = override.assignedHands ?? new Map<number, Hand>();
+  const assignedCards = new Set<string>();
+  for (const hand of assignedHands.values()) {
+    for (const c of hand) {
+      assignedCards.add(cardToString(c));
+    }
+  }
+  if (override.assignedPot) {
+    for (const c of override.assignedPot) {
+      assignedCards.add(cardToString(c));
+    }
+  }
+
+  const deck = newDeck().filter((c) => !assignedCards.has(cardToString(c)));
+  shuffleDeck(deck, rng);
+
+  const unassignedSeats = seats.filter((seat) => !assignedHands.has(seat));
+  const { hands: dealtHands, pot: dealtPot } = dealCards(deck, unassignedSeats);
+
+  const hands = new Map<number, Hand>(dealtHands);
+  for (const [seat, hand] of assignedHands) {
+    hands.set(seat, hand);
+  }
+  const pot = override.assignedPot ?? dealtPot;
+
+  return { hands, pot };
 }
 
 // hasThreeAces reports whether any player currently holds three aces.

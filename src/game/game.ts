@@ -1,4 +1,5 @@
 import { newRound } from "./round.ts";
+import type { RoundDealOverride } from "./round.ts";
 import { Rng } from "../rng.ts";
 import type { Hand, Pot, Result, Strategy, TurnRecord } from "./types.ts";
 
@@ -34,12 +35,18 @@ export class Game {
   // eliminating everyone down to no winner at all.
   private over: boolean;
   private rng: Rng | undefined;
+  // pendingInitialDeal, if set, is applied to (and cleared by) whichever
+  // round is played first — e.g. to pre-populate hands/the pot or fix
+  // the first seat for debugging (specs/params.md). Every later round
+  // deals normally.
+  private pendingInitialDeal: RoundDealOverride | undefined;
 
   constructor(init?: {
     strategies?: [Strategy, Strategy, Strategy, Strategy];
     strikes?: [number, number, number, number];
     eliminated?: [boolean, boolean, boolean, boolean];
     rng?: Rng;
+    initialDeal?: RoundDealOverride;
   }) {
     this.strategies = init?.strategies;
     this.strikes = init?.strikes ?? [0, 0, 0, 0];
@@ -48,6 +55,7 @@ export class Game {
     this.onTurn = undefined;
     this.over = false;
     this.rng = init?.rng;
+    this.pendingInitialDeal = init?.initialDeal;
   }
 
   // active reports whether more than one seat remains — i.e. whether the
@@ -74,7 +82,9 @@ export class Game {
     const strategies = this.strategies;
     const seats = active.map((seat) => ({ seat, strategy: strategies[seat] as Strategy }));
 
-    const r = newRound(this.rng.nextSeed(), seats);
+    const override = this.pendingInitialDeal;
+    this.pendingInitialDeal = undefined;
+    const r = newRound(this.rng.nextSeed(), seats, override);
     await this.onDeal?.(
       r.pot,
       new Map(r.players.map((p) => [p.seat, p.hand])),
@@ -154,12 +164,14 @@ export class Game {
 // from seed so a game is fully reproducible. initialStrikes seeds each
 // seat's strike count (for -strikes debugging); a seat starting at 3 or
 // more strikes begins the game already eliminated, per applyResult's
-// own threshold.
+// own threshold. initialDeal, if given, is applied only to the game's
+// first round (for the web GUI's debug params — specs/params.md).
 export function newGame(
   seed: number,
   strategies: [Strategy, Strategy, Strategy, Strategy],
   initialStrikes: [number, number, number, number] = [0, 0, 0, 0],
+  initialDeal?: RoundDealOverride,
 ): Game {
   const eliminated = initialStrikes.map((s) => s >= 3) as [boolean, boolean, boolean, boolean];
-  return new Game({ strategies, rng: new Rng(seed), strikes: [...initialStrikes], eliminated });
+  return new Game({ strategies, rng: new Rng(seed), strikes: [...initialStrikes], eliminated, initialDeal });
 }

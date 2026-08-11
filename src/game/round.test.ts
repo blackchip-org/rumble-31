@@ -4,6 +4,7 @@ import { parseCard } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { Round, newRound, validateAction } from "./round.ts";
+import type { RoundDealOverride } from "./round.ts";
 import { trade, exchange, knock, strategyFunc } from "./types.ts";
 import type { Action, Hand, Player, Pot, PlayerView, Strategy, TurnRecord } from "./types.ts";
 
@@ -515,4 +516,64 @@ test("run cycles turn order among sparse seats in clockwise (ascending, wrapping
     log.map((rec) => rec.seat),
     [0, 2, 3, 0],
   );
+});
+
+test("newRound with a RoundDealOverride", () => {
+  const seats = [0, 1, 2, 3].map((seat) => ({ seat, strategy: nilStrategy }));
+
+  const cases: Array<{ name: string; override: RoundDealOverride }> = [
+    {
+      name: "assigned hand only",
+      override: { assignedHands: new Map([[2, mustHand("7s", "8h", "9c")]]) },
+    },
+    {
+      name: "assigned pot only",
+      override: { assignedPot: mustPot("Ts", "Jh", "Qc") },
+    },
+    {
+      name: "assigned hands and pot together",
+      override: {
+        assignedHands: new Map([
+          [0, mustHand("7s", "8s", "9s")],
+          [3, mustHand("7h", "8h", "9h")],
+        ]),
+        assignedPot: mustPot("Ts", "Jc", "Qd"),
+      },
+    },
+  ];
+
+  for (const { name, override } of cases) {
+    const r = newRound(42, seats, override);
+
+    for (const [seat, hand] of override.assignedHands ?? []) {
+      assert.deepEqual(r.players.find((p) => p.seat === seat)?.hand, hand, `${name}: assigned hand`);
+    }
+    if (override.assignedPot) {
+      assert.deepEqual(r.pot, override.assignedPot, `${name}: assigned pot`);
+    }
+
+    // Every card across every hand and the pot is unique — the assigned
+    // cards were correctly removed from the deck before the rest was
+    // dealt, so nothing collides.
+    const seen = new Set<string>();
+    for (const p of r.players) {
+      for (const c of p.hand) {
+        const key = c.rank + c.suit;
+        assert.equal(seen.has(key), false, `${name}: duplicate card ${key}`);
+        seen.add(key);
+      }
+    }
+    for (const c of r.pot) {
+      const key = c.rank + c.suit;
+      assert.equal(seen.has(key), false, `${name}: duplicate card ${key}`);
+      seen.add(key);
+    }
+    assert.equal(seen.size, 15, name);
+  }
+});
+
+test("newRound with a RoundDealOverride honors a forced firstSeat", () => {
+  const seats = [0, 1, 2, 3].map((seat) => ({ seat, strategy: nilStrategy }));
+  const r = newRound(42, seats, { firstSeat: 3 });
+  assert.equal(r.firstSeat, 3);
 });

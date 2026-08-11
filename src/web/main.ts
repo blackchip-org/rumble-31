@@ -14,8 +14,9 @@ import { version } from "../version.ts";
 import dealSoundUrl from "../../assets/deal.wav";
 import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
+import { parseDebugParams } from "./params.ts";
 import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
-import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, renderCards } from "./render.ts";
+import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, renderBacks, renderCards } from "./render.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 
 // sleep resolves after ms.
@@ -249,7 +250,36 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   setScore(seatOf(0).score, score(southHand));
 }
 
+// renderDealInstant places round 1's already-dealt hands/pot directly,
+// with no per-card animation or sound — used instead of animateDeal
+// when specs/params.md's north/south/east/west/pot debug params
+// pre-populate the deal, per its "dealing is not animated" note.
+function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>): void {
+  const southHand = hands.get(0) as Hand;
+  for (const line of roundStartLines(roundNum, pot, southHand)) {
+    appendLogLine(logEl, line);
+  }
+
+  for (let seat = 0; seat < 4; seat++) {
+    setWon(seatOf(seat).panel, false);
+    setStruck(seatOf(seat).panel, false);
+  }
+
+  for (const [seat, hand] of hands) {
+    if (seat === 0) {
+      renderCards(seatOf(0).hand, hand);
+    } else {
+      renderBacks(seatOf(seat).hand, hand.length);
+    }
+  }
+  renderCards(potEl, pot);
+
+  setScore(seatOf(0).score, score(southHand));
+}
+
 async function main(): Promise<void> {
+  const params = parseDebugParams(window.location.search);
+
   initCardSheetVars();
   initStrikeBlinkVar();
   unlockDealSoundOnFirstGesture();
@@ -258,12 +288,20 @@ async function main(): Promise<void> {
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn);
   const bots: [Bot, Bot, Bot] = [new Bot(), new Bot(), new Bot()];
 
-  const g = newGame(seed, [withTurnUi(0, human), withTurnUi(1, bots[0]), withTurnUi(2, bots[1]), withTurnUi(3, bots[2])]);
+  const g = newGame(
+    seed,
+    [withTurnUi(0, human), withTurnUi(1, bots[0]), withTurnUi(2, bots[1]), withTurnUi(3, bots[2])],
+    params.initialStrikes,
+    params.initialDeal,
+  );
 
   statusEl.textContent = `You are ${seatName(0)}`;
 
   for (let seat = 0; seat < 4; seat++) {
     renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
+    if (g.eliminated[seat]) {
+      setPanelState(seatOf(seat).panel, "eliminated");
+    }
   }
 
   for (const line of gameStartLines(seed, version)) {
@@ -271,7 +309,10 @@ async function main(): Promise<void> {
   }
 
   for (let roundNum = 1; g.active() && !g.eliminated[0]; roundNum++) {
-    g.onDeal = (pot, hands) => animateDeal(roundNum, pot, hands);
+    g.onDeal =
+      roundNum === 1 && params.skipDealAnimation
+        ? (pot, hands) => renderDealInstant(roundNum, pot, hands)
+        : (pot, hands) => animateDeal(roundNum, pot, hands);
     g.onTurn = renderTurn;
 
     const outcome = await g.playRound();

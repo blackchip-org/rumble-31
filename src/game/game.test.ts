@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Game, newGame } from "./game.ts";
 import { trade, knock, exchange, strategyFunc } from "./types.ts";
-import type { PlayerResult, PlayerView, Result, Strategy } from "./types.ts";
+import type { Hand, PlayerResult, PlayerView, Result, Strategy } from "./types.ts";
 import { Rng } from "../rng.ts";
 
 function resultWithScores(scores: [number, number, number, number]): Result {
@@ -234,4 +234,31 @@ test("newGame seeds initial strikes, eliminating any seat starting at 3 or more"
     outcome.result.players.map((pr) => pr.seat).sort((a, b) => a - b),
     [1, 2],
   );
+});
+
+// newGame's initialDeal (for the web GUI's debug URL params) must only
+// apply to whichever round is played first — every later round deals
+// normally, otherwise a debug hand would keep reappearing every round.
+test("newGame's initialDeal applies only to the first round played", async () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const assignedHand: Hand = [
+    { rank: "7", suit: "s" },
+    { rank: "8", suit: "s" },
+    { rank: "9", suit: "s" },
+  ];
+  const g = newGame(1, strategies, undefined, { assignedHands: new Map([[0, assignedHand]]) });
+
+  let round1Hand: Hand | undefined;
+  g.onDeal = (_pot, hands) => {
+    round1Hand = hands.get(0);
+  };
+  await g.playRound();
+  assert.deepEqual(round1Hand, assignedHand);
+
+  let round2Hand: Hand | undefined;
+  g.onDeal = (_pot, hands) => {
+    round2Hand = hands.get(0);
+  };
+  await g.playRound();
+  assert.notDeepEqual(round2Hand, assignedHand);
 });
