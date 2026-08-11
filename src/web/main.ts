@@ -12,7 +12,7 @@ import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnSta
 import { version } from "../version.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
 import { renderStrikes, setPanelState, setScore } from "./panels.ts";
-import { appendLogLine, renderBacks, renderCards } from "./render.ts";
+import { appendLogLine, initCardSheetVars, renderBacks, renderCards } from "./render.ts";
 
 function must<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -117,6 +117,8 @@ function renderTurn(rec: TurnRecord): void {
 }
 
 async function main(): Promise<void> {
+  initCardSheetVars();
+
   const seed = Date.now();
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn);
   const bots: [Bot, Bot, Bot] = [new Bot(), new Bot(), new Bot()];

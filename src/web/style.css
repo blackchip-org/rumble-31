@@ -11,6 +11,26 @@
   --accent-dim: #6b5628;
   --good: #4caf7d;
   --bad: #e0596b;
+
+  /* --tile-w/--tile-h/--sheet-cols/--sheet-rows/--tile-aspect are set
+     on document.documentElement by render.ts's initCardSheetVars(),
+     from cardSheet.ts's own constants — the single source of truth
+     for the sheet's actual geometry. --card-w's clamp() is bounded
+     above by --tile-w itself, so on-screen cards can never exceed
+     native tile resolution (no upscale blur), even if the sheet is
+     regenerated at a different size later. --card-h derives from
+     --card-w via --tile-aspect (a precomputed unitless ratio, not
+     --tile-h / --tile-w here — dividing one length by another in
+     calc() isn't reliably supported across browsers), so it's always
+     locked in step.
+   */
+  --card-w: clamp(64px, 7vw, var(--tile-w));
+  --card-h: calc(var(--card-w) * var(--tile-aspect));
+}
+
+html {
+  /* Scales rem-based text/padding together with the viewport. */
+  font-size: clamp(16px, 0.6vw + 12px, 20px);
 }
 
 * {
@@ -56,6 +76,11 @@ body {
   row-gap: 1rem;
   min-height: calc(100vh - 4.5rem);
   padding: 1rem 0 2rem;
+  /* Caps how far the auto 1fr auto columns can stretch apart, so West/
+     East stay close to the pot instead of pinning to the viewport
+     edges on a wide screen — the rest of the width becomes a margin. */
+  max-width: 1700px;
+  margin: 0 auto;
 }
 
 .seat-north {
@@ -100,7 +125,11 @@ body {
 /* ---------- player panel ---------- */
 
 .panel {
-  width: 220px;
+  /* 3 cards + the .hand gap between them (2 * 0.5rem) + this panel's
+     own left/right padding (2 * 0.85rem) — kept in lockstep with
+     --card-w so panels can't visually drift out of sync with the
+     cards they hold at any viewport size. */
+  width: calc(var(--card-w) * 3 + 2.7rem);
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 10px;
@@ -181,6 +210,14 @@ body {
 }
 
 .card {
+  /* Geometry driven by --card-w/--card-h and this card's own
+     --tile-row/--tile-col (set inline per element by render.ts's
+     tileEl()) — see :root's --card-w for the native-resolution cap. */
+  width: var(--card-w);
+  height: var(--card-h);
+  background-size: calc(var(--sheet-cols) * var(--card-w)) calc(var(--sheet-rows) * var(--card-h));
+  background-position:
+    calc(-1 * (var(--tile-col) - 1) * var(--card-w)) calc(-1 * (var(--tile-row) - 1) * var(--card-h));
   flex-shrink: 0;
   background-repeat: no-repeat;
   border-radius: 6px;
@@ -290,7 +327,7 @@ body {
   position: fixed;
   right: 1.25rem;
   bottom: 1.25rem;
-  width: 400px;
+  width: clamp(320px, 18vw, 460px);
   max-height: min(260px, 28vh);
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -311,7 +348,7 @@ body {
 .log p {
   margin: 0.15rem 0;
   font-family: ui-monospace, monospace;
-  font-size: 0.8rem;
+  font-size: clamp(0.8rem, 0.45vw + 0.65rem, 0.95rem);
   color: #ccc;
 }
 

@@ -2,16 +2,35 @@ import type { Card, Rank, Suit } from "../card/card.ts";
 import cardsUrl from "../../assets/cards.png";
 import { BACK_TILE, SHEET_COLS, SHEET_ROWS, TILE_H, TILE_W, tilePosition, type TilePosition } from "./cardSheet.ts";
 
-// DISPLAY_W/H is the on-screen size of one card, scaled down from the
-// sheet's native 147x169 tile while keeping its aspect ratio.
-const DISPLAY_W = 64;
-const DISPLAY_H = (TILE_H / TILE_W) * DISPLAY_W;
-
 const RANK_NAME: Record<Rank, string> = { A: "Ace", "7": "7", "8": "8", "9": "9", T: "10", J: "Jack", Q: "Queen", K: "King" };
 const SUIT_NAME: Record<Suit, string> = { s: "Spades", h: "Hearts", d: "Diamonds", c: "Clubs" };
 
+// initCardSheetVars publishes the sheet's own geometry as CSS custom
+// properties, so style.css can size and position cards (clamped to
+// this native tile resolution, never upscaled past it) without
+// duplicating these numbers. Call once at startup. If the sheet is
+// ever regenerated at a different tile size, only cardSheet.ts's
+// constants need to change.
+export function initCardSheetVars(): void {
+  const root = document.documentElement.style;
+  root.setProperty("--tile-w", `${TILE_W}px`);
+  root.setProperty("--tile-h", `${TILE_H}px`);
+  root.setProperty("--sheet-cols", `${SHEET_COLS}`);
+  root.setProperty("--sheet-rows", `${SHEET_ROWS}`);
+  // Precomputed as a unitless ratio rather than left as --tile-h /
+  // --tile-w in CSS: calc() dividing one length by another is
+  // inconsistently supported (Firefox rejects it as invalid, silently
+  // dropping the height/background-position rules that depend on it —
+  // Chromium accepts it). Multiplying by a plain number sidesteps that
+  // entirely.
+  root.setProperty("--tile-aspect", `${TILE_H / TILE_W}`);
+}
+
 // tileEl builds one card-sized div showing the sheet's tile at
-// position, labelled ariaLabel for accessibility.
+// position, labelled ariaLabel for accessibility. Its size and
+// background position come from the .card CSS rule (which reads the
+// --tile-row/--tile-col set here), not inline styles, so it responds
+// to viewport size instead of a fixed pixel size baked in once.
 function tileEl(position: TilePosition, ariaLabel: string): HTMLElement {
   const { row, col } = position;
 
@@ -19,11 +38,9 @@ function tileEl(position: TilePosition, ariaLabel: string): HTMLElement {
   el.className = "card";
   el.setAttribute("role", "img");
   el.setAttribute("aria-label", ariaLabel);
-  el.style.width = `${DISPLAY_W}px`;
-  el.style.height = `${DISPLAY_H}px`;
   el.style.backgroundImage = `url(${cardsUrl})`;
-  el.style.backgroundSize = `${SHEET_COLS * DISPLAY_W}px ${SHEET_ROWS * DISPLAY_H}px`;
-  el.style.backgroundPosition = `${-(col - 1) * DISPLAY_W}px ${-(row - 1) * DISPLAY_H}px`;
+  el.style.setProperty("--tile-row", `${row}`);
+  el.style.setProperty("--tile-col", `${col}`);
   return el;
 }
 
