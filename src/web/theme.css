@@ -91,4 +91,11 @@
   --error-heading: #ff6961; /* fatal error heading color */
   --error-fg: #fff; /* fatal error message color */
   --error-stack: #999; /* fatal error stack trace color */
+
+  /* ---------- game over screen (independently restylable) ---------- */
+  --game-over-bg: #000; /* game over screen background */
+  --game-over-title-color: #fff; /* "You Won!"/"Game Over" text color */
+  --font-size-game-over-title: clamp(2.5rem, 4vw + 1.5rem, 4.5rem); /* game
+                                                                         over
+                                                                         title */
 }

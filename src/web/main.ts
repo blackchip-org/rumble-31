@@ -17,7 +17,7 @@ import { DomActionPrompt } from "./domActionPrompt.ts";
 import { installGlobalErrorHandlers, showErrorScreen } from "./errorScreen.ts";
 import { parseDebugParams } from "./params.ts";
 import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
-import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, renderBacks, renderCards } from "./render.ts";
+import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 
 // sleep resolves after ms.
@@ -80,6 +80,13 @@ interface SeatEls {
 const mainScreenEl = must<HTMLElement>("main-screen");
 const gameScreenEl = must<HTMLElement>("game-screen");
 const newGameBtn = must<HTMLButtonElement>("new-game-btn");
+
+const gameOverScreenEl = must<HTMLElement>("game-over-screen");
+const gameOverLine1El = must<HTMLElement>("game-over-line1");
+const gameOverLine2El = must<HTMLElement>("game-over-line2");
+const playAgainBtn = must<HTMLButtonElement>("play-again-btn");
+const mainMenuBtn = must<HTMLButtonElement>("main-menu-btn");
+const saveLogBtn = must<HTMLButtonElement>("save-log-btn");
 
 const potEl = must<HTMLElement>("pot");
 const logEl = must<HTMLElement>("log");
@@ -304,18 +311,27 @@ async function main(): Promise<void> {
     params.initialDeal,
   );
 
+  // Resets every seat panel, score, and hand, and clears the log — a
+  // no-op for the very first game (everything already starts blank),
+  // but required for Play Again (specs/gui.md's Game Over Screen
+  // section), which re-enters main() on the same DOM a finished game
+  // left its final-round highlights and log lines in.
+  logEl.replaceChildren();
   for (let seat = 0; seat < 4; seat++) {
+    setWon(seatOf(seat).panel, false);
+    setStruck(seatOf(seat).panel, false);
+    setPanelState(seatOf(seat).panel, g.eliminated[seat] ? "eliminated" : "none");
+    setScore(seatOf(seat).score, null);
     renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
-    if (g.eliminated[seat]) {
-      setPanelState(seatOf(seat).panel, "eliminated");
-    }
+    seatOf(seat).hand.replaceChildren();
   }
+  potEl.replaceChildren();
 
   for (const line of gameStartLines(seed, version)) {
     appendLogLine(logEl, line);
   }
 
-  for (let roundNum = 1; g.active() && !g.eliminated[0]; roundNum++) {
+  for (let roundNum = 1; ; roundNum++) {
     g.onDeal =
       roundNum === 1 && params.skipDealAnimation
         ? (pot, hands) => renderDealInstant(roundNum, pot, hands)
@@ -351,23 +367,67 @@ async function main(): Promise<void> {
       }
     }
 
-    if (g.active() && !g.eliminated[0]) {
-      await pauseBetweenRounds(3000);
+    // Per specs/gui.md's Game Over Screen section: the pause always
+    // runs — so the final round's win/strike highlights are visible,
+    // and can still be skipped by clicking, same as any other round —
+    // but once it expires, play only continues into another deal if
+    // the game hasn't actually ended.
+    const gameOver = !g.active() || g.eliminated[0];
+    await pauseBetweenRounds(3000);
+    if (gameOver) {
+      break;
     }
   }
 
   for (const line of gameEndLines(g)) {
     appendLogLine(logEl, line);
   }
+  showGameOverScreen(g.winners().includes(0));
 }
 
-// showGameScreen swaps the main screen for the game screen (per
-// specs/gui.md's Main Screen section), then starts a new game.
+// showGameScreen swaps whichever screen is up (main, or the game-over
+// screen for Play Again) for the game screen, then starts a new game.
 function showGameScreen(): void {
   mainScreenEl.hidden = true;
+  gameOverScreenEl.hidden = true;
   gameScreenEl.hidden = false;
   main().catch(showErrorScreen);
 }
+
+// showMainScreen swaps the game-over screen for the main screen (per
+// specs/gui.md's Game Over Screen section's "Main Menu" button).
+function showMainScreen(): void {
+  gameOverScreenEl.hidden = true;
+  mainScreenEl.hidden = false;
+}
+
+// showGameOverScreen swaps the game screen for the game-over screen,
+// announcing South's win or loss per specs/gui.md's Game Over Screen
+// section: "You Won!"/"Game Over", one word per line.
+function showGameOverScreen(southWon: boolean): void {
+  const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
+  gameOverLine1El.textContent = line1;
+  gameOverLine2El.textContent = line2;
+  gameScreenEl.hidden = true;
+  gameOverScreenEl.hidden = false;
+}
+
+// downloadTextFile saves text as a local file named filename, via a
+// throwaway object URL and link click — the standard way to trigger a
+// browser "Save As" from script for content that only ever existed in
+// memory (nothing is fetched or navigated to).
+function downloadTextFile(filename: string, text: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+playAgainBtn.addEventListener("click", showGameScreen);
+mainMenuBtn.addEventListener("click", showMainScreen);
+saveLogBtn.addEventListener("click", () => downloadTextFile("rumble-31-log.txt", logText(logEl)));
 
 // Any URL parameter (specs/params.md) bypasses the main screen and
 // starts the game immediately, as it always has — the main screen is

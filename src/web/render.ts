@@ -89,6 +89,15 @@ export function renderBacks(container: HTMLElement, count: number): void {
   container.replaceChildren(...Array.from({ length: count }, backEl));
 }
 
+// logText reconstructs the game log as plain text, one line per entry
+// appended by appendLogLine — including its blank lines, since a <br>'s
+// textContent is itself "". For saving the log to a file.
+export function logText(container: HTMLElement): string {
+  return Array.from(container.children)
+    .map((el) => el.textContent ?? "")
+    .join("\n");
+}
+
 // appendLogLine appends one line of text to container (the running game
 // log) and scrolls it into view. An empty line renders as a <br> — an
 // empty <p> has no line box to give it height, so it wouldn't be
