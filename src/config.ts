@@ -4,3 +4,10 @@
 // simulate a bot thinking before it decides, in milliseconds.
 export const MIN_BOT_THINK_TIME = 500;
 export const MAX_BOT_THINK_TIME = 2000;
+
+// DEAL_ANIMATION_DELAY is the pause, in milliseconds, between each
+// card dealt during the round-start dealing animation. With all four
+// seats active that's 15 cards (12 hand + 3 pot), so ~65ms lands the
+// whole animation around one second; it's proportionally shorter with
+// fewer seats active.
+export const DEAL_ANIMATION_DELAY = 65;

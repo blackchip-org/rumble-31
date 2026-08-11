@@ -132,7 +132,9 @@ test("playRound deals once, narrates turns, and picks up strategy swaps next rou
   const g = newGame(1, strategies);
 
   let dealtCalls = 0;
-  g.onDeal = () => dealtCalls++;
+  g.onDeal = () => {
+    dealtCalls++;
+  };
   let turnCalls = 0;
   g.onTurn = () => turnCalls++;
 
@@ -159,6 +161,33 @@ test("playRound deals once, narrates turns, and picks up strategy swaps next rou
 
   await g.playRound();
   assert.equal(firstActionType, "exchange");
+});
+
+// Regression test: onDeal can return a Promise (e.g. a UI animating
+// the deal), and playRound must await it before the round's first
+// turn — otherwise an async onDeal and the first onTurn call could
+// race, and a UI animation could be interrupted by play starting.
+test("playRound awaits an async onDeal before the round's first turn", async () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = newGame(1, strategies);
+
+  let dealResolved = false;
+  let firstTurnSawDealResolved: boolean | undefined;
+  g.onDeal = () =>
+    new Promise<void>((resolve) => {
+      setTimeout(() => {
+        dealResolved = true;
+        resolve();
+      }, 0);
+    });
+  g.onTurn = () => {
+    if (firstTurnSawDealResolved === undefined) {
+      firstTurnSawDealResolved = dealResolved;
+    }
+  };
+
+  await g.playRound();
+  assert.equal(firstTurnSawDealResolved, true);
 });
 
 // Regression test: a seat eliminated in an earlier round must not be

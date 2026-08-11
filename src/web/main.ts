@@ -2,17 +2,57 @@
 // bots, until the game ends. Mirrors src/main.ts's (the CLI's) flow,
 // rendering to the DOM instead of a Writer.
 
+import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { Bot } from "../bot/bot.ts";
-import { MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
+import { DEAL_ANIMATION_DELAY, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
 import { newGame } from "../game/game.ts";
 import { seatName } from "../game/seat.ts";
-import type { Action, Hand, PlayerView, Strategy, TurnRecord } from "../game/types.ts";
+import type { Action, Hand, PlayerView, Pot, Strategy, TurnRecord } from "../game/types.ts";
 import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnStartLine, turnLines } from "../log.ts";
 import { version } from "../version.ts";
+import dealSoundUrl from "../../assets/deal.wav";
+import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
 import { renderStrikes, setPanelState, setScore } from "./panels.ts";
-import { appendLogLine, initCardSheetVars, renderBacks, renderCards } from "./render.ts";
+import { appendLogLine, backEl, cardEl, initCardSheetVars, renderCards } from "./render.ts";
+
+// sleep resolves after ms.
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// playDealSound plays deal.wav for one card being dealt. A fresh Audio
+// instance per call lets rapid plays overlap naturally (the clip is
+// ~150ms, longer than DEAL_ANIMATION_DELAY), like a real card riffle,
+// instead of cutting a shared instance off early. play() can still
+// reject under the browser's autoplay policy (e.g. if
+// unlockDealSoundOnFirstGesture hasn't fired yet) — logged, not
+// thrown, since the deal works fine without sound either way.
+function playDealSound(): void {
+  new Audio(dealSoundUrl).play().catch((err: unknown) => console.warn("deal.wav: play() failed", err));
+}
+
+// unlockDealSoundOnFirstGesture plays (silently, then immediately
+// pauses) deal.wav on the page's first click or keypress. Round 1's
+// deal starts automatically, before the player has done anything, and
+// browsers block unmuted audio until there's been a user gesture on
+// the page — without this, every dealt card would be silent until the
+// player happened to interact with something else first (or,
+// depending on the browser, indefinitely).
+function unlockDealSoundOnFirstGesture(): void {
+  const unlock = () => {
+    document.removeEventListener("click", unlock);
+    document.removeEventListener("keydown", unlock);
+    const a = new Audio(dealSoundUrl);
+    a.volume = 0;
+    a.play()
+      .then(() => a.pause())
+      .catch((err: unknown) => console.warn("deal.wav: could not unlock audio", err));
+  };
+  document.addEventListener("click", unlock, { once: true });
+  document.addEventListener("keydown", unlock, { once: true });
+}
 
 function must<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -77,9 +117,7 @@ function withTurnUi(seat: number, inner: Strategy): Strategy {
       setActiveSeat(seat);
       appendLogLine(logEl, turnStartLine(seat));
       if (seat !== 0) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, MIN_BOT_THINK_TIME + Math.random() * (MAX_BOT_THINK_TIME - MIN_BOT_THINK_TIME)),
-        );
+        await sleep(MIN_BOT_THINK_TIME + Math.random() * (MAX_BOT_THINK_TIME - MIN_BOT_THINK_TIME));
       }
       return inner.decide(v);
     },
@@ -116,8 +154,46 @@ function renderTurn(rec: TurnRecord): void {
   }
 }
 
+// animateDeal clears every active seat's hand and the pot, then deals
+// them back out one card at a time per dealOrder() — South's own real
+// card faces, every other seat's card backs, then the pot — pausing
+// DEAL_ANIMATION_DELAY between each. Game.playRound awaits onDeal, so
+// the round's first turn doesn't begin until this finishes. Per
+// specs/gui.md.
+async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>): Promise<void> {
+  const southHand = hands.get(0) as Hand;
+  for (const line of roundStartLines(roundNum, pot, southHand)) {
+    appendLogLine(logEl, line);
+  }
+
+  const activeSeats = [0, 1, 2, 3].filter((seat) => hands.has(seat));
+  for (const seat of activeSeats) {
+    seatOf(seat).hand.replaceChildren();
+    if (seat !== 0) {
+      setScore(seatOf(seat).score, null);
+    }
+  }
+  potEl.replaceChildren();
+
+  for (const step of dealOrder(activeSeats)) {
+    if (step.kind === "hand") {
+      seatOf(step.seat).hand.appendChild(step.seat === 0 ? cardEl(southHand[step.cardIndex] as Card) : backEl());
+    } else {
+      potEl.appendChild(cardEl(pot[step.potIndex] as Card));
+    }
+    playDealSound();
+    await sleep(DEAL_ANIMATION_DELAY);
+  }
+
+  // South's own hand and score are always public, so they're revealed
+  // as soon as they're dealt rather than waiting for South's first
+  // turn (turn order varies by round).
+  setScore(seatOf(0).score, score(southHand));
+}
+
 async function main(): Promise<void> {
   initCardSheetVars();
+  unlockDealSoundOnFirstGesture();
 
   const seed = Date.now();
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn);
@@ -127,9 +203,6 @@ async function main(): Promise<void> {
 
   statusEl.textContent = `You are ${seatName(0)}`;
 
-  for (let seat = 1; seat < 4; seat++) {
-    renderBacks(seatOf(seat).hand, 3);
-  }
   for (let seat = 0; seat < 4; seat++) {
     renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
   }
@@ -139,25 +212,7 @@ async function main(): Promise<void> {
   }
 
   for (let roundNum = 1; g.active() && !g.eliminated[0]; roundNum++) {
-    g.onDeal = (pot, hands) => {
-      renderCards(potEl, pot);
-      for (let seat = 1; seat < 4; seat++) {
-        if (!g.eliminated[seat]) {
-          renderBacks(seatOf(seat).hand, 3);
-          setScore(seatOf(seat).score, null);
-        }
-      }
-      // South's own hand and score are always public, so they're
-      // revealed as soon as they're dealt rather than waiting for
-      // South's first turn (turn order varies by round).
-      const southHand = hands.get(0) as Hand;
-      renderCards(seatOf(0).hand, southHand);
-      setScore(seatOf(0).score, score(southHand));
-
-      for (const line of roundStartLines(roundNum, pot, southHand)) {
-        appendLogLine(logEl, line);
-      }
-    };
+    g.onDeal = (pot, hands) => animateDeal(roundNum, pot, hands);
     g.onTurn = renderTurn;
 
     const outcome = await g.playRound();

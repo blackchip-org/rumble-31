@@ -20,9 +20,11 @@ export class Game {
   strikes: [number, number, number, number];
   eliminated: [boolean, boolean, boolean, boolean];
 
-  // onDeal, if set, is called with each round's freshly dealt pot, and
-  // every dealt-in seat's hand, before that round's first turn.
-  onDeal: ((pot: Pot, hands: ReadonlyMap<number, Hand>) => void) | undefined;
+  // onDeal, if set, is called (and awaited, if it returns a Promise)
+  // with each round's freshly dealt pot, and every dealt-in seat's
+  // hand, before that round's first turn — e.g. to let a UI animate
+  // the deal before play continues.
+  onDeal: ((pot: Pot, hands: ReadonlyMap<number, Hand>) => void | Promise<void>) | undefined;
   // onTurn, if set, is passed through to each round's own onTurn.
   onTurn: ((rec: TurnRecord) => void) | undefined;
 
@@ -72,7 +74,7 @@ export class Game {
     const seats = active.map((seat) => ({ seat, strategy: strategies[seat] as Strategy }));
 
     const r = newRound(this.rng.nextSeed(), seats);
-    this.onDeal?.(
+    await this.onDeal?.(
       r.pot,
       new Map(r.players.map((p) => [p.seat, p.hand])),
     );

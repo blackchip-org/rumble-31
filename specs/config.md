@@ -7,4 +7,6 @@ included in a config.ts file. It holds the following constants:
 simulate bot thinking. 
 - MAX_BOT_THINK_TIME: The maximum number of milliseconds to pause to 
 simulate bot thinking. 
+- DEAL_ANIMATION_DELAY: The number of milliseconds to pause between
+each card dealt during the round-start dealing animation.
 
