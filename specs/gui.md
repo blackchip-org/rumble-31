@@ -154,7 +154,7 @@ The entire contents of the screen are in a panel that should be centered
 horizontally and vertically. This
 panel contains:
 
-- The title of the game "Battle 31" in a large font size. Battle and 31 should
+- The title of the game "Rumble 31" in a large font size. Rumble and 31 should
 be on different lines. Use New Rocker regular for this font and render it
 in white.
 - The following buttons. The background color of the button should be a dark
