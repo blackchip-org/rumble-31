@@ -243,25 +243,36 @@ body {
 }
 
 .state-tag {
+  /* Always holds a non-breaking space (panels.ts) and a real 1px
+     border (transparent when there's no state), and stays hidden via
+     visibility rather than display/:empty — so its box size, and
+     therefore .panel-head's height, never changes as a turn
+     starts/ends; only color/text/visibility do. A size that depended
+     on is-turn/is-eliminated or on the element being empty made the
+     west/pot/east row (which shares one grid row and is vertically
+     centered) visibly jump on every turn change. */
   font-size: var(--font-size-tag);
   letter-spacing: var(--letter-spacing-tag);
   text-transform: uppercase;
   border-radius: 999px;
   padding: 0.08rem 0.45rem;
+  border: 1px solid transparent;
+  visibility: hidden;
 }
 
-.state-tag:empty {
-  display: none;
+.panel.is-turn .state-tag,
+.panel.is-eliminated .state-tag {
+  visibility: visible;
 }
 
 .panel.is-turn .state-tag {
   color: var(--accent);
-  border: 1px solid var(--accent-dim);
+  border-color: var(--accent-dim);
 }
 
 .panel.is-eliminated .state-tag {
   color: var(--bad);
-  border: 1px solid var(--bad);
+  border-color: var(--bad);
 }
 
 .row-bottom {

@@ -33,6 +33,12 @@ export function setPanelState(panelEl: HTMLElement, state: PanelState): void {
   panelEl.classList.toggle("is-eliminated", state === "eliminated");
   const tag = panelEl.querySelector<HTMLElement>(".state-tag");
   if (tag) {
-    tag.textContent = state === "none" ? "" : state;
+    // A truly empty tag collapses to a shorter line box than one
+    // holding text, even when hidden via CSS, which shifts panel
+    // height as turns change (see the .state-tag comment in
+    // style.css). A non-breaking space keeps the line box's height
+    // constant whether or not the tag is visible; a plain space
+    // wouldn't, since it whitespace-collapses away.
+    tag.textContent = state === "none" ? " " : state;
   }
 }
