@@ -200,12 +200,56 @@ test("run: onTurn callback fires once per logged turn, in order", async () => {
   r.firstSeat = 0;
 
   const seen: TurnRecord[] = [];
-  r.onTurn = (rec) => seen.push(rec);
+  r.onTurn = (rec) => {
+    seen.push(rec);
+  };
 
   const { log } = await r.run();
 
   assert.equal(seen.length, log.length);
   assert.deepEqual(seen, log);
+});
+
+// Regression test: onTurn can return a Promise (e.g. a UI animating the
+// turn's trade), and run() must await it before the next seat acts —
+// otherwise an async onTurn and the next decide() call could race, and
+// a UI animation could be interrupted by the next turn starting.
+test("run: awaits an async onTurn before the next seat acts", async () => {
+  const pass = strategyFunc(() => trade(0, 0));
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Ah", "Ac", "Ad"],
+    [pass, strategyFunc(() => knock()), pass, pass],
+  );
+  r.firstSeat = 0;
+
+  let turnResolved = false;
+  let sawTurnResolved: boolean | undefined;
+  r.onTurn = () =>
+    new Promise<void>((resolve) => {
+      setTimeout(() => {
+        turnResolved = true;
+        resolve();
+      }, 0);
+    });
+
+  const origDecide = pass.decide.bind(pass);
+  pass.decide = (view) => {
+    if (sawTurnResolved === undefined && view.seat !== r.firstSeat) {
+      sawTurnResolved = turnResolved;
+    }
+    return origDecide(view);
+  };
+
+  await r.run();
+
+  assert.equal(sawTurnResolved, true);
 });
 
 test("run: three aces mid-round ends the round immediately", async () => {

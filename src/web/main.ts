@@ -16,6 +16,7 @@ import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
 import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, renderCards } from "./render.ts";
+import { animateCardTrade } from "./tradeAnim.ts";
 
 // sleep resolves after ms.
 function sleep(ms: number): Promise<void> {
@@ -153,18 +154,48 @@ function pauseBetweenRounds(ms: number): Promise<void> {
   });
 }
 
-// renderTurn logs the turn per src/log.ts, then keeps the pot and
-// South's own hand/score panel live across every turn. The pot is
-// otherwise only rendered at deal time and when DomActionPrompt.decide()
-// is next asked for South's action, so without this a trade/exchange —
-// South's own or a bot's — would leave the displayed pot stale until
-// South's next turn. Same reasoning applies to South's hand/score:
-// only South's own trade/exchange touches it, and DomActionPrompt isn't
-// asked again until South's next turn.
-function renderTurn(rec: TurnRecord): void {
+// animateTurnCards plays rec's trade animation (per specs/gui.md's
+// Trading/Exchanging Cards section): a "trade" animates its one
+// hand/pot pair; an "exchange" animates all three, index by index, one
+// fully finishing before the next starts; a "knock" moves no cards.
+// conceal (re-hide the traded-in card once it lands) applies whenever
+// the acting seat isn't South, whose hand is never concealed.
+async function animateTurnCards(rec: TurnRecord): Promise<void> {
+  const hand = seatOf(rec.seat).hand;
+  const conceal = rec.seat !== 0;
+
+  switch (rec.action.type) {
+    case "trade": {
+      const { handIndex, potIndex } = rec.action;
+      await animateCardTrade(hand.children[handIndex] as HTMLElement, potEl.children[potIndex] as HTMLElement, rec.handBefore[handIndex] as Card, rec.potBefore[potIndex] as Card, conceal);
+      break;
+    }
+    case "exchange":
+      for (let i = 0; i < 3; i++) {
+        await animateCardTrade(hand.children[i] as HTMLElement, potEl.children[i] as HTMLElement, rec.handBefore[i] as Card, rec.potBefore[i] as Card, conceal);
+      }
+      break;
+    case "knock":
+      break;
+  }
+}
+
+// renderTurn logs the turn per src/log.ts, plays its trade animation,
+// then keeps the pot and South's own hand/score panel live across every
+// turn. The pot is otherwise only rendered at deal time and when
+// DomActionPrompt.decide() is next asked for South's action, so without
+// this a trade/exchange — South's own or a bot's — would leave the
+// displayed pot stale until South's next turn. Same reasoning applies
+// to South's hand/score: only South's own trade/exchange touches it,
+// and DomActionPrompt isn't asked again until South's next turn. This
+// final render also settles the animation onto rec's own authoritative
+// *After state, so drift can't accumulate turn over turn.
+async function renderTurn(rec: TurnRecord): Promise<void> {
   for (const line of turnLines(rec)) {
     appendLogLine(logEl, line);
   }
+
+  await animateTurnCards(rec);
 
   renderCards(potEl, rec.potAfter);
 

@@ -387,6 +387,21 @@ body {
   animation: card-deal-in 0.18s ease-out;
 }
 
+/* The traveling clone used by tradeAnim.ts's animateCardTrade(): fixed
+   to the viewport (escaping any ancestor's overflow: hidden) and given
+   its own left/top per instance, with only transform animated on top —
+   see :root's --card-w/--card-h for the size this inherits from .card.
+   transition: none avoids .card's own hover/select transition (below)
+   fighting with the Element.animate() calls that drive the slide. */
+.card--ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  pointer-events: none;
+  transition: none;
+}
+
 .card.is-selected {
   transform: translateY(-6px);
   box-shadow:

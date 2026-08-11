@@ -25,8 +25,9 @@ export class Game {
   // hand, before that round's first turn — e.g. to let a UI animate
   // the deal before play continues.
   onDeal: ((pot: Pot, hands: ReadonlyMap<number, Hand>) => void | Promise<void>) | undefined;
-  // onTurn, if set, is passed through to each round's own onTurn.
-  onTurn: ((rec: TurnRecord) => void) | undefined;
+  // onTurn, if set, is passed through to each round's own onTurn (and
+  // awaited the same way, if it returns a Promise).
+  onTurn: ((rec: TurnRecord) => void | Promise<void>) | undefined;
 
   // over is set when a round would otherwise eliminate every remaining
   // active seat at once, ending the game in a tie instead of

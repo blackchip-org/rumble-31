@@ -16,3 +16,10 @@ export const DEAL_ANIMATION_DELAY = 65;
 // on/off phase of the end-of-round red strike highlight is shown
 // before toggling.
 export const STRIKE_HIGHLIGHT_BLINK_INTERVAL = 400;
+
+// TRADE_ANIMATION_DURATION is the total time, in milliseconds, for one
+// card's trade animation: sliding from hand to pot, then the pot's
+// card sliding back, split evenly across the two legs. Exchanging a
+// whole hand plays this animation three times in sequence (once per
+// card), not once for all three.
+export const TRADE_ANIMATION_DURATION = 500;

@@ -40,16 +40,32 @@ export function initStrikeBlinkVar(): void {
 // --tile-row/--tile-col set here), not inline styles, so it responds
 // to viewport size instead of a fixed pixel size baked in once.
 function tileEl(position: TilePosition, ariaLabel: string): HTMLElement {
-  const { row, col } = position;
-
   const el = document.createElement("div");
   el.className = "card";
+  el.style.backgroundImage = `url(${cardsUrl})`;
+  setTile(el, position, ariaLabel);
+  return el;
+}
+
+// setTile updates an existing card-sized element to show the sheet's
+// tile at position, labelled ariaLabel.
+function setTile(el: HTMLElement, position: TilePosition, ariaLabel: string): void {
   el.setAttribute("role", "img");
   el.setAttribute("aria-label", ariaLabel);
-  el.style.backgroundImage = `url(${cardsUrl})`;
-  el.style.setProperty("--tile-row", `${row}`);
-  el.style.setProperty("--tile-col", `${col}`);
-  return el;
+  el.style.setProperty("--tile-row", `${position.row}`);
+  el.style.setProperty("--tile-col", `${position.col}`);
+}
+
+// setCardFace updates an existing card-sized element (built by cardEl
+// or backEl) to show card's real face, or a face-down back tile if
+// card is null — e.g. to reveal or re-conceal a bot's card in place
+// during a trade animation.
+export function setCardFace(el: HTMLElement, card: Card | null): void {
+  if (card === null) {
+    setTile(el, BACK_TILE, "face-down card");
+  } else {
+    setTile(el, tilePosition(card), `${RANK_NAME[card.rank]} of ${SUIT_NAME[card.suit]}`);
+  }
 }
 
 export function cardEl(c: Card): HTMLElement {

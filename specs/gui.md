@@ -80,7 +80,7 @@ cancelling that half of the trade. Clicking a different card in the same
 zone (hand or pot) before the trade completes moves the highlight to
 that card instead.
 
-# Dealing
+## Dealing
 
 At the start of each round, every player panel and the pot panel
 show no cards at all -- hands and the pot are cleared before dealing
@@ -101,7 +101,24 @@ zero, one, two, or three cards; each card appears directly in its
 final position within the hand and never shifts as later cards are
 added next to it. The same applies to the pot panel.
 
-# Log Panel
+## Trading/Exchanging Cards
+
+When a player trades or exchanges cards with the pot, that action is animated.
+The card from the player's hand being traded should first be exposed if
+necessary (bots cards are normally hidden) and then it should slide over to
+the card it is trading for in the pot. Once there, the card being traded for
+in the pot slides over to its spot in the player's hand. The total duration
+of one card's animation is configurable.
+
+The z-index of the cards should be adjusted so that they appear over other
+cards while sliding. Once the card reaches its final position in the player's
+hand, it is concealed if it normally should be hidden (in a bot's hand).
+
+When exchanging all cards with the pot, each card should be traded
+individually. The full animation should first be applied to the first card,
+then the second card, and then the third.
+
+## Log Panel
 
 A panel in the bottom-right corner of the screen shows a running,
 chronological text log of what has happened: turns taken, end-of-round

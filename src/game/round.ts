@@ -23,9 +23,10 @@ export class Round {
   players: Player[];
   firstSeat: number;
 
-  // onTurn, if set, is called synchronously with each TurnRecord as it
-  // happens, before the next seat acts.
-  onTurn: ((rec: TurnRecord) => void) | undefined;
+  // onTurn, if set, is called (and awaited, if it returns a Promise)
+  // with each TurnRecord as it happens, before the next seat acts —
+  // e.g. to let a UI animate the turn's trade before play continues.
+  onTurn: ((rec: TurnRecord) => void | Promise<void>) | undefined;
 
   constructor(pot: Pot, players: Player[], firstSeat = (players[0] as Player).seat) {
     this.pot = pot;
@@ -86,7 +87,7 @@ export class Round {
       const record = this.apply(seat, action, turnIdx);
       log.push(record);
       turnIdx++;
-      this.onTurn?.(record);
+      await this.onTurn?.(record);
 
       if (hasThreeAces(this.players)) {
         break;

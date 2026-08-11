@@ -136,7 +136,9 @@ test("playRound deals once, narrates turns, and picks up strategy swaps next rou
     dealtCalls++;
   };
   let turnCalls = 0;
-  g.onTurn = () => turnCalls++;
+  g.onTurn = () => {
+    turnCalls++;
+  };
 
   await g.playRound();
   assert.equal(dealtCalls, 1);
@@ -203,7 +205,9 @@ test("playRound excludes an already-eliminated seat from dealing, turns, and res
   });
 
   const turnSeats = new Set<number>();
-  g.onTurn = (rec) => turnSeats.add(rec.seat);
+  g.onTurn = (rec) => {
+    turnSeats.add(rec.seat);
+  };
 
   const outcome = await g.playRound();
 
