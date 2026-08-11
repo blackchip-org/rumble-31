@@ -14,6 +14,7 @@ import { version } from "../version.ts";
 import dealSoundUrl from "../../assets/deal.wav";
 import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
+import { installGlobalErrorHandlers, showErrorScreen } from "./errorScreen.ts";
 import { parseDebugParams } from "./params.ts";
 import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, renderBacks, renderCards } from "./render.ts";
@@ -55,6 +56,11 @@ function unlockDealSoundOnFirstGesture(): void {
   document.addEventListener("click", unlock, { once: true });
   document.addEventListener("keydown", unlock, { once: true });
 }
+
+// Installed before anything else in this module runs (including the
+// must() lookups just below), so even a failure during module
+// initialization still shows the error screen instead of a blank page.
+installGlobalErrorHandlers();
 
 function must<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -354,8 +360,4 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err: unknown) => {
-  const message = err instanceof Error ? err.message : String(err);
-  appendLogLine(logEl, `error: ${message}`);
-  console.error(err);
-});
+main().catch(showErrorScreen);

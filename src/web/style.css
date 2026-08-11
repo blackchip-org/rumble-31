@@ -528,6 +528,63 @@ body {
   color: #ccc;
 }
 
+/* ---------- error screen ---------- */
+
+.error-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: #000;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 2rem;
+  gap: 1.25rem;
+  overflow: auto;
+}
+
+/* [hidden] and .error-screen are equal specificity, and author rules
+   win ties over the UA stylesheet's own `[hidden] { display: none }` —
+   so display must live here, gated on :not([hidden]), rather than on
+   the bare .error-screen rule above, or the element stays visible
+   (display: flex) even while its hidden attribute is set. */
+.error-screen:not([hidden]) {
+  display: flex;
+}
+
+.error-heading {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  color: var(--error-heading);
+  text-align: center;
+}
+
+.error-message {
+  margin: 0;
+  max-width: 640px;
+  font-family: var(--font-error);
+  font-size: 1rem;
+  color: var(--error-fg);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.error-stack {
+  width: min(100%, 900px);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  font-family: var(--font-error);
+  font-size: 0.75rem;
+  color: var(--error-stack);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 @media (max-width: 900px) {
   #table {
     grid-template-columns: 1fr;

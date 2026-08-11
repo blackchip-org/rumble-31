@@ -1,5 +1,22 @@
 /* Theme tokens: colors and typography. Edit values here to restyle
    the app without touching layout/component rules in style.css. */
+
+@font-face {
+  font-family: "Comic Neue";
+  src: url("../../assets/ComicNeue-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inconsolata";
+  src: url("../../assets/Inconsolata-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ---------- colors ---------- */
   --bg: #1b1b1f;
@@ -35,4 +52,11 @@
   --font-log: ui-monospace, monospace;
   --font-weight-log: 400;
   --font-size-log: clamp(0.6rem, 0.32vw + 0.48rem, 0.7rem);
+
+  /* ---------- error screen (independently restylable) ---------- */
+  --font-heading: "Comic Neue", var(--font-body);
+  --font-error: "Inconsolata", var(--font-mono);
+  --error-heading: #ff6961;
+  --error-fg: #fff;
+  --error-stack: #999;
 }
