@@ -1,7 +1,8 @@
 # Rumble-31
 
-Card game engine with an interactive CLI. TypeScript, run directly by Node
-(no build step — `.ts` files execute via Node's native TypeScript support).
+Card game engine with a browser-based GUI. TypeScript, run directly by
+Node (no build step — `.ts` files execute via Node's native TypeScript
+support).
 
 ## Toolchain
 
@@ -29,29 +30,16 @@ Run a single test file directly:
 node --test src/card/score.test.ts
 ```
 
-Play an interactive game:
+Play in the browser (starts a Vite dev server):
 
 ```bash
-npm start
-```
-
-Play with a fixed seed (for reproducible deals):
-
-```bash
-node src/main.ts --seed=123
-```
-
-Or via the installed CLI binary (`bin/rumble-31-cli`, re-execs `src/main.ts`):
-
-```bash
-./bin/rumble-31-cli --seed=123
+npm run web:dev
 ```
 
 ## Notes
 
 - `npm install` regenerates `buildstamp.json` via the `prepare` script
-  (`scripts/gen-buildtime.mjs`); it backs the build-time shown in the CLI
-  banner.
+  (`scripts/gen-buildtime.mjs`).
 - Tests live alongside the code they cover (`*.test.ts`) and run with
   Node's built-in test runner — no separate test framework.
 

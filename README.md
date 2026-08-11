@@ -1,6 +1,6 @@
 # Rumble-31
 
-A card game engine, playable from the command line or in a browser.
+A card game engine, playable in a browser.
 
 ## Setup
 
@@ -29,11 +29,5 @@ The output goes to `dist/web`, which you can preview locally with:
 npm run web:preview
 ```
 
-## Playing from the command line
-
-```bash
-npm start
-```
-
-See [CLAUDE.md](CLAUDE.md) for the full toolchain (tests, type
-checking, and a fixed-seed CLI option for reproducible deals).
+See [CLAUDE.md](CLAUDE.md) for the full toolchain (tests and type
+checking).

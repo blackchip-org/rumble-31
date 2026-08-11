@@ -28,16 +28,3 @@ Examples:
 - Ks: King of Spades
 
 This notation is also used for printing debugging information. 
-
-When printing information to the console, use the dedicated Unicode 
-code-points for the suits and use ANSI coloring as follows:
-
-- Background color is white
-- Foreground color for spade suits is black
-- Foreground color for heart suits is red
-- Foreground color for diamond suits is dark green 
-- Foreground color for club suits is blue 
-
-Each card representation should be padded with space characters with 
-the color white. The left padding is one space, the right padding is two
-spaces. 

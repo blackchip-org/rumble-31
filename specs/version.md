@@ -2,7 +2,7 @@
 
 The current version is 0.1. 
 
-The rumble-31-cli, on startup, should present a welcome banner that includes 
+On startup, the game log should present a welcome banner that includes 
 the version number and the build timestamp that looks like this:
 
     Welcome to Rumble-31

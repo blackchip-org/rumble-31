@@ -1,5 +1,5 @@
-// Card notation, construction, and console rendering for Rumble-31, per
-// specs/cards.md and specs/rules.md.
+// Card notation and construction for Rumble-31, per specs/cards.md and
+// specs/rules.md.
 
 export type Rank = "7" | "8" | "9" | "T" | "J" | "Q" | "K" | "A";
 export type Suit = "c" | "d" | "h" | "s";
@@ -42,25 +42,6 @@ export function parseCard(s: string): Card {
 // cardToString returns the two-character notation for the card, e.g. "7h".
 export function cardToString(c: Card): string {
   return c.rank + c.suit;
-}
-
-// consoleSuits maps each suit to its dedicated Unicode glyph and ANSI
-// foreground color code, per specs/cards.md.
-const consoleSuits: Record<Suit, { glyph: string; fg: string }> = {
-  s: { glyph: "♠", fg: "30" }, // black
-  h: { glyph: "♥", fg: "31" }, // red
-  d: { glyph: "♦", fg: "32" }, // dark green
-  c: { glyph: "♣", fg: "34" }, // blue
-};
-
-// cardConsole renders a card for an interactive terminal: the suit as its
-// dedicated Unicode glyph, on a white background colored per
-// specs/cards.md (black/red/dark green/blue foreground for
-// spades/hearts/diamonds/clubs), padded with one white-background space
-// on the left and two on the right.
-export function cardConsole(c: Card): string {
-  const s = consoleSuits[c.suit];
-  return `\x1b[47;${s.fg}m ${c.rank}${s.glyph}  \x1b[0m`;
 }
 
 // rankValue returns the point value of the rank per specs/rules.md:
