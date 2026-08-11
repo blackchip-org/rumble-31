@@ -15,3 +15,4 @@ describes the layout of the tile sheet.
 
 - ComicNeue-Bold.ttf (from Google Fonts)
 - Inconsolata-Regular.ttf (from Google Fonts)
+- NewRocker-Regular.ttf (from Google Fonts)

@@ -77,9 +77,12 @@ interface SeatEls {
   strikes: HTMLElement;
 }
 
+const mainScreenEl = must<HTMLElement>("main-screen");
+const gameScreenEl = must<HTMLElement>("game-screen");
+const newGameBtn = must<HTMLButtonElement>("new-game-btn");
+
 const potEl = must<HTMLElement>("pot");
 const logEl = must<HTMLElement>("log");
-const statusEl = must<HTMLElement>("status");
 const takePotBtn = must<HTMLButtonElement>("take-pot-btn");
 const knockBtn = must<HTMLButtonElement>("knock-btn");
 
@@ -301,8 +304,6 @@ async function main(): Promise<void> {
     params.initialDeal,
   );
 
-  statusEl.textContent = `You are ${seatName(0)}`;
-
   for (let seat = 0; seat < 4; seat++) {
     renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
     if (g.eliminated[seat]) {
@@ -360,4 +361,19 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(showErrorScreen);
+// showGameScreen swaps the main screen for the game screen (per
+// specs/gui.md's Main Screen section), then starts a new game.
+function showGameScreen(): void {
+  mainScreenEl.hidden = true;
+  gameScreenEl.hidden = false;
+  main().catch(showErrorScreen);
+}
+
+// Any URL parameter (specs/params.md) bypasses the main screen and
+// starts the game immediately, as it always has — the main screen is
+// only shown on a bare visit with no query string.
+if (window.location.search !== "") {
+  showGameScreen();
+} else {
+  newGameBtn.addEventListener("click", showGameScreen);
+}

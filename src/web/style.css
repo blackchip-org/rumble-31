@@ -66,7 +66,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--main-bg);
   color: var(--ink);
   font-family: var(--font-body);
 }
@@ -92,22 +92,28 @@ body {
   }
 }
 
+/* Keeps #header/#table/#log-panel direct participants in body's own
+   layout (the flex column and #table's flex: 1 1 auto both assume a
+   direct-child relationship) while still letting the whole game screen
+   be shown/hidden as one unit via the wrapper's hidden attribute. */
+#game-screen:not([hidden]) {
+  display: contents;
+}
+
 #header {
   display: flex;
   align-items: baseline;
   gap: 1rem;
   padding: 0.6rem 1.5rem 0.4rem;
+  background: var(--bg);
   border-bottom: 1px solid var(--panel-border);
 }
 
 #header h1 {
   margin: 0;
+  font-family: var(--font-title);
+  font-weight: 400;
   font-size: var(--font-size-h1);
-}
-
-#status {
-  margin: 0;
-  color: var(--ink-dim);
 }
 
 /* ---------- table (the cross layout) ---------- */
@@ -183,6 +189,9 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem 0.6rem;
 }
 
 .actions {
@@ -475,25 +484,25 @@ body {
 
 .actions button {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--accent-dim);
+  border: none;
   border-radius: 6px;
-  background: rgba(217, 164, 65, 0.1);
-  color: var(--accent);
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-family: var(--font-body);
   font-weight: var(--font-weight-bold);
   cursor: pointer;
   font-size: var(--font-size-score);
 }
 
 .actions button:hover:not(:disabled) {
-  background: rgba(217, 164, 65, 0.18);
+  background: var(--button-bg-hover);
 }
 
 .actions button:disabled {
   opacity: 0.4;
   cursor: default;
   color: var(--ink-dim);
-  border-color: var(--panel-border);
-  background: transparent;
+  background: var(--panel-border);
 }
 
 /* ---------- log panel ---------- */
@@ -526,6 +535,66 @@ body {
   font-weight: var(--font-weight-log);
   font-size: var(--font-size-log);
   color: #ccc;
+}
+
+/* ---------- main screen ---------- */
+
+.main-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--main-bg);
+}
+
+.main-screen[hidden] {
+  display: none;
+}
+
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.main-title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: var(--font-size-title);
+  font-weight: 400;
+  color: var(--main-title-color);
+  text-align: center;
+  line-height: 1.15;
+}
+
+.main-title span {
+  display: block;
+}
+
+.main-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(60vw, 260px);
+}
+
+.main-buttons button {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-score);
+  cursor: pointer;
+}
+
+.main-buttons button:hover {
+  background: var(--button-bg-hover);
 }
 
 /* ---------- error screen ---------- */

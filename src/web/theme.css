@@ -17,46 +17,78 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "New Rocker";
+  src: url("../../assets/NewRocker-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ---------- colors ---------- */
-  --bg: #1b1b1f;
-  --panel: #202024;
-  --panel-border: #333338;
-  --ink: #eee;
-  --ink-dim: #999;
-  --ink-faint: #666;
-  --accent: #d9a441;
-  --accent-dim: #6b5628;
-  --good: #4caf7d;
-  --bad: #e0596b;
-  --bad-glow: rgba(224, 89, 107, 0.4);
-  --win: #ffffff;
-  --win-glow: rgba(255, 255, 255, 0.35);
+  --bg: #1b1b1f; /* page background */
+  --panel: #202024; /* seat/player panel and log panel background */
+  --panel-border: #333338; /* default border for panels, header, score
+                               box, buttons, and log panel */
+  --ink: #eee; /* default body text color */
+  --ink-dim: #999; /* secondary text: seat/pot labels, dimmed score,
+                       disabled action buttons */
+  --ink-faint: #666; /* reserved for a third, even-dimmer text tier
+                         (currently unused) */
+  --accent: #d9a441; /* highlight color: active-turn state tag, action
+                         buttons */
+  --accent-dim: #6b5628; /* dimmer accent: active-turn panel border/glow,
+                             active-turn state tag border, action button
+                             border */
+  --good: #4caf7d; /* "strike avoided" indicator color */
+  --bad: #e0596b; /* "strike hit"/eliminated indicator, struck-panel
+                      border and eliminated state tag */
+  --bad-glow: rgba(224, 89, 107, 0.4); /* glow behind a struck panel's
+                                           border */
+  --win: #ffffff; /* winning panel's border color */
+  --win-glow: rgba(255, 255, 255, 0.35); /* glow behind a winning
+                                             panel's border */
+
+  /* ---------- main screen (independently restylable) ---------- */
+  --main-bg: #1b5e3a; /* felt-green main screen background */
+  --main-title-color: #fff; /* main screen title color */
+  --button-bg: #1c2e5e; /* main screen button background */
+  --button-bg-hover: #26397a; /* main screen button background on hover */
+  --button-fg: #fff; /* main screen button text color */
 
   /* ---------- fonts ---------- */
-  --font-body: system-ui, sans-serif;
-  --font-mono: ui-monospace, monospace;
-  --font-weight-bold: 600;
+  --font-body: system-ui, sans-serif; /* default body font */
+  --font-mono: ui-monospace, monospace; /* score box and action buttons */
+  --font-weight-bold: 600; /* seat/pot labels and action buttons */
 
-  --font-size-base: clamp(16px, 0.6vw + 12px, 20px);
-  --font-size-h1: 1.1rem;
-  --font-size-label: 0.68rem;
-  --font-size-tag: 0.62rem;
-  --font-size-score: 0.95rem;
-  --font-size-strike: 0.6rem;
+  --font-size-base: clamp(16px, 0.6vw + 12px, 20px); /* root font size,
+                                                          scales rem units
+                                                          app-wide */
+  --font-size-h1: 1.1rem; /* header title */
+  --font-size-label: 0.68rem; /* seat label, pot label */
+  --font-size-tag: 0.62rem; /* turn/eliminated state tag */
+  --font-size-score: 0.95rem; /* score box and action buttons */
+  --font-size-strike: 0.6rem; /* strike indicator dots */
+  --font-size-title: clamp(3rem, 8vw + 1rem, 6.5rem); /* main screen
+                                                            title */
 
-  --letter-spacing-label: 0.09em;
-  --letter-spacing-tag: 0.08em;
+  --letter-spacing-label: 0.09em; /* seat label, pot label */
+  --letter-spacing-tag: 0.08em; /* turn/eliminated state tag */
 
   /* ---------- log window text (independent of the rest) ---------- */
-  --font-log: ui-monospace, monospace;
-  --font-weight-log: 400;
-  --font-size-log: clamp(0.6rem, 0.32vw + 0.48rem, 0.7rem);
+  --font-log: ui-monospace, monospace; /* game log entries */
+  --font-weight-log: 400; /* game log entries */
+  --font-size-log: clamp(0.6rem, 0.32vw + 0.48rem, 0.7rem); /* game log
+                                                                 entries */
+
+  --font-title: "New Rocker", var(--font-body); /* main screen title */
 
   /* ---------- error screen (independently restylable) ---------- */
-  --font-heading: "Comic Neue", var(--font-body);
-  --font-error: "Inconsolata", var(--font-mono);
-  --error-heading: #ff6961;
-  --error-fg: #fff;
-  --error-stack: #999;
+  --font-heading: "Comic Neue", var(--font-body); /* fatal error heading */
+  --font-error: "Inconsolata", var(--font-mono); /* fatal error message
+                                                      and stack trace */
+  --error-heading: #ff6961; /* fatal error heading color */
+  --error-fg: #fff; /* fatal error message color */
+  --error-stack: #999; /* fatal error stack trace color */
 }

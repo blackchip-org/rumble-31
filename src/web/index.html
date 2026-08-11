@@ -8,82 +8,94 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <header id="header">
-      <h1>Rumble-31</h1>
-      <p id="status"></p>
-    </header>
-
-    <main id="table">
-      <section class="seat seat-north">
-        <div id="panel-north" class="panel">
-          <div class="panel-head">
-            <span class="seat-label">North</span>
-            <span class="state-tag"></span>
-          </div>
-          <div id="hand-north" class="hand"></div>
-          <div class="row-bottom">
-            <div id="score-north" class="score-box"></div>
-            <div id="strikes-north" class="strikes"></div>
-          </div>
+    <section id="main-screen" class="main-screen">
+      <div class="main-panel">
+        <h1 class="main-title">Battle<span>31</span></h1>
+        <div class="main-buttons">
+          <button id="new-game-btn" type="button">New Game</button>
+          <button id="settings-btn" type="button">Settings</button>
+          <button id="about-btn" type="button">About</button>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="seat seat-west">
-        <div id="panel-west" class="panel">
-          <div class="panel-head">
-            <span class="seat-label">West</span>
-            <span class="state-tag"></span>
-          </div>
-          <div id="hand-west" class="hand"></div>
-          <div class="row-bottom">
-            <div id="score-west" class="score-box"></div>
-            <div id="strikes-west" class="strikes"></div>
-          </div>
-        </div>
-      </section>
+    <div id="game-screen" hidden>
+      <header id="header">
+        <h1>Rumble-31</h1>
+      </header>
 
-      <section class="pot-panel">
-        <span class="pot-label">Pot</span>
-        <div id="pot" class="cards"></div>
-      </section>
-
-      <section class="seat seat-east">
-        <div id="panel-east" class="panel">
-          <div class="panel-head">
-            <span class="seat-label">East</span>
-            <span class="state-tag"></span>
+      <main id="table">
+        <section class="seat seat-north">
+          <div id="panel-north" class="panel">
+            <div class="panel-head">
+              <span class="seat-label">North</span>
+              <span class="state-tag"></span>
+            </div>
+            <div id="hand-north" class="hand"></div>
+            <div class="row-bottom">
+              <div id="score-north" class="score-box"></div>
+              <div id="strikes-north" class="strikes"></div>
+            </div>
           </div>
-          <div id="hand-east" class="hand"></div>
-          <div class="row-bottom">
-            <div id="score-east" class="score-box"></div>
-            <div id="strikes-east" class="strikes"></div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="actions" class="actions">
-        <button id="take-pot-btn" type="button" disabled>Take Pot</button>
-        <button id="knock-btn" type="button" disabled>Knock</button>
-      </section>
-
-      <section class="seat seat-south">
-        <div id="panel-south" class="panel">
-          <div class="panel-head">
-            <span class="seat-label">South &middot; you</span>
-            <span class="state-tag"></span>
+        <section class="seat seat-west">
+          <div id="panel-west" class="panel">
+            <div class="panel-head">
+              <span class="seat-label">West</span>
+              <span class="state-tag"></span>
+            </div>
+            <div id="hand-west" class="hand"></div>
+            <div class="row-bottom">
+              <div id="score-west" class="score-box"></div>
+              <div id="strikes-west" class="strikes"></div>
+            </div>
           </div>
-          <div id="hand" class="hand"></div>
-          <div class="row-bottom">
-            <div id="score-south" class="score-box"></div>
-            <div id="strikes-south" class="strikes"></div>
-          </div>
-        </div>
-      </section>
-    </main>
+        </section>
 
-    <aside id="log-panel">
-      <div id="log" class="log"></div>
-    </aside>
+        <section class="pot-panel">
+          <span class="pot-label">Pot</span>
+          <div id="pot" class="cards"></div>
+        </section>
+
+        <section class="seat seat-east">
+          <div id="panel-east" class="panel">
+            <div class="panel-head">
+              <span class="seat-label">East</span>
+              <span class="state-tag"></span>
+            </div>
+            <div id="hand-east" class="hand"></div>
+            <div class="row-bottom">
+              <div id="score-east" class="score-box"></div>
+              <div id="strikes-east" class="strikes"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="actions" class="actions">
+          <button id="take-pot-btn" type="button" disabled>Take Pot</button>
+          <button id="knock-btn" type="button" disabled>Knock</button>
+        </section>
+
+        <section class="seat seat-south">
+          <div id="panel-south" class="panel">
+            <div class="panel-head">
+              <span class="seat-label">South &middot; you</span>
+              <span class="state-tag"></span>
+            </div>
+            <div id="hand" class="hand"></div>
+            <div class="row-bottom">
+              <div id="score-south" class="score-box"></div>
+              <div id="strikes-south" class="strikes"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <aside id="log-panel">
+        <div id="log" class="log"></div>
+      </aside>
+    </div>
 
     <section id="error-screen" class="error-screen" hidden>
       <h1 class="error-heading">Whoops-a-daisy!</h1>

@@ -131,6 +131,32 @@ on the screen skips the remainder of the wait.
 The game ends immediately the moment South is eliminated, per
 specs/cli.md — the rest of the bots' contest is never played out.
 
+# Main Screen
+
+When a user visits the web application without any URL parameters, the
+main screen should be shown. The background color should be a green color
+that resembles the same green you would see on a felt table.
+
+If the URL includes any of the debug parameters described in
+specs/params.md, the main screen is skipped entirely and the Game
+Screen starts immediately, as it does today.
+
+The entire contents of the screen are in a panel that should be centered
+horizontally and vertically. This
+panel contains:
+
+- The title of the game "Battle 31" in a large font size. Battle and 31 should
+be on different lines. Use New Rocker regular for this font and render it
+in white.
+- The following buttons. The background color of the button should be a dark
+blue and the text is white:
+    - New Game
+    - Settings
+    - About
+
+Clicking on the "New Game" button navigates to the Game Screen. The other
+buttons do nothing at the moment.
+
 # Error Screen
 
 When there is an unhandled exception, the error screen should be shown.
