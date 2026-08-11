@@ -3,6 +3,13 @@
 The GUI is organized into different "screens". Right now, there is only
 one screen: the game screen
 
+At typical desktop window sizes, the game screen fits entirely within
+the browser viewport; it does not scroll. Elements (cards in
+particular) shrink as needed to fit a shorter or narrower window,
+down to a minimum legible size. Below that minimum, on a viewport too
+small to fit the whole screen, the page falls back to scrolling so
+every panel stays reachable.
+
 # Game Screen
 
 The game screen has four panels -- one for each player.

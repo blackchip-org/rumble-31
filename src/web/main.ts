@@ -138,15 +138,20 @@ function pauseBetweenRounds(ms: number): Promise<void> {
   });
 }
 
-// renderTurn logs the turn per src/log.ts, then keeps South's own
-// hand/score panel live across every turn (it's otherwise only
-// refreshed at deal time and on South's own turns — e.g. a bot's
-// exchange doesn't touch South's hand, but South's own trade/exchange
-// does, and DomActionPrompt isn't asked again until South's next turn).
+// renderTurn logs the turn per src/log.ts, then keeps the pot and
+// South's own hand/score panel live across every turn. The pot is
+// otherwise only rendered at deal time and when DomActionPrompt.decide()
+// is next asked for South's action, so without this a trade/exchange —
+// South's own or a bot's — would leave the displayed pot stale until
+// South's next turn. Same reasoning applies to South's hand/score:
+// only South's own trade/exchange touches it, and DomActionPrompt isn't
+// asked again until South's next turn.
 function renderTurn(rec: TurnRecord): void {
   for (const line of turnLines(rec)) {
     appendLogLine(logEl, line);
   }
+
+  renderCards(potEl, rec.potAfter);
 
   if (rec.seat === 0) {
     renderCards(seatOf(0).hand, rec.handAfter);
@@ -176,10 +181,12 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   potEl.replaceChildren();
 
   for (const step of dealOrder(activeSeats)) {
+    const el = step.kind === "hand" ? (step.seat === 0 ? cardEl(southHand[step.cardIndex] as Card) : backEl()) : cardEl(pot[step.potIndex] as Card);
+    el.classList.add("card--deal-in");
     if (step.kind === "hand") {
-      seatOf(step.seat).hand.appendChild(step.seat === 0 ? cardEl(southHand[step.cardIndex] as Card) : backEl());
+      seatOf(step.seat).hand.appendChild(el);
     } else {
-      potEl.appendChild(cardEl(pot[step.potIndex] as Card));
+      potEl.appendChild(el);
     }
     playDealSound();
     await sleep(DEAL_ANIMATION_DELAY);
@@ -232,7 +239,6 @@ async function main(): Promise<void> {
     }
 
     if (g.active() && !g.eliminated[0]) {
-      appendLogLine(logEl, "Starting next round... (click to skip)");
       await pauseBetweenRounds(3000);
     }
   }
