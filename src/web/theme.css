@@ -31,5 +31,5 @@
   /* ---------- log window text (independent of the rest) ---------- */
   --font-log: ui-monospace, monospace;
   --font-weight-log: 400;
-  --font-size-log: clamp(0.8rem, 0.45vw + 0.65rem, 0.95rem);
+  --font-size-log: clamp(0.6rem, 0.32vw + 0.48rem, 0.7rem);
 }
