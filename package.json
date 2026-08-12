@@ -8,6 +8,7 @@
     "prepare": "node scripts/gen-buildtime.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test 'src/**/*.test.ts'",
+    "simulate": "node src/sim/cli.ts",
     "preweb:dev": "npm run prepare",
     "web:dev": "vite",
     "preweb:build": "npm run prepare",

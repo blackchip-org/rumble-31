@@ -36,6 +36,19 @@ Play in the browser (starts a Vite dev server):
 npm run web:dev
 ```
 
+Run headless bot-vs-bot games to compare strategies:
+
+```bash
+npm run simulate -- --games=1000 --strat=erdr
+```
+
+Omit `--strat` to run every distinct 4-bot combo and report them as a
+table:
+
+```bash
+npm run simulate -- --games=1000
+```
+
 ## Notes
 
 - `npm install` regenerates `buildstamp.json` via the `prepare` script
