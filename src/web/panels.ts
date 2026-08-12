@@ -18,10 +18,18 @@ export function renderStrikes(el: HTMLElement, strikes: number): void {
   el.replaceChildren(...spans);
 }
 
+// formatScore renders value with no decimal point: half-point scores
+// (e.g. 30.5) use a vulgar fraction (30½), whole scores show as plain
+// integers.
+export function formatScore(value: number): string {
+  const whole = Math.floor(value);
+  return value - whole === 0.5 ? `${whole}½` : `${whole}`;
+}
+
 // setScore shows value in el, or leaves it empty when value is null
 // (the score is currently private).
 export function setScore(el: HTMLElement, value: number | null): void {
-  el.textContent = value === null ? "" : value.toFixed(1);
+  el.textContent = value === null ? "" : formatScore(value);
 }
 
 export type PanelState = "turn" | "eliminated" | "knocked" | "strike" | "none";
