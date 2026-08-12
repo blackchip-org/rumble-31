@@ -11,16 +11,20 @@ export function gameStartLines(seed: number, version: string): string[] {
 
 // roundStartLines is written once a round is dealt, before its first
 // turn: the round header, the dealt pot, and the human's own dealt
-// hand (no other seat's hand is ever logged). Who goes first isn't
-// stated separately — it's implied by the very next "Seat's turn"
-// line.
-export function roundStartLines(roundNum: number, pot: Pot, southHand: Hand): string[] {
-  return [
+// hand (no other seat's hand is ever logged). South is omitted once
+// already eliminated, since no hand is dealt to them. Who goes first
+// isn't stated separately — it's implied by the very next "Seat's
+// turn" line.
+export function roundStartLines(roundNum: number, pot: Pot, southHand: Hand | undefined): string[] {
+  const lines = [
     "",
     `=== Round ${roundNum} ===`,
     `Pot is dealt [${cardsNotation(pot)}]`,
-    `South is dealt [${cardsNotation(southHand)}]`,
   ];
+  if (southHand !== undefined) {
+    lines.push(`South is dealt [${cardsNotation(southHand)}]`);
+  }
+  return lines;
 }
 
 // turnStartLine is written right before a seat's decide() is called,

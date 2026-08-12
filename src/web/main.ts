@@ -306,7 +306,7 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 // the round's first turn doesn't begin until this finishes. Per
 // specs/gui.md.
 async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>): Promise<void> {
-  const southHand = hands.get(0) as Hand;
+  const southHand = hands.get(0);
   for (const line of roundStartLines(roundNum, pot, southHand)) {
     appendLogLine(logEl, line);
   }
@@ -327,7 +327,7 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   potEl.replaceChildren();
 
   for (const step of dealOrder(activeSeats)) {
-    const el = step.kind === "hand" ? (step.seat === 0 ? cardEl(southHand[step.cardIndex] as Card) : backEl()) : cardEl(pot[step.potIndex] as Card);
+    const el = step.kind === "hand" ? (step.seat === 0 ? cardEl((southHand as Hand)[step.cardIndex] as Card) : backEl()) : cardEl(pot[step.potIndex] as Card);
     el.classList.add("card--deal-in");
     if (step.kind === "hand") {
       seatOf(step.seat).hand.appendChild(el);
@@ -340,8 +340,11 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 
   // South's own hand and score are always public, so they're revealed
   // as soon as they're dealt rather than waiting for South's first
-  // turn (turn order varies by round).
-  setScore(seatOf(0).score, score(southHand));
+  // turn (turn order varies by round). South may already be
+  // eliminated and thus never dealt a hand this round.
+  if (southHand !== undefined) {
+    setScore(seatOf(0).score, score(southHand));
+  }
 }
 
 // renderDealInstant places round 1's already-dealt hands/pot directly,
@@ -349,7 +352,7 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 // when specs/params.md's north/south/east/west/pot debug params
 // pre-populate the deal, per its "dealing is not animated" note.
 function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>): void {
-  const southHand = hands.get(0) as Hand;
+  const southHand = hands.get(0);
   for (const line of roundStartLines(roundNum, pot, southHand)) {
     appendLogLine(logEl, line);
   }
@@ -369,7 +372,9 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   }
   renderCards(potEl, pot);
 
-  setScore(seatOf(0).score, score(southHand));
+  if (southHand !== undefined) {
+    setScore(seatOf(0).score, score(southHand));
+  }
 }
 
 // renderResumedRound places a resumed round's checkpoint hands/pot
@@ -379,7 +384,7 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 // progress, whose deal was already logged and whose panel state was
 // already restored before the round loop began.
 function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>): void {
-  const southHand = hands.get(0) as Hand;
+  const southHand = hands.get(0);
   for (const [seat, hand] of hands) {
     if (seat === 0) {
       renderCards(seatOf(0).hand, hand);
@@ -389,7 +394,9 @@ function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>): void {
   }
   renderCards(potEl, pot);
 
-  setScore(seatOf(0).score, score(southHand));
+  if (southHand !== undefined) {
+    setScore(seatOf(0).score, score(southHand));
+  }
 }
 
 // logLines returns the log panel's current lines, one entry per line

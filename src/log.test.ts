@@ -21,12 +21,21 @@ test("gameStartLines", () => {
 test("roundStartLines", () => {
   const pot = mustPot("7h", "8c", "9d");
   const southHand = mustHand("7h", "8c", "9d");
-  assert.deepEqual(roundStartLines(1, pot, southHand), [
-    "",
-    "=== Round 1 ===",
-    "Pot is dealt [7h 8c 9d]",
-    "South is dealt [7h 8c 9d]",
-  ]);
+  const cases: Array<{ name: string; southHand: Hand | undefined; want: string[] }> = [
+    {
+      name: "South is dealt in",
+      southHand,
+      want: ["", "=== Round 1 ===", "Pot is dealt [7h 8c 9d]", "South is dealt [7h 8c 9d]"],
+    },
+    {
+      name: "South already eliminated, so not dealt a hand",
+      southHand: undefined,
+      want: ["", "=== Round 1 ===", "Pot is dealt [7h 8c 9d]"],
+    },
+  ];
+  for (const c of cases) {
+    assert.deepEqual(roundStartLines(1, pot, c.southHand), c.want, c.name);
+  }
 });
 
 test("turnStartLine", () => {
