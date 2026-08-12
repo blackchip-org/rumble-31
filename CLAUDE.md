@@ -67,6 +67,9 @@ a shell. Design the core logic to accept Readers and Writers, have
 main supply standard in and standard out, and rely on standard unit
 tests.
 
-Always ask for my permission before executing sudo. Approval to run a
+Always ask for permission before executing sudo. Approval to run a
 command as non-root does not imply approval to run that command as root. If
 you get a permission denied error, ask before running sudo.
+
+When asked to commit, first generate a commit message for review. Do the
+actual commit once that message is approved. 

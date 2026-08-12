@@ -22,7 +22,9 @@ The game screen has four panels -- one for each player.
 The player panels should contain:
 
 - The cards making up their hand arranged horizontally. If information about
-their card is private, the light red card back tile should be shown instead.
+their card is private, the light red card back tile should be shown
+instead. A bot's hand is private during play, then revealed once the
+round is over and scores are announced, same as the score box below.
 - A score box showing the current tally. If this information is private,
 the box should be empty. It is always public for the human player and
 public for bots once the round is over and scores are announced.

@@ -25,19 +25,26 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// playDealSound plays deal.wav for one card being dealt. A fresh Audio
-// instance per call lets rapid plays overlap naturally (the clip is
-// ~150ms, longer than DEAL_ANIMATION_DELAY), like a real card riffle,
-// instead of cutting a shared instance off early. play() can still
-// reject under the browser's autoplay policy (e.g. if
-// unlockDealSoundOnFirstGesture hasn't fired yet) — logged, not
-// thrown, since the deal works fine without sound either way.
+// dealAudio is the single Audio instance shared by every dealt card.
+// Reusing one instance (instead of allocating a new one per card) avoids
+// the per-card decode/allocation overhead that was causing audible
+// delays during a fast deal. When a new card is dealt before the
+// previous clip finishes, playDealSound rewinds and restarts it,
+// cutting the previous play off rather than letting instances overlap.
+const dealAudio = new Audio(dealSoundUrl);
+
+// playDealSound plays deal.wav for one card being dealt, restarting
+// dealAudio from the beginning. play() can still reject under the
+// browser's autoplay policy (e.g. if unlockDealSoundOnFirstGesture
+// hasn't fired yet) — logged, not thrown, since the deal works fine
+// without sound either way.
 function playDealSound(): void {
-  new Audio(dealSoundUrl).play().catch((err: unknown) => console.warn("deal.wav: play() failed", err));
+  dealAudio.currentTime = 0;
+  dealAudio.play().catch((err: unknown) => console.warn("deal.wav: play() failed", err));
 }
 
 // unlockDealSoundOnFirstGesture plays (silently, then immediately
-// pauses) deal.wav on the page's first click or keypress. Round 1's
+// pauses) dealAudio on the page's first click or keypress. Round 1's
 // deal starts automatically, before the player has done anything, and
 // browsers block unmuted audio until there's been a user gesture on
 // the page — without this, every dealt card would be silent until the
@@ -47,10 +54,14 @@ function unlockDealSoundOnFirstGesture(): void {
   const unlock = () => {
     document.removeEventListener("click", unlock);
     document.removeEventListener("keydown", unlock);
-    const a = new Audio(dealSoundUrl);
-    a.volume = 0;
-    a.play()
-      .then(() => a.pause())
+    dealAudio.volume = 0;
+    dealAudio
+      .play()
+      .then(() => {
+        dealAudio.pause();
+        dealAudio.currentTime = 0;
+        dealAudio.volume = 1;
+      })
       .catch((err: unknown) => console.warn("deal.wav: could not unlock audio", err));
   };
   document.addEventListener("click", unlock, { once: true });
@@ -371,6 +382,13 @@ async function main(): Promise<void> {
     }
     for (const pr of outcome.result.players) {
       setScore(seatOf(pr.seat).score, pr.score);
+      // Bots' hands are private during play (specs/gui.md's "if
+      // information about their card is private" rule), but once the
+      // round is over and scores are announced, they're public same as
+      // the score itself — swap the card backs for the real cards.
+      if (pr.seat !== 0) {
+        renderCards(seatOf(pr.seat).hand, pr.hand);
+      }
     }
     for (const seat of outcome.result.winners) {
       setWon(seatOf(seat).panel, true);
