@@ -77,10 +77,20 @@ test("trades to improve the hand when a pot card would help it", () => {
   assert.equal(action.handIndex, want?.handIdx);
 });
 
-test("knocks once the hand score reaches the [28-30] range, when no swap improves it further", () => {
-  const v = baseView({ hand: mustHand("Ah", "Kh", "Qh"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+test("knocks once the hand score reaches 30, when no swap improves it further", () => {
+  const v = baseView({ hand: mustHand("Ah", "Kh", "9h"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  assert.equal(score(v.hand), 30);
+  assert.equal(bestImprovingSwap(v), undefined);
   const b = new EasyBot();
   assert.equal(b.decide(v).type, "knock");
+});
+
+test("does not force a score-threshold knock below 30", () => {
+  const v = baseView({ hand: mustHand("Ah", "Kh", "8h"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  assert.equal(score(v.hand), 29);
+  assert.equal(bestImprovingSwap(v), undefined);
+  const b = new EasyBot();
+  assert.notEqual(b.decide(v).type, "knock");
 });
 
 test("trades a random unnecessary card for a random pot card when nothing improves the hand", () => {

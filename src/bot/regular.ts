@@ -15,10 +15,12 @@ import {
 } from "./helpers.ts";
 import { Rng } from "../rng.ts";
 
-// KNOCK_TURN_RANGE and BEST_SCORE_ROUNDS_AGO_RANGE are the [lo-hi]
-// ranges from the Regular strategy in specs/bots.md.
+// KNOCK_TURN_RANGE and BEST_SCORE_TURNS_AGO_RANGE are [lo-hi] ranges,
+// and KNOCK_SCORE is the fixed score threshold, from the Regular
+// strategy in specs/bots.md.
 const KNOCK_TURN_RANGE: [number, number] = [25, 30];
-const BEST_SCORE_ROUNDS_AGO_RANGE: [number, number] = [3, 5];
+const BEST_SCORE_TURNS_AGO_RANGE: [number, number] = [3, 5];
+const KNOCK_SCORE = 29;
 
 // RegularBot implements the Regular strategy described in specs/bots.md:
 // like EasyBot, but it tracks its upstream and downstream neighbors'
@@ -32,29 +34,24 @@ export class RegularBot implements Strategy {
   private lastSuitUpstreamDiscarded: Suit | undefined;
   private lastSuitDownstreamTook: Suit | undefined;
 
-  // currentRound, bestScore/hasBestScore/bestRound track "best score and
-  // round" from specs/bots.md across the bot's whole lifetime (a Game's
-  // worth of rounds), not reset in onRoundStart.
-  private currentRound: number;
+  // bestScore/bestTurn track "best score and turn" from specs/bots.md:
+  // reset to 0 at the start of every round (onRoundStart), then updated
+  // with the bot's own turn number whenever its score reaches a new
+  // best within that round.
   private bestScore: number;
-  private hasBestScore: boolean;
-  private bestRound: number;
+  private bestTurn: number;
 
   constructor(init?: {
     rng?: Rng;
     bestScore?: number;
-    hasBestScore?: boolean;
-    bestRound?: number;
-    currentRound?: number;
+    bestTurn?: number;
     lastSuitUpstreamTook?: Suit;
     lastSuitUpstreamDiscarded?: Suit;
     lastSuitDownstreamTook?: Suit;
   }) {
     this.rng = init?.rng ?? new Rng(Math.floor(Math.random() * 0x100000000));
     this.bestScore = init?.bestScore ?? 0;
-    this.hasBestScore = init?.hasBestScore ?? false;
-    this.bestRound = init?.bestRound ?? 0;
-    this.currentRound = init?.currentRound ?? 0;
+    this.bestTurn = init?.bestTurn ?? 0;
     this.lastSuitUpstreamTook = init?.lastSuitUpstreamTook;
     this.lastSuitUpstreamDiscarded = init?.lastSuitUpstreamDiscarded;
     this.lastSuitDownstreamTook = init?.lastSuitDownstreamTook;
@@ -81,7 +78,8 @@ export class RegularBot implements Strategy {
     this.lastSuitUpstreamTook = undefined;
     this.lastSuitUpstreamDiscarded = undefined;
     this.lastSuitDownstreamTook = undefined;
-    this.currentRound++;
+    this.bestScore = 0;
+    this.bestTurn = 0;
   }
 
   observe(turn: PublicTurn): void {
@@ -91,15 +89,14 @@ export class RegularBot implements Strategy {
   decide(v: PlayerView): Action {
     this.neighbors.setOwnSeat(v.seat);
     const action = this.chooseAction(v);
-    this.recordBest(resultingScore(v, action));
+    this.recordBest(resultingScore(v, action), v.ownTurnNumber);
     return action;
   }
 
-  private recordBest(resulting: number): void {
-    if (!this.hasBestScore || resulting >= this.bestScore) {
+  private recordBest(resulting: number, ownTurnNumber: number): void {
+    if (resulting >= this.bestScore) {
       this.bestScore = resulting;
-      this.hasBestScore = true;
-      this.bestRound = this.currentRound;
+      this.bestTurn = ownTurnNumber;
     }
   }
 
@@ -115,9 +112,8 @@ export class RegularBot implements Strategy {
       return exchange();
     }
     if (
-      this.hasBestScore &&
       score(v.hand) === this.bestScore &&
-      this.currentRound - this.bestRound > randInt(this.rng, ...BEST_SCORE_ROUNDS_AGO_RANGE)
+      v.ownTurnNumber - this.bestTurn > randInt(this.rng, ...BEST_SCORE_TURNS_AGO_RANGE)
     ) {
       return knock();
     }
@@ -125,6 +121,10 @@ export class RegularBot implements Strategy {
     const improving = bestImprovingSwap(v);
     if (improving) {
       return trade(improving.potIdx, improving.handIdx);
+    }
+
+    if (score(v.hand) >= KNOCK_SCORE) {
+      return knock();
     }
 
     const unnecessary = unnecessaryIndices(v.hand);

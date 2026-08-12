@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseCard } from "../card/card.ts";
+import { score } from "../card/score.ts";
 import type { Hand, Pot, PlayerView, PublicTurn } from "../game/types.ts";
 import { RegularBot } from "./regular.ts";
 import { bestImprovingSwap } from "./helpers.ts";
@@ -58,15 +59,26 @@ test("exchanges all cards whenever the pot's score is >= 30", () => {
   assert.equal(b.decide(v).type, "exchange");
 });
 
-test("knocks when the hand ties its best-ever score and that best was reached more than [3-5] rounds ago", () => {
-  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 2 });
-  const b = new RegularBot({ bestScore: 9, hasBestScore: true, bestRound: 1, currentRound: 8 });
+test("knocks when the hand ties its best-ever score and that best was reached more than [3-5] of its own turns ago", () => {
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 8 });
+  const b = new RegularBot({ bestScore: 9, bestTurn: 1 });
   assert.equal(b.decide(v).type, "knock");
 });
 
-test("does not force that knock in the same round the best score was set", () => {
+test("does not force that knock too soon after the best score was set", () => {
   const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 2 });
-  const b = new RegularBot({ bestScore: 9, hasBestScore: true, bestRound: 1, currentRound: 1 });
+  const b = new RegularBot({ bestScore: 9, bestTurn: 2 });
+  assert.notEqual(b.decide(v).type, "knock");
+});
+
+test("resets best score and turn at the start of each round", () => {
+  // Simulate having reached a best of 9 at turn 1 of a prior round --
+  // if this carried over unreset, turn 8 below would be far enough
+  // past turn 1 to trigger the stagnation knock.
+  const b = new RegularBot({ bestScore: 9, bestTurn: 1 });
+  b.onRoundStart();
+
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 8 });
   assert.notEqual(b.decide(v).type, "knock");
 });
 
@@ -84,18 +96,33 @@ test("trades to improve the hand when a pot card would help it", () => {
   assert.equal(action.handIndex, want?.handIdx);
 });
 
+test("knocks once the hand score reaches 29, when no swap improves it further", () => {
+  const v = baseView({ hand: mustHand("Ah", "Kh", "8h"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  assert.equal(score(v.hand), 29);
+  assert.equal(bestImprovingSwap(v), undefined);
+  const b = new RegularBot();
+  assert.equal(b.decide(v).type, "knock");
+});
+
+test("does not force a score-threshold knock below 29", () => {
+  const v = baseView({ hand: mustHand("Ah", "Kh", "7h"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  assert.equal(score(v.hand), 28);
+  assert.equal(bestImprovingSwap(v), undefined);
+  const b = new RegularBot();
+  assert.notEqual(b.decide(v).type, "knock");
+});
+
 test("records the resulting score as its best even from the round's first turn", () => {
   const b = new RegularBot();
-  b.onRoundStart(); // currentRound = 1
+  b.onRoundStart();
 
   const first = b.decide(baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("7s", "8s", "9s"), isFirstTurnOfRound: true }));
-  assert.equal(first.type, "exchange"); // resulting score = score(pot) = 24
+  assert.equal(first.type, "exchange"); // resulting score = score(pot) = 24, at turn 1
 
-  for (let i = 0; i < 7; i++) {
-    b.onRoundStart(); // currentRound = 8, more than [3-5] rounds past round 1
-  }
-
-  const v = baseView({ hand: mustHand("7s", "8s", "9s"), pot: mustPot("Kd", "Qh", "Jc"), ownTurnNumber: 2 });
+  // Later in the same round -- turn 8 is more than [3-5] turns past
+  // the turn-1 best of 24 -- tying it with no better swap available
+  // triggers the stagnation knock.
+  const v = baseView({ hand: mustHand("7s", "8s", "9s"), pot: mustPot("Kd", "Qh", "Jc"), ownTurnNumber: 8 });
   assert.equal(bestImprovingSwap(v), undefined, "tying the recorded best of 24 with no better swap available");
   assert.equal(b.decide(v).type, "knock");
 });

@@ -42,7 +42,7 @@ Strategy:
 - Knock if it is the bot's own [18-22]th turn or later
 - Exchange all cards with the pot when its score is >= 30
 - Trade to improve the hand
-- If the hand is >= [28-30], knock
+- If the hand is >= 30, knock
 - Trade a random unnecessary card for a random card
 - Trade randomly
 
@@ -54,9 +54,10 @@ players are worth observing and knowing who is collecting what can help
 decide on card trades and exchanges.
 
 This bot tracks:
-- Best score and round. After the bot takes an action, if its score is
-greater than or equal to the best score, update the best score and set
-the best round to the current round
+- Best score and turn. At the start of each round, reset both to 0.
+After the bot acts on its own turn, if its hand's score is greater
+than or equal to the best score, set the best score to that score and
+the best turn to the bot's own turn number
 - Last suit of card upstream took
 - Last suit of card upstream discarded
 - Last suit of card downstream took
@@ -72,9 +73,10 @@ Strategy:
 - Take pot or keep: Take pot if it improves the hand
 - Knock if it is the bot's own [25-30]th turn or later
 - Exchange all cards with the pot when its score is >= 30
-- If the hand score equals the best score and the best round was over [3-5]
-rounds ago, knock
+- If the hand score equals the best score and it has been more than
+[3-5] of the bot's own turns since the best turn, knock
 - Trade to improve the hand
+- If the hand is >= 29, knock
 - Trade an unnecessary card for a favorable one
 - Trade an unnecessary card for one that makes a pair
 - Trade a safe card for a random card
@@ -88,9 +90,10 @@ of the upstream and downstream players using public information. They keep a
 memory map of those opponents' hands as that slowly becomes known.
 
 This bot tracks:
-- Best score and round. After the bot takes an action, if its score is
-greater than or equal to the best score, update the best score and set
-the best round to the current round
+- Best score and turn. At the start of each round, reset both to 0.
+After the bot acts on its own turn, if its hand's score is greater
+than or equal to the best score, set the best score to that score and
+the best turn to the bot's own turn number
 - Hand of the upstream player by adding cards that player has collected
 and removing cards that player has discarded
 - Hand of the downstream player by adding cards that player has collected
@@ -103,9 +106,10 @@ Strategy:
 - Take pot or keep: Take pot if it improves the hand
 - Knock if it is the bot's own [25-30]th turn or later
 - Exchange all cards with the pot when its score is >= 30
-- If the hand score equals the best score and the best round was over
-[3-5] rounds ago, knock
+- If the hand score equals the best score and it has been more than
+[3-5] of the bot's own turns since the best turn, knock
 - Trade to improve the hand
+- If the hand is >= 27, knock
 - Trade an unnecessary card for a favorable one
 - Trade an unnecessary card for one that makes a pair
 - Trade a safe card for a random card

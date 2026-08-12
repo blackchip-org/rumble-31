@@ -4,10 +4,10 @@ import { exchange, knock, trade } from "../game/types.ts";
 import { bestImprovingSwap, randInt, unnecessaryIndices } from "./helpers.ts";
 import { Rng } from "../rng.ts";
 
-// KNOCK_TURN_RANGE and KNOCK_SCORE_RANGE are the [lo-hi] ranges from the
-// Easy strategy in specs/bots.md.
+// KNOCK_TURN_RANGE is the [lo-hi] range, and KNOCK_SCORE is the fixed
+// score threshold, from the Easy strategy in specs/bots.md.
 const KNOCK_TURN_RANGE: [number, number] = [18, 22];
-const KNOCK_SCORE_RANGE: [number, number] = [28, 30];
+const KNOCK_SCORE = 30;
 
 // EasyBot implements the Easy strategy described in specs/bots.md. It
 // mimics a new player: it never looks at what other players are doing,
@@ -36,7 +36,7 @@ export class EasyBot implements Strategy {
       return trade(improving.potIdx, improving.handIdx);
     }
 
-    if (score(v.hand) >= randInt(this.rng, ...KNOCK_SCORE_RANGE)) {
+    if (score(v.hand) >= KNOCK_SCORE) {
       return knock();
     }
 
