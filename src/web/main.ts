@@ -18,6 +18,7 @@ import { DomActionPrompt } from "./domActionPrompt.ts";
 import { installGlobalErrorHandlers, showErrorScreen } from "./errorScreen.ts";
 import { parseDebugParams } from "./params.ts";
 import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
+import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 
@@ -34,12 +35,20 @@ function sleep(ms: number): Promise<void> {
 // cutting the previous play off rather than letting instances overlap.
 const dealAudio = new Audio(dealSoundUrl);
 
+// settings holds the user's persisted preferences (specs/gui.md's
+// Settings Screen), loaded once at startup and kept in sync with
+// localStorage as the player changes them.
+let settings: Settings = loadSettings(localStorage);
+
 // playDealSound plays deal.wav for one card being dealt, restarting
-// dealAudio from the beginning. play() can still reject under the
-// browser's autoplay policy (e.g. if unlockDealSoundOnFirstGesture
-// hasn't fired yet) — logged, not thrown, since the deal works fine
-// without sound either way.
+// dealAudio from the beginning, unless the player has disabled sounds.
+// play() can still reject under the browser's autoplay policy (e.g. if
+// unlockDealSoundOnFirstGesture hasn't fired yet) — logged, not thrown,
+// since the deal works fine without sound either way.
 function playDealSound(): void {
+  if (!settings.soundsEnabled) {
+    return;
+  }
   dealAudio.currentTime = 0;
   dealAudio.play().catch((err: unknown) => console.warn("deal.wav: play() failed", err));
 }
@@ -92,12 +101,17 @@ interface SeatEls {
 const mainScreenEl = must<HTMLElement>("main-screen");
 const gameScreenEl = must<HTMLElement>("game-screen");
 const newGameBtn = must<HTMLButtonElement>("new-game-btn");
+const settingsBtn = must<HTMLButtonElement>("settings-btn");
 const aboutBtn = must<HTMLButtonElement>("about-btn");
 
 const aboutScreenEl = must<HTMLElement>("about-screen");
 const aboutVersionEl = must<HTMLElement>("about-version");
 const aboutBuildEl = must<HTMLElement>("about-build");
 const aboutMainMenuBtn = must<HTMLButtonElement>("about-main-menu-btn");
+
+const settingsScreenEl = must<HTMLElement>("settings-screen");
+const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
+const settingsMainMenuBtn = must<HTMLButtonElement>("settings-main-menu-btn");
 
 const gameOverScreenEl = must<HTMLElement>("game-over-screen");
 const gameOverLine1El = must<HTMLElement>("game-over-line1");
@@ -445,13 +459,28 @@ function showGameScreen(): void {
   main().catch(showErrorScreen);
 }
 
-// showMainScreen swaps the game-over or about screen for the main
-// screen (per specs/gui.md's Game Over Screen and About Screen
-// sections' "Main Menu" buttons).
+// showMainScreen swaps the game-over, about, or settings screen for the
+// main screen (per specs/gui.md's Game Over Screen, About Screen, and
+// Settings Screen sections' "Main Menu" buttons).
 function showMainScreen(): void {
   gameOverScreenEl.hidden = true;
   aboutScreenEl.hidden = true;
+  settingsScreenEl.hidden = true;
   mainScreenEl.hidden = false;
+}
+
+// syncSoundsToggleBtn sets the sounds toggle button's label to match
+// settings.soundsEnabled (per specs/gui.md's Settings Screen section).
+function syncSoundsToggleBtn(): void {
+  soundsToggleBtn.textContent = settings.soundsEnabled ? "Enabled" : "Disabled";
+}
+
+// showSettingsScreen swaps the main screen for the settings screen (per
+// specs/gui.md's Main Screen section's "Settings" button).
+function showSettingsScreen(): void {
+  syncSoundsToggleBtn();
+  mainScreenEl.hidden = true;
+  settingsScreenEl.hidden = false;
 }
 
 // showAboutScreen swaps the main screen for the about screen (per
@@ -491,7 +520,13 @@ function downloadTextFile(filename: string, text: string): void {
 playAgainBtn.addEventListener("click", showGameScreen);
 mainMenuBtn.addEventListener("click", showMainScreen);
 aboutMainMenuBtn.addEventListener("click", showMainScreen);
+settingsMainMenuBtn.addEventListener("click", showMainScreen);
 saveLogBtn.addEventListener("click", () => downloadTextFile("rumble-31-log.txt", logText(logEl)));
+soundsToggleBtn.addEventListener("click", () => {
+  settings = { ...settings, soundsEnabled: !settings.soundsEnabled };
+  saveSettings(settings, localStorage);
+  syncSoundsToggleBtn();
+});
 
 // Any URL parameter (specs/params.md) bypasses the main screen and
 // starts the game immediately, as it always has — the main screen is
@@ -500,5 +535,6 @@ if (window.location.search !== "") {
   showGameScreen();
 } else {
   newGameBtn.addEventListener("click", showGameScreen);
+  settingsBtn.addEventListener("click", showSettingsScreen);
   aboutBtn.addEventListener("click", showAboutScreen);
 }

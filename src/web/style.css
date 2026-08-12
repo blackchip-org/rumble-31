@@ -817,6 +817,91 @@ body {
   background: var(--button-bg-hover);
 }
 
+/* ---------- settings screen ---------- */
+
+.settings-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--settings-bg);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Same [hidden]-specificity-tie reasoning as .error-screen/.game-over-screen
+   above: display must be gated on :not([hidden]), not the bare selector. */
+.settings-screen:not([hidden]) {
+  display: flex;
+}
+
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  color: var(--settings-text-color);
+}
+
+.settings-title {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-settings-title);
+  color: var(--settings-title-color);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+}
+
+.settings-label {
+  justify-self: start;
+}
+
+.settings-grid button {
+  justify-self: start;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-score);
+  cursor: pointer;
+}
+
+.settings-grid button:hover {
+  background: var(--button-bg-hover);
+}
+
+.settings-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(60vw, 260px);
+}
+
+.settings-buttons button {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-score);
+  cursor: pointer;
+}
+
+.settings-buttons button:hover {
+  background: var(--button-bg-hover);
+}
+
 @media (max-width: 900px) {
   #table {
     grid-template-columns: 1fr;

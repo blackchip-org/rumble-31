@@ -166,9 +166,8 @@ blue and the text is white:
     - About
 
 Clicking on the "New Game" button navigates to the Game Screen.
-Clicking on the "About" button navigates to the About Screen.
-
-The other buttons do nothing at the moment.
+Clicking on the "Settings" button navigates to the Settings Screen. 
+Clicking on the "About" button navigates to the About Screen.s
 
 # Game Over Screen
 
@@ -202,6 +201,27 @@ experience this problem, contact your local service technician for assistance."
 
 A stack trace should then be shown in a scrollable text area using Inconsolata
 Regular but in a smaller font. The text is rendered with a gray color.
+
+# Settings Screen 
+
+Contents should be in a panel centered horizontally and vertically.
+
+Main header shows "Settings"
+
+Settings are in a two column setting. The first column describes the 
+setting, the second column is a control to adjust the setting. The 
+settings are:
+
+- Sounds
+
+Sounds is a button that by default reads "Enabled". Clicking on it toggles
+to "Disabled". When this setting is disabled, the application should
+not emit any sounds. 
+
+A "Main Menu" button is shown below the settings. Clicking on it naviages
+to the main screen. 
+
+These settings should be saved and retreived from local storage. 
 
 # About Screen
 

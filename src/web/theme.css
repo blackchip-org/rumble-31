@@ -106,4 +106,11 @@
   --about-title-color: #fff; /* "Rumble-31" heading color */
   --about-text-color: var(--ink); /* version/build/credit/body text color */
   --font-size-about-title: 2.25rem; /* about screen "Rumble-31" heading */
+
+  /* ---------- settings screen (independently restylable) ---------- */
+  --settings-bg: var(--bg); /* settings screen background */
+  --settings-title-color: #fff; /* "Settings" heading color */
+  --settings-text-color: var(--ink); /* setting label/control text color */
+  --font-size-settings-title: 2.25rem; /* settings screen "Settings"
+                                           heading */
 }
