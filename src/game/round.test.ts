@@ -577,3 +577,130 @@ test("newRound with a RoundDealOverride honors a forced firstSeat", () => {
   const r = newRound(42, seats, { firstSeat: 3 });
   assert.equal(r.firstSeat, 3);
 });
+
+test("newRound with a RoundDealOverride honors turnIndex/knocked/knockerSeat", () => {
+  const seats = [0, 1, 2, 3].map((seat) => ({ seat, strategy: nilStrategy }));
+  const r = newRound(42, seats, { turnIndex: 5, knocked: true, knockerSeat: 2 });
+  assert.equal(r.turnIndex, 5);
+  assert.equal(r.knocked, true);
+  assert.equal(r.knockerSeat, 2);
+});
+
+// Regression test for specs/state.md's resumed-round checkpoint: a
+// round resumed with turnIndex > 0 must not treat its next turn as the
+// round's first turn — otherwise an exchange that's actually the
+// round's 2nd+ turn would wrongly be treated as a harmless swap
+// instead of ending the round like a knock.
+test("run: a round resumed with turnIndex > 0 never reports isFirstTurnOfRound again", async () => {
+  let sawFirstTurn = false;
+  const exchangeOnce = (): Strategy => {
+    let called = false;
+    return strategyFunc((v: PlayerView) => {
+      if (v.isFirstTurnOfRound) {
+        sawFirstTurn = true;
+      }
+      if (!called) {
+        called = true;
+        return exchange();
+      }
+      throw new Error("exchanging seat was asked to act again");
+    });
+  };
+  const pass = strategyFunc((v: PlayerView) => {
+    if (v.isFirstTurnOfRound) {
+      sawFirstTurn = true;
+    }
+    return trade(0, 0);
+  });
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Kh", "Kc", "Kd"],
+    [pass, exchangeOnce(), pass, pass],
+  );
+  r.firstSeat = 1;
+  r.turnIndex = 1;
+
+  const { log } = await r.run();
+
+  assert.equal(sawFirstTurn, false, "a resumed round must never report isFirstTurnOfRound");
+  // Seat 1's exchange (its first decide() call this session, but the
+  // round's 2nd turn overall since turnIndex started at 1) must end the
+  // round exactly like a knock: seats 2, 3, and 0 each get one more
+  // turn, then the round stops before seat 1 acts again.
+  assert.equal(log.length, 4);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [1, 2, 3, 0],
+  );
+  assert.equal(log[0]?.turnIndex, 1);
+});
+
+// Regression test: a round resumed already knocked must end once play
+// wraps back around to the knocker, giving every other seat exactly
+// one more turn — not a full extra round.
+test("run: a round resumed already knocked ends after the remaining seats' one lap", async () => {
+  const pass = strategyFunc(() => trade(0, 0));
+  const neverCalled = strategyFunc((): Action => {
+    throw new Error("knocker should not be asked to act again");
+  });
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Ah", "Ac", "Ad"],
+    [pass, neverCalled, pass, pass],
+  );
+  r.firstSeat = 2;
+  r.knocked = true;
+  r.knockerSeat = 1;
+
+  const { log } = await r.run();
+
+  // Seats 2, 3, and 0 (the seats other than the knocker) each get
+  // their one remaining turn, then the round stops before seat 1 (the
+  // knocker) acts again.
+  assert.equal(log.length, 3);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [2, 3, 0],
+  );
+});
+
+// Regression test: resuming exactly at the knocker (the round had
+// already fully played out before the checkpoint was taken) must end
+// the round immediately, with no further turns, and compute the
+// result from the hands as they already stand.
+test("run: resuming a round already back at the knocker takes no further turns", async () => {
+  const neverCalled = strategyFunc((): Action => {
+    throw new Error("no seat should be asked to act in an already-finished round");
+  });
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["Ah", "Ad", "Ac"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Kh", "Kc", "Kd"],
+    [neverCalled, neverCalled, neverCalled, neverCalled],
+  );
+  r.firstSeat = 1;
+  r.knocked = true;
+  r.knockerSeat = 1;
+
+  const { log, result } = await r.run();
+
+  assert.equal(log.length, 0);
+  assert.deepEqual(result.winners, [1]);
+});

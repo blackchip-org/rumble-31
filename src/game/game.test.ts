@@ -236,6 +236,22 @@ test("newGame seeds initial strikes, eliminating any seat starting at 3 or more"
   );
 });
 
+// Regression test: onDeal's firstSeat argument must match the round it
+// actually deals, so a caller building a resumable checkpoint
+// (specs/state.md) knows who acts first without re-deriving it.
+test("playRound's onDeal reports the round's actual firstSeat", async () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = newGame(1, strategies, undefined, { firstSeat: 2 });
+
+  let reportedFirstSeat: number | undefined;
+  g.onDeal = (_pot, _hands, firstSeat) => {
+    reportedFirstSeat = firstSeat;
+  };
+
+  await g.playRound();
+  assert.equal(reportedFirstSeat, 2);
+});
+
 // newGame's initialDeal (for the web GUI's debug URL params) must only
 // apply to whichever round is played first — every later round deals
 // normally, otherwise a debug hand would keep reappearing every round.

@@ -22,10 +22,11 @@ export class Game {
   eliminated: [boolean, boolean, boolean, boolean];
 
   // onDeal, if set, is called (and awaited, if it returns a Promise)
-  // with each round's freshly dealt pot, and every dealt-in seat's
-  // hand, before that round's first turn — e.g. to let a UI animate
-  // the deal before play continues.
-  onDeal: ((pot: Pot, hands: ReadonlyMap<number, Hand>) => void | Promise<void>) | undefined;
+  // with each round's freshly dealt pot, every dealt-in seat's hand,
+  // and who acts first, before that round's first turn — e.g. to let a
+  // UI animate the deal before play continues, or persist a resumable
+  // checkpoint (specs/state.md).
+  onDeal: ((pot: Pot, hands: ReadonlyMap<number, Hand>, firstSeat: number) => void | Promise<void>) | undefined;
   // onTurn, if set, is passed through to each round's own onTurn (and
   // awaited the same way, if it returns a Promise).
   onTurn: ((rec: TurnRecord) => void | Promise<void>) | undefined;
@@ -88,6 +89,7 @@ export class Game {
     await this.onDeal?.(
       r.pot,
       new Map(r.players.map((p) => [p.seat, p.hand])),
+      r.firstSeat,
     );
     r.onTurn = this.onTurn;
 

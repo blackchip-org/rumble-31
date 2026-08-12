@@ -6,10 +6,12 @@ import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { Bot } from "../bot/bot.ts";
 import { DEAL_ANIMATION_DELAY, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
-import { newGame } from "../game/game.ts";
+import { Game, newGame } from "../game/game.ts";
+import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
 import type { Action, Hand, PlayerView, Pot, Strategy, TurnRecord } from "../game/types.ts";
 import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnStartLine, turnLines } from "../log.ts";
+import { Rng } from "../rng.ts";
 import { version } from "../version.ts";
 import { buildTime } from "../buildstamp.ts";
 import dealSoundUrl from "../../assets/deal.wav";
@@ -19,6 +21,7 @@ import { installGlobalErrorHandlers, mockError, showErrorScreen } from "./errorS
 import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
 import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
+import { clearState, loadState, saveState, type GameState, type OverState, type PersistedState, type RoundCheckpoint } from "./state.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 
@@ -91,6 +94,20 @@ installGlobalErrorHandlers();
 // during module init, which installGlobalErrorHandlers (installed just
 // above) still routes to the error screen.
 const debugParams = parseDebugParams(window.location.search);
+
+// specs/state.md: a URL supplying any valid debug parameter clears
+// whatever was saved from a previous session first, so debugging never
+// resumes a leftover game — including a bare `screen=`, which carries
+// no game-seeding data of its own. An invalid parameter throws above,
+// before this line, leaving saved state untouched.
+if (window.location.search !== "") {
+  clearState(localStorage);
+}
+
+// savedState is only consulted on a bare visit — any debug parameter
+// takes precedence, and saved state was just cleared above in that
+// case anyway.
+const savedState: PersistedState | undefined = window.location.search === "" ? loadState(localStorage) : undefined;
 
 function must<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -355,7 +372,72 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   setScore(seatOf(0).score, score(southHand));
 }
 
-async function main(): Promise<void> {
+// renderResumedRound places a resumed round's checkpoint hands/pot
+// directly, exactly like renderDealInstant, but without logging
+// roundStartLines or resetting won/struck/panel state — this isn't a
+// new deal (specs/state.md), it's redisplaying a round already in
+// progress, whose deal was already logged and whose panel state was
+// already restored before the round loop began.
+function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>): void {
+  const southHand = hands.get(0) as Hand;
+  for (const [seat, hand] of hands) {
+    if (seat === 0) {
+      renderCards(seatOf(0).hand, hand);
+    } else {
+      renderBacks(seatOf(seat).hand, hand.length);
+    }
+  }
+  renderCards(potEl, pot);
+
+  setScore(seatOf(0).score, score(southHand));
+}
+
+// logLines returns the log panel's current lines, one entry per line
+// appended by appendLogLine (including its blank lines) — the form
+// specs/state.md saves the log in. Empty when the log itself is empty
+// (logText would otherwise report a single blank line).
+function logLines(): string[] {
+  const text = logText(logEl);
+  return text === "" ? [] : text.split("\n");
+}
+
+// restoreLogLines replaces the log panel's contents with lines saved
+// by logLines, for resuming a screen per specs/state.md.
+function restoreLogLines(lines: readonly string[]): void {
+  logEl.replaceChildren();
+  for (const line of lines) {
+    appendLogLine(logEl, line);
+  }
+}
+
+// saveGameState persists game as the Game screen's resumable state
+// (specs/state.md).
+function saveGameState(game: GameState): void {
+  saveState({ screen: "game", game }, localStorage);
+}
+
+// checkpointToOverride turns a saved RoundCheckpoint back into the
+// RoundDealOverride that resumes it: every active seat's hand and the
+// pot are pre-populated exactly as saved, so newRound deals nothing at
+// random, and firstSeat/turnIndex/knocked/knockerSeat carry forward
+// whose turn is next and whether the round's knock-ends-it rules
+// already apply.
+function checkpointToOverride(checkpoint: RoundCheckpoint): RoundDealOverride {
+  return {
+    assignedHands: new Map(checkpoint.hands),
+    assignedPot: checkpoint.pot,
+    firstSeat: checkpoint.firstSeat,
+    turnIndex: checkpoint.turnIndex,
+    knocked: checkpoint.knocked,
+    knockerSeat: checkpoint.knockerSeat,
+  };
+}
+
+// main plays one game on the Game screen: a brand new one, or — when
+// resume is given (specs/state.md, a page revisited with no debug
+// parameters and a saved game screen) — one picked back up from a
+// saved checkpoint instead of starting over.
+async function main(resume?: GameState): Promise<void> {
   const params = debugParams;
 
   initCardSheetVars();
@@ -365,20 +447,34 @@ async function main(): Promise<void> {
   const seed = Date.now();
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn);
   const bots: [Bot, Bot, Bot] = [new Bot(), new Bot(), new Bot()];
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [
+    withTurnUi(0, human),
+    withTurnUi(1, bots[0]),
+    withTurnUi(2, bots[1]),
+    withTurnUi(3, bots[2]),
+  ];
 
-  const g = newGame(
-    seed,
-    [withTurnUi(0, human), withTurnUi(1, bots[0]), withTurnUi(2, bots[1]), withTurnUi(3, bots[2])],
-    params.initialStrikes,
-    params.initialDeal,
-  );
+  const g = resume
+    ? new Game({
+        strategies,
+        strikes: resume.strikes,
+        eliminated: resume.eliminated,
+        rng: new Rng(seed),
+        initialDeal: resume.checkpoint ? checkpointToOverride(resume.checkpoint) : undefined,
+      })
+    : newGame(seed, strategies, params.initialStrikes, params.initialDeal);
 
-  // Resets every seat panel, score, and hand, and clears the log — a
-  // no-op for the very first game (everything already starts blank),
-  // but required for Play Again (specs/gui.md's Game Over Screen
-  // section), which re-enters main() on the same DOM a finished game
-  // left its final-round highlights and log lines in.
-  logEl.replaceChildren();
+  // Resets every seat panel, score, and hand — a no-op for the very
+  // first game (everything already starts blank), but required for
+  // Play Again (specs/gui.md's Game Over Screen section), which
+  // re-enters main() on the same DOM a finished game left its
+  // final-round highlights and log lines in. A resumed game restores
+  // its saved log instead of clearing it (specs/state.md).
+  if (resume) {
+    restoreLogLines(resume.log);
+  } else {
+    logEl.replaceChildren();
+  }
   for (let seat = 0; seat < 4; seat++) {
     setWon(seatOf(seat).panel, false);
     setStruck(seatOf(seat).panel, false);
@@ -389,16 +485,93 @@ async function main(): Promise<void> {
   }
   potEl.replaceChildren();
 
-  for (const line of gameStartLines(seed, version)) {
-    appendLogLine(logEl, line);
+  if (!resume) {
+    for (const line of gameStartLines(seed, version)) {
+      appendLogLine(logEl, line);
+    }
   }
 
-  for (let roundNum = 1; ; roundNum++) {
-    g.onDeal =
-      roundNum === 1 && params.skipDealAnimation
-        ? (pot, hands) => renderDealInstant(roundNum, pot, hands)
-        : (pot, hands) => animateDeal(roundNum, pot, hands);
-    g.onTurn = renderTurn;
+  const startRoundNum = resume?.roundNum ?? 1;
+
+  saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: startRoundNum, checkpoint: undefined, log: logLines() });
+
+  for (let roundNum = startRoundNum; ; roundNum++) {
+    // roundHands/roundPot/roundTurnIndex/roundKnocked/roundKnockerSeat
+    // track this round's live state through every deal and turn, kept
+    // in sync by onDeal/onTurn below — enough to build a
+    // RoundCheckpoint (specs/state.md) after each, without Game/Round
+    // exposing their internal Round object. Only the resumed round
+    // (roundNum === startRoundNum) seeds turnIndex/knocked/knockerSeat
+    // from resume's own checkpoint; every later round starts fresh.
+    let roundHands: Map<number, Hand> | undefined;
+    let roundPot: Pot | undefined;
+    let roundTurnIndex = roundNum === startRoundNum ? (resume?.checkpoint?.turnIndex ?? 0) : 0;
+    let roundKnocked = roundNum === startRoundNum ? (resume?.checkpoint?.knocked ?? false) : false;
+    let roundKnockerSeat = roundNum === startRoundNum ? (resume?.checkpoint?.knockerSeat ?? -1) : -1;
+
+    g.onDeal = async (pot, hands, firstSeat) => {
+      roundHands = new Map(hands);
+      roundPot = pot;
+      if (roundNum === startRoundNum && resume?.checkpoint) {
+        renderResumedRound(pot, hands);
+      } else if (roundNum === startRoundNum && params.skipDealAnimation) {
+        renderDealInstant(roundNum, pot, hands);
+      } else {
+        await animateDeal(roundNum, pot, hands);
+      }
+      // A resumed round that was already knocked before reload gets no
+      // "knocked" turn of its own to earn the panel tag from — apply it
+      // directly so the panel matches Round's restored knocked state.
+      if (roundKnocked && roundKnockerSeat >= 0) {
+        setPanelState(seatOf(roundKnockerSeat).panel, "knocked");
+      }
+      saveGameState({
+        strikes: g.strikes,
+        eliminated: g.eliminated,
+        roundNum,
+        checkpoint: {
+          hands: [...roundHands.entries()],
+          pot: roundPot,
+          firstSeat,
+          turnIndex: roundTurnIndex,
+          knocked: roundKnocked,
+          knockerSeat: roundKnockerSeat,
+        },
+        log: logLines(),
+      });
+    };
+    g.onTurn = async (rec) => {
+      await renderTurn(rec);
+
+      const hands = roundHands as Map<number, Hand>;
+      hands.set(rec.seat, rec.handAfter);
+      roundPot = rec.potAfter;
+      roundTurnIndex = rec.turnIndex + 1;
+      // Mirrors round.ts's own knock detection (a knock, or an
+      // exchange on any turn but the round's first) so a resumed round
+      // still ends under the same rule a freshly dealt one would.
+      if (!roundKnocked && (rec.action.type === "knock" || (rec.action.type === "exchange" && rec.turnIndex !== 0))) {
+        roundKnocked = true;
+        roundKnockerSeat = rec.seat;
+      }
+      const active = [...hands.keys()].sort((a, b) => a - b);
+      const nextSeat = active[(active.indexOf(rec.seat) + 1) % active.length] as number;
+
+      saveGameState({
+        strikes: g.strikes,
+        eliminated: g.eliminated,
+        roundNum,
+        checkpoint: {
+          hands: [...hands.entries()],
+          pot: roundPot as Pot,
+          firstSeat: nextSeat,
+          turnIndex: roundTurnIndex,
+          knocked: roundKnocked,
+          knockerSeat: roundKnockerSeat,
+        },
+        log: logLines(),
+      });
+    };
 
     const outcome = await g.playRound();
 
@@ -449,15 +622,32 @@ async function main(): Promise<void> {
     // but once it expires, play only continues into another deal if
     // the game hasn't actually ended.
     const gameOver = !g.active() || g.eliminated[0];
+    if (gameOver) {
+      // Persisted here, before the pause, rather than as a "game"
+      // checkpoint for a round that no longer exists: resuming into a
+      // finished round would call playRound() again and double-apply
+      // its strikes. specs/state.md's Game Over screen state is saved
+      // directly instead, so a reload during the pause resumes there.
+      for (const line of gameEndLines(g)) {
+        appendLogLine(logEl, line);
+      }
+      saveState(
+        {
+          screen: "over",
+          game: { strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, log: logLines(), southWon: g.winners().includes(0) },
+        },
+        localStorage,
+      );
+    } else {
+      saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, checkpoint: undefined, log: logLines() });
+    }
+
     await pauseBetweenRounds(3000);
     if (gameOver) {
       break;
     }
   }
 
-  for (const line of gameEndLines(g)) {
-    appendLogLine(logEl, line);
-  }
   showGameOverScreen(g.winners().includes(0));
 }
 
@@ -476,19 +666,22 @@ function hideAllScreens(): void {
 }
 
 // showGameScreen swaps whichever screen is up for the game screen,
-// then starts a new game.
-function showGameScreen(): void {
+// then starts a game — a brand new one, or, given resume, one picked
+// back up per specs/state.md.
+function showGameScreen(resume?: GameState): void {
   hideAllScreens();
   gameScreenEl.hidden = false;
-  main().catch(showErrorScreen);
+  main(resume).catch(showErrorScreen);
 }
 
 // showMainScreen swaps whichever screen is up for the main screen (per
 // specs/gui.md's Game Over Screen, About Screen, and Settings Screen
-// sections' "Main Menu" buttons).
+// sections' "Main Menu" buttons), and persists it as the screen to
+// resume (specs/state.md).
 function showMainScreen(): void {
   hideAllScreens();
   mainScreenEl.hidden = false;
+  saveState({ screen: "main" }, localStorage);
 }
 
 // syncSoundsToggleBtn sets the sounds toggle button's label to match
@@ -498,26 +691,33 @@ function syncSoundsToggleBtn(): void {
 }
 
 // showSettingsScreen swaps whichever screen is up for the settings
-// screen (per specs/gui.md's Main Screen section's "Settings" button).
+// screen (per specs/gui.md's Main Screen section's "Settings" button),
+// and persists it as the screen to resume (specs/state.md).
 function showSettingsScreen(): void {
   syncSoundsToggleBtn();
   hideAllScreens();
   settingsScreenEl.hidden = false;
+  saveState({ screen: "settings" }, localStorage);
 }
 
 // showAboutScreen swaps whichever screen is up for the about screen
 // (per specs/gui.md's Main Screen section's "About" button), filling
-// in the version/build-date text it displays.
+// in the version/build-date text it displays, and persists it as the
+// screen to resume (specs/state.md).
 function showAboutScreen(): void {
   aboutVersionEl.textContent = `Version ${version}`;
   aboutBuildEl.textContent = `Built on ${buildTime}`;
   hideAllScreens();
   aboutScreenEl.hidden = false;
+  saveState({ screen: "about" }, localStorage);
 }
 
 // showGameOverScreen swaps whichever screen is up for the game-over
 // screen, announcing South's win or loss per specs/gui.md's Game Over
-// Screen section: "You Won!"/"Game Over", one word per line.
+// Screen section: "You Won!"/"Game Over", one word per line. Callers
+// with an OverState to persist (specs/state.md) save it themselves
+// before calling this — it's pure UI, so restoring a saved Game Over
+// screen doesn't re-save the state it was just loaded from.
 function showGameOverScreen(southWon: boolean): void {
   const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
   gameOverLine1El.textContent = line1;
@@ -531,7 +731,20 @@ function showGameOverScreen(southWon: boolean): void {
 // played. Per that spec, the win/loss message defaults to whether
 // South (seat 0) already starts eliminated per the strikes param.
 function showDebugGameOverScreen(params: DebugParams): void {
-  showGameOverScreen(params.initialStrikes[0] < 3);
+  const eliminated = params.initialStrikes.map((s) => s >= 3) as [boolean, boolean, boolean, boolean];
+  const southWon = params.initialStrikes[0] < 3;
+  saveState(
+    { screen: "over", game: { strikes: params.initialStrikes, eliminated, roundNum: 1, log: logLines(), southWon } },
+    localStorage,
+  );
+  showGameOverScreen(southWon);
+}
+
+// restoreGameOverScreen redraws the Game Over screen directly from
+// saved state (specs/state.md), with no game replayed.
+function restoreGameOverScreen(game: OverState): void {
+  restoreLogLines(game.log);
+  showGameOverScreen(game.southWon);
 }
 
 // downloadTextFile saves text as a local file named filename, via a
@@ -547,7 +760,7 @@ function downloadTextFile(filename: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 
-playAgainBtn.addEventListener("click", showGameScreen);
+playAgainBtn.addEventListener("click", () => showGameScreen());
 mainMenuBtn.addEventListener("click", showMainScreen);
 aboutMainMenuBtn.addEventListener("click", showMainScreen);
 settingsMainMenuBtn.addEventListener("click", showMainScreen);
@@ -558,15 +771,17 @@ soundsToggleBtn.addEventListener("click", () => {
   syncSoundsToggleBtn();
 });
 
-newGameBtn.addEventListener("click", showGameScreen);
+newGameBtn.addEventListener("click", () => showGameScreen());
 settingsBtn.addEventListener("click", showSettingsScreen);
 aboutBtn.addEventListener("click", showAboutScreen);
 
 // specs/params.md's screen debug param picks the initial screen
-// directly. Without it, any other URL parameter bypasses the main
-// screen and starts the game immediately, as it always has — the main
-// screen is only shown on a bare visit with no query string at all.
-const initialScreen: ScreenId = debugParams.screen ?? (window.location.search === "" ? "main" : "game");
+// directly. Without it, savedState (specs/state.md) picks up wherever
+// the player left off. Absent both, any other URL parameter bypasses
+// the main screen and starts the game immediately, as it always has —
+// the main screen is only shown on a bare visit with no query string
+// and no saved state at all.
+const initialScreen: ScreenId = debugParams.screen ?? savedState?.screen ?? (window.location.search === "" ? "main" : "game");
 switch (initialScreen) {
   case "main":
     showMainScreen();
@@ -578,13 +793,21 @@ switch (initialScreen) {
     showAboutScreen();
     break;
   case "over":
-    showDebugGameOverScreen(debugParams);
+    if (savedState?.screen === "over") {
+      restoreGameOverScreen(savedState.game);
+    } else {
+      showDebugGameOverScreen(debugParams);
+    }
     break;
   case "error":
     hideAllScreens();
     showErrorScreen(mockError());
     break;
   case "game":
-    showGameScreen();
+    if (savedState?.screen === "game") {
+      showGameScreen(savedState.game);
+    } else {
+      showGameScreen();
+    }
     break;
 }

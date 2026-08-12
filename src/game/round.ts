@@ -21,10 +21,22 @@ import type {
 // dealing them from the shuffled deck, and firstSeat fixes who acts
 // first instead of picking randomly. Only ever used for a game's very
 // first round — see Game.pendingInitialDeal.
+//
+// turnIndex, knocked, and knockerSeat additionally resume a round
+// already in progress (specs/state.md): turnIndex is the count of
+// turns already taken this round, so the resumed round's next turn is
+// only ever treated as the round's first turn when turnIndex is still
+// 0; knocked/knockerSeat carry forward whether a player has already
+// knocked (or exchanged past the round's first turn), so the round
+// still ends once play wraps back around to them, instead of
+// forgetting that and continuing indefinitely.
 export interface RoundDealOverride {
   assignedHands?: Map<number, Hand>;
   assignedPot?: Pot;
   firstSeat?: number;
+  turnIndex?: number;
+  knocked?: boolean;
+  knockerSeat?: number;
 }
 
 // Round holds the state of a single Rumble-31 round in progress, among
@@ -36,6 +48,15 @@ export class Round {
   players: Player[];
   firstSeat: number;
 
+  // turnIndex, knocked, and knockerSeat mirror RoundDealOverride's own
+  // fields of the same name — run() starts from these instead of
+  // always 0/false/-1, so a round reconstructed via override can
+  // resume mid-play (specs/state.md) rather than always starting
+  // completely fresh.
+  turnIndex: number;
+  knocked: boolean;
+  knockerSeat: number;
+
   // onTurn, if set, is called (and awaited, if it returns a Promise)
   // with each TurnRecord as it happens, before the next seat acts —
   // e.g. to let a UI animate the turn's trade before play continues.
@@ -45,6 +66,9 @@ export class Round {
     this.pot = pot;
     this.players = players;
     this.firstSeat = firstSeat;
+    this.turnIndex = 0;
+    this.knocked = false;
+    this.knockerSeat = -1;
     this.onTurn = undefined;
   }
 
@@ -67,9 +91,9 @@ export class Round {
     // "next seat" means the next index, wrapping — still clockwise
     // order since this.players is seat-ascending.
     let idx = this.players.findIndex((p) => p.seat === this.firstSeat);
-    let turnIdx = 0;
-    let knocked = false;
-    let knockerSeat = -1;
+    let turnIdx = this.turnIndex;
+    let knocked = this.knocked;
+    let knockerSeat = this.knockerSeat;
     const ownTurnNum = new Map<number, number>();
 
     for (;;) {
@@ -214,7 +238,17 @@ export function newRound(
     strategy: s.strategy,
   }));
 
-  return new Round(pot, players, firstSeat);
+  const round = new Round(pot, players, firstSeat);
+  if (override?.turnIndex !== undefined) {
+    round.turnIndex = override.turnIndex;
+  }
+  if (override?.knocked !== undefined) {
+    round.knocked = override.knocked;
+  }
+  if (override?.knockerSeat !== undefined) {
+    round.knockerSeat = override.knockerSeat;
+  }
+  return round;
 }
 
 // shuffledDeck returns a full, freshly-shuffled deck.
