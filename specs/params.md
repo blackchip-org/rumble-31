@@ -37,5 +37,20 @@ should immediately start.
 The player that should start first. Value should be a seat name (north,
 south, etc)
 
+# screen
+
+Start at this screen immediately. The value is a screen identifier as
+listed in gui.md. Identifers are at the end of the screen headings in 
+parenthesis. 
+
+Each screen should work without throwing an error when started through this
+paramenter. Screens should make reasonable defaults to accomodate. The
+exception, of course, is the error screen itself. That should show a 
+mock error in that case. 
+
+For the game over screen (over), the "You Won!" / "Game Over" message
+is derived from the strikes parameter: if seat 0 already starts
+eliminated (3 or more strikes), the message is "Game Over"; otherwise
+it is "You Won!".
 
 

@@ -15,8 +15,8 @@ import { buildTime } from "../buildstamp.ts";
 import dealSoundUrl from "../../assets/deal.wav";
 import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
-import { installGlobalErrorHandlers, showErrorScreen } from "./errorScreen.ts";
-import { parseDebugParams } from "./params.ts";
+import { installGlobalErrorHandlers, mockError, showErrorScreen } from "./errorScreen.ts";
+import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
 import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
@@ -83,6 +83,15 @@ function unlockDealSoundOnFirstGesture(): void {
 // initialization still shows the error screen instead of a blank page.
 installGlobalErrorHandlers();
 
+// debugParams is parsed once at module load — both main() (only run
+// when the game screen is entered) and the screen-routing dispatch at
+// the bottom of this file need it, and it's a pure parse of a value
+// (the URL) that doesn't change during the page's lifetime. A
+// validation failure here (e.g. screen=bogus) throws synchronously
+// during module init, which installGlobalErrorHandlers (installed just
+// above) still routes to the error screen.
+const debugParams = parseDebugParams(window.location.search);
+
 function must<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
   if (!el) {
@@ -116,6 +125,8 @@ const settingsMainMenuBtn = must<HTMLButtonElement>("settings-main-menu-btn");
 const gameOverScreenEl = must<HTMLElement>("game-over-screen");
 const gameOverLine1El = must<HTMLElement>("game-over-line1");
 const gameOverLine2El = must<HTMLElement>("game-over-line2");
+
+const errorScreenEl = must<HTMLElement>("error-screen");
 const playAgainBtn = must<HTMLButtonElement>("play-again-btn");
 const mainMenuBtn = must<HTMLButtonElement>("main-menu-btn");
 const saveLogBtn = must<HTMLButtonElement>("save-log-btn");
@@ -345,7 +356,7 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 }
 
 async function main(): Promise<void> {
-  const params = parseDebugParams(window.location.search);
+  const params = debugParams;
 
   initCardSheetVars();
   initStrikeBlinkVar();
@@ -450,22 +461,33 @@ async function main(): Promise<void> {
   showGameOverScreen(g.winners().includes(0));
 }
 
-// showGameScreen swaps whichever screen is up (main, or the game-over
-// screen for Play Again) for the game screen, then starts a new game.
-function showGameScreen(): void {
+// hideAllScreens hides every top-level screen. Each show*Screen
+// function below calls this first, then reveals just its own element
+// — so any screen is safe to enter directly (e.g. via
+// specs/params.md's screen debug param) regardless of which screen,
+// if any, was already showing.
+function hideAllScreens(): void {
   mainScreenEl.hidden = true;
+  gameScreenEl.hidden = true;
+  aboutScreenEl.hidden = true;
+  settingsScreenEl.hidden = true;
   gameOverScreenEl.hidden = true;
+  errorScreenEl.hidden = true;
+}
+
+// showGameScreen swaps whichever screen is up for the game screen,
+// then starts a new game.
+function showGameScreen(): void {
+  hideAllScreens();
   gameScreenEl.hidden = false;
   main().catch(showErrorScreen);
 }
 
-// showMainScreen swaps the game-over, about, or settings screen for the
-// main screen (per specs/gui.md's Game Over Screen, About Screen, and
-// Settings Screen sections' "Main Menu" buttons).
+// showMainScreen swaps whichever screen is up for the main screen (per
+// specs/gui.md's Game Over Screen, About Screen, and Settings Screen
+// sections' "Main Menu" buttons).
 function showMainScreen(): void {
-  gameOverScreenEl.hidden = true;
-  aboutScreenEl.hidden = true;
-  settingsScreenEl.hidden = true;
+  hideAllScreens();
   mainScreenEl.hidden = false;
 }
 
@@ -475,33 +497,41 @@ function syncSoundsToggleBtn(): void {
   soundsToggleBtn.textContent = settings.soundsEnabled ? "Enabled" : "Disabled";
 }
 
-// showSettingsScreen swaps the main screen for the settings screen (per
-// specs/gui.md's Main Screen section's "Settings" button).
+// showSettingsScreen swaps whichever screen is up for the settings
+// screen (per specs/gui.md's Main Screen section's "Settings" button).
 function showSettingsScreen(): void {
   syncSoundsToggleBtn();
-  mainScreenEl.hidden = true;
+  hideAllScreens();
   settingsScreenEl.hidden = false;
 }
 
-// showAboutScreen swaps the main screen for the about screen (per
-// specs/gui.md's Main Screen section's "About" button), filling in the
-// version/build-date text it displays.
+// showAboutScreen swaps whichever screen is up for the about screen
+// (per specs/gui.md's Main Screen section's "About" button), filling
+// in the version/build-date text it displays.
 function showAboutScreen(): void {
   aboutVersionEl.textContent = `Version ${version}`;
   aboutBuildEl.textContent = `Built on ${buildTime}`;
-  mainScreenEl.hidden = true;
+  hideAllScreens();
   aboutScreenEl.hidden = false;
 }
 
-// showGameOverScreen swaps the game screen for the game-over screen,
-// announcing South's win or loss per specs/gui.md's Game Over Screen
-// section: "You Won!"/"Game Over", one word per line.
+// showGameOverScreen swaps whichever screen is up for the game-over
+// screen, announcing South's win or loss per specs/gui.md's Game Over
+// Screen section: "You Won!"/"Game Over", one word per line.
 function showGameOverScreen(southWon: boolean): void {
   const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
   gameOverLine1El.textContent = line1;
   gameOverLine2El.textContent = line2;
-  gameScreenEl.hidden = true;
+  hideAllScreens();
   gameOverScreenEl.hidden = false;
+}
+
+// showDebugGameOverScreen reaches the game-over screen directly via
+// specs/params.md's screen=over debug param, with no game actually
+// played. Per that spec, the win/loss message defaults to whether
+// South (seat 0) already starts eliminated per the strikes param.
+function showDebugGameOverScreen(params: DebugParams): void {
+  showGameOverScreen(params.initialStrikes[0] < 3);
 }
 
 // downloadTextFile saves text as a local file named filename, via a
@@ -528,13 +558,33 @@ soundsToggleBtn.addEventListener("click", () => {
   syncSoundsToggleBtn();
 });
 
-// Any URL parameter (specs/params.md) bypasses the main screen and
-// starts the game immediately, as it always has — the main screen is
-// only shown on a bare visit with no query string.
-if (window.location.search !== "") {
-  showGameScreen();
-} else {
-  newGameBtn.addEventListener("click", showGameScreen);
-  settingsBtn.addEventListener("click", showSettingsScreen);
-  aboutBtn.addEventListener("click", showAboutScreen);
+newGameBtn.addEventListener("click", showGameScreen);
+settingsBtn.addEventListener("click", showSettingsScreen);
+aboutBtn.addEventListener("click", showAboutScreen);
+
+// specs/params.md's screen debug param picks the initial screen
+// directly. Without it, any other URL parameter bypasses the main
+// screen and starts the game immediately, as it always has — the main
+// screen is only shown on a bare visit with no query string at all.
+const initialScreen: ScreenId = debugParams.screen ?? (window.location.search === "" ? "main" : "game");
+switch (initialScreen) {
+  case "main":
+    showMainScreen();
+    break;
+  case "settings":
+    showSettingsScreen();
+    break;
+  case "about":
+    showAboutScreen();
+    break;
+  case "over":
+    showDebugGameOverScreen(debugParams);
+    break;
+  case "error":
+    hideAllScreens();
+    showErrorScreen(mockError());
+    break;
+  case "game":
+    showGameScreen();
+    break;
 }

@@ -10,7 +10,7 @@ down to a minimum legible size. Below that minimum, on a viewport too
 small to fit the whole screen, the page falls back to scrolling so
 every panel stays reachable.
 
-# Game Screen
+# Game Screen (game)
 
 The game screen has four panels -- one for each player.
 
@@ -142,7 +142,7 @@ on the screen skips the remainder of the wait.
 The game ends immediately the moment South is eliminated — the rest of
 the bots' contest is never played out.
 
-# Main Screen
+# Main Screen (main)
 
 When a user visits the web application without any URL parameters, the
 main screen should be shown. The background color should be a green color
@@ -169,7 +169,7 @@ Clicking on the "New Game" button navigates to the Game Screen.
 Clicking on the "Settings" button navigates to the Settings Screen. 
 Clicking on the "About" button navigates to the About Screen.s
 
-# Game Over Screen
+# Game Over Screen (over)
 
 At the end of the round, if the delay timer expires, instead of proceeding
 to the next round, navigate to the game over screen. Background for now
@@ -188,7 +188,7 @@ Clicking on "Play Again" returns the user to the Game screen. Clicking on
 Main Menu returns the user to the Main screen. Clicking on Save Log lets the
 user save a text file containing the log from the game just played.
 
-# Error Screen
+# Error Screen (error)
 
 When there is an unhandled exception, the error screen should be shown.
 The background is full black. It starts with a large heading in Comic Neue Bold
@@ -202,7 +202,7 @@ experience this problem, contact your local service technician for assistance."
 A stack trace should then be shown in a scrollable text area using Inconsolata
 Regular but in a smaller font. The text is rendered with a gray color.
 
-# Settings Screen 
+# Settings Screen (settings)
 
 Contents should be in a panel centered horizontally and vertically.
 
@@ -223,7 +223,7 @@ to the main screen.
 
 These settings should be saved and retreived from local storage. 
 
-# About Screen
+# About Screen (about)
 
 Contents should be in a panel centered horizontally and vertically.
 
@@ -242,7 +242,7 @@ build date for the game. This text is centered horizontally.
 
 The body should be:
 
-    This classic card game of 31 is based on one of my favorite
+    This classic card game of 31 is based on one of Mike's favorite
     MegaTouch games that has a similar name. I've always wanted
     one of those machines, but the next best thing is to vibe
     code the game yourself.

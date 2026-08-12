@@ -20,6 +20,15 @@ export function formatErrorDetail(err: unknown): string {
   return stack.startsWith(header) ? stack : `${header}\n${stack}`;
 }
 
+// mockError builds a placeholder Error for specs/params.md's
+// screen=error debug param, so that screen can be reached without a
+// real unhandled exception. Building a real Error (rather than a
+// plain string) gives showErrorScreen/formatErrorDetail a genuine
+// generated stack trace to display.
+export function mockError(): Error {
+  return new Error("Mock error (debug: screen=error)");
+}
+
 // showErrorScreen reveals #error-screen with err's detail. Safe to call
 // more than once (e.g. a second error while the screen is already up)
 // — it just overwrites the displayed detail.

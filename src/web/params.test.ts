@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseDebugParams } from "./params.ts";
+import { parseDebugParams, type ScreenId } from "./params.ts";
 import type { Hand, Pot } from "../game/types.ts";
 
 const hand7s8h9c: Hand = [
@@ -24,6 +24,7 @@ test("parseDebugParams: valid combinations", () => {
     wantFirstSeat?: number;
     wantSkipDealAnimation: boolean;
     wantNoInitialDeal?: boolean;
+    wantScreen?: ScreenId;
   }> = [
     {
       name: "no params at all",
@@ -76,12 +77,69 @@ test("parseDebugParams: valid combinations", () => {
       wantFirstSeat: 2,
       wantSkipDealAnimation: true,
     },
+    {
+      name: "screen=game",
+      search: "screen=game",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "game",
+    },
+    {
+      name: "screen=main",
+      search: "screen=main",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "main",
+    },
+    {
+      name: "screen=over",
+      search: "screen=over",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "over",
+    },
+    {
+      name: "screen=error",
+      search: "screen=error",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "error",
+    },
+    {
+      name: "screen=settings",
+      search: "screen=settings",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "settings",
+    },
+    {
+      name: "screen=about",
+      search: "screen=about",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "about",
+    },
+    {
+      name: "screen doesn't interfere with unrelated params",
+      search: "screen=main&strikes=1000",
+      wantInitialStrikes: [1, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "main",
+    },
   ];
 
   for (const c of cases) {
     const got = parseDebugParams(c.search);
     assert.deepEqual(got.initialStrikes, c.wantInitialStrikes, `${c.name}: initialStrikes`);
     assert.equal(got.skipDealAnimation, c.wantSkipDealAnimation, `${c.name}: skipDealAnimation`);
+    assert.equal(got.screen, c.wantScreen, `${c.name}: screen`);
 
     if (c.wantNoInitialDeal) {
       assert.equal(got.initialDeal, undefined, `${c.name}: initialDeal`);
@@ -110,6 +168,7 @@ test("parseDebugParams: invalid input throws", () => {
     { name: "hand assigned to a seat eliminated by strikes", search: "strikes=3000&south=7s8h9c" },
     { name: "turn names a seat eliminated by strikes", search: "strikes=0300&turn=west" },
     { name: "turn names an unknown seat", search: "turn=northwest" },
+    { name: "screen names an unknown screen", search: "screen=bogus" },
   ];
 
   for (const { name, search } of cases) {

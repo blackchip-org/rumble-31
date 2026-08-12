@@ -1,7 +1,8 @@
 // Parses and validates the web GUI's debugging URL parameters, per
-// specs/params.md: strikes, north/south/east/west, pot, and turn.
-// Every validation failure throws a descriptive Error — there is no
-// silent fallback for malformed or self-contradictory debug input.
+// specs/params.md: strikes, north/south/east/west, pot, turn, and
+// screen. Every validation failure throws a descriptive Error — there
+// is no silent fallback for malformed or self-contradictory debug
+// input.
 
 import { parseCard, cardToString } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
@@ -12,6 +13,11 @@ import type { Hand, Pot } from "../game/types.ts";
 
 const HAND_PARAM_NAMES = ["north", "south", "east", "west"] as const;
 
+// SCREEN_IDS are the screen identifiers listed in specs/gui.md's
+// section headings.
+const SCREEN_IDS = ["game", "main", "over", "error", "settings", "about"] as const;
+export type ScreenId = (typeof SCREEN_IDS)[number];
+
 export interface DebugParams {
   initialStrikes: [number, number, number, number];
   initialDeal: RoundDealOverride | undefined;
@@ -19,6 +25,7 @@ export interface DebugParams {
   // given — per specs/params.md, only that case starts the game
   // immediately with an unanimated deal.
   skipDealAnimation: boolean;
+  screen: ScreenId | undefined;
 }
 
 // parseDebugParams reads search (e.g. window.location.search) for the
@@ -67,7 +74,16 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
       ? { assignedHands: assignedHands.size > 0 ? assignedHands : undefined, assignedPot, firstSeat }
       : undefined;
 
-  return { initialStrikes, initialDeal, skipDealAnimation };
+  const screenRaw = q.get("screen");
+  let screen: ScreenId | undefined;
+  if (screenRaw !== null) {
+    if (!(SCREEN_IDS as readonly string[]).includes(screenRaw)) {
+      throw new Error(`params: screen=${screenRaw} is not a valid screen`);
+    }
+    screen = screenRaw as ScreenId;
+  }
+
+  return { initialStrikes, initialDeal, skipDealAnimation, screen };
 }
 
 // parseCardGroup parses paramName's raw value as exactly three
