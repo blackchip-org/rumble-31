@@ -7,10 +7,10 @@ export const MAX_BOT_THINK_TIME = 2000;
 
 // DEAL_ANIMATION_DELAY is the pause, in milliseconds, between each
 // card dealt during the round-start dealing animation. With all four
-// seats active that's 15 cards (12 hand + 3 pot), so ~65ms lands the
-// whole animation around one second; it's proportionally shorter with
-// fewer seats active.
-export const DEAL_ANIMATION_DELAY = 65;
+// seats active that's 15 cards (12 hand + 3 pot), so ~75ms lands the
+// whole animation a bit over one second; it's proportionally shorter
+// with fewer seats active.
+export const DEAL_ANIMATION_DELAY = 75;
 
 // STRIKE_HIGHLIGHT_BLINK_INTERVAL is the number of milliseconds each
 // on/off phase of the end-of-round red strike highlight is shown
