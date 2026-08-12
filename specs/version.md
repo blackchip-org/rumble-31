@@ -1,12 +1,6 @@
-# version 
+# version
 
-The current version is 0.1. 
+The current version is 0.
 
-On startup, the game log should present a welcome banner that includes 
-the version number and the build timestamp that looks like this:
-
-    Welcome to Rumble-31
-    Version v0.1, built on 9 Aug 2026 at 20:58 
-    You are South 
-
+A build timestamp should also be generated.
 

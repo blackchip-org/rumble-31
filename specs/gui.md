@@ -165,8 +165,10 @@ blue and the text is white:
     - Settings
     - About
 
-Clicking on the "New Game" button navigates to the Game Screen. The other
-buttons do nothing at the moment.
+Clicking on the "New Game" button navigates to the Game Screen.
+Clicking on the "About" button navigates to the About Screen.
+
+The other buttons do nothing at the moment.
 
 # Game Over Screen
 
@@ -200,3 +202,40 @@ experience this problem, contact your local service technician for assistance."
 
 A stack trace should then be shown in a scrollable text area using Inconsolata
 Regular but in a smaller font. The text is rendered with a gray color.
+
+# About Screen
+
+Contents should be in a panel centered horizontally and vertically.
+
+The header for this panel is:
+
+    Rumble-31
+    Version <VERSION>
+    Built on <BUILD DATE>
+
+    By Mike and Terri McGann
+    Featuring Claude Code
+
+The Rumble-31 text uses the New Rocker font. The remaining text is bold.
+<VERSION> is the version number of the game, and <BUILD DATE> is the
+build date for the game. This text is centered horizontally.
+
+The body should be:
+
+    This classic card game of 31 is based on one of my favorite
+    MegaTouch games that has a similar name. I've always wanted
+    one of those machines, but the next best thing is to vibe
+    code the game yourself.
+
+This text appears in a text area and the width is set to a comfortable
+reading size. The text area itself is centered horizontally, the text
+is not.
+
+Two buttons should then be listed:
+
+- Licenses
+- Main Menu
+
+Clicking on the main menu navigates to the menu screen.
+The other buttons do nothing at the moment.
+

@@ -10,5 +10,5 @@ const hh = String(now.getHours()).padStart(2, "0");
 const mm = String(now.getMinutes()).padStart(2, "0");
 const buildTime = `${day} ${month} ${year} at ${hh}:${mm}`;
 
-const outPath = join(dirname(fileURLToPath(import.meta.url)), "..", "buildstamp.json");
-writeFileSync(outPath, JSON.stringify({ buildTime }, null, 2) + "\n");
+const outPath = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "buildstamp.ts");
+writeFileSync(outPath, `export const buildTime = ${JSON.stringify(buildTime)};\n`);

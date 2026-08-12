@@ -11,6 +11,7 @@ import { seatName } from "../game/seat.ts";
 import type { Action, Hand, PlayerView, Pot, Strategy, TurnRecord } from "../game/types.ts";
 import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnStartLine, turnLines } from "../log.ts";
 import { version } from "../version.ts";
+import { buildTime } from "../buildstamp.ts";
 import dealSoundUrl from "../../assets/deal.wav";
 import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
@@ -91,6 +92,12 @@ interface SeatEls {
 const mainScreenEl = must<HTMLElement>("main-screen");
 const gameScreenEl = must<HTMLElement>("game-screen");
 const newGameBtn = must<HTMLButtonElement>("new-game-btn");
+const aboutBtn = must<HTMLButtonElement>("about-btn");
+
+const aboutScreenEl = must<HTMLElement>("about-screen");
+const aboutVersionEl = must<HTMLElement>("about-version");
+const aboutBuildEl = must<HTMLElement>("about-build");
+const aboutMainMenuBtn = must<HTMLButtonElement>("about-main-menu-btn");
 
 const gameOverScreenEl = must<HTMLElement>("game-over-screen");
 const gameOverLine1El = must<HTMLElement>("game-over-line1");
@@ -438,11 +445,23 @@ function showGameScreen(): void {
   main().catch(showErrorScreen);
 }
 
-// showMainScreen swaps the game-over screen for the main screen (per
-// specs/gui.md's Game Over Screen section's "Main Menu" button).
+// showMainScreen swaps the game-over or about screen for the main
+// screen (per specs/gui.md's Game Over Screen and About Screen
+// sections' "Main Menu" buttons).
 function showMainScreen(): void {
   gameOverScreenEl.hidden = true;
+  aboutScreenEl.hidden = true;
   mainScreenEl.hidden = false;
+}
+
+// showAboutScreen swaps the main screen for the about screen (per
+// specs/gui.md's Main Screen section's "About" button), filling in the
+// version/build-date text it displays.
+function showAboutScreen(): void {
+  aboutVersionEl.textContent = `Version ${version}`;
+  aboutBuildEl.textContent = `Built on ${buildTime}`;
+  mainScreenEl.hidden = true;
+  aboutScreenEl.hidden = false;
 }
 
 // showGameOverScreen swaps the game screen for the game-over screen,
@@ -471,6 +490,7 @@ function downloadTextFile(filename: string, text: string): void {
 
 playAgainBtn.addEventListener("click", showGameScreen);
 mainMenuBtn.addEventListener("click", showMainScreen);
+aboutMainMenuBtn.addEventListener("click", showMainScreen);
 saveLogBtn.addEventListener("click", () => downloadTextFile("rumble-31-log.txt", logText(logEl)));
 
 // Any URL parameter (specs/params.md) bypasses the main screen and
@@ -480,4 +500,5 @@ if (window.location.search !== "") {
   showGameScreen();
 } else {
   newGameBtn.addEventListener("click", showGameScreen);
+  aboutBtn.addEventListener("click", showAboutScreen);
 }

@@ -729,6 +729,94 @@ body {
   word-break: break-word;
 }
 
+/* ---------- about screen ---------- */
+
+.about-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--about-bg);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Same [hidden]-specificity-tie reasoning as .error-screen/.game-over-screen
+   above: display must be gated on :not([hidden]), not the bare selector. */
+.about-screen:not([hidden]) {
+  display: flex;
+}
+
+.about-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  color: var(--about-text-color);
+}
+
+.about-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.2rem;
+}
+
+.about-title {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: var(--font-size-about-title);
+  color: var(--about-title-color);
+}
+
+.about-line {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+}
+
+#about-build + .about-credit {
+  margin-top: 0.8rem;
+}
+
+.about-body-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.about-body {
+  margin: 0;
+  max-width: 46ch;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.about-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(60vw, 260px);
+}
+
+.about-buttons button {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-score);
+  cursor: pointer;
+}
+
+.about-buttons button:hover {
+  background: var(--button-bg-hover);
+}
+
 @media (max-width: 900px) {
   #table {
     grid-template-columns: 1fr;
