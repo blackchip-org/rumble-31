@@ -12,15 +12,17 @@ export const BOT_NAMES = ["easy", "regular", "difficult"] as const;
 export type BotName = (typeof BOT_NAMES)[number];
 
 // createBot returns a freshly constructed strategy for name, per
-// specs/bots.md.
-export function createBot(name: BotName): Strategy {
+// specs/bots.md. rng seeds the bot's own random decisions (e.g. its
+// knock-turn range) with an independent sub-seed, so a batch stays
+// fully reproducible from config.seed alone.
+export function createBot(name: BotName, rng: Rng): Strategy {
   switch (name) {
     case "easy":
-      return new EasyBot();
+      return new EasyBot({ rng: new Rng(rng.nextSeed()) });
     case "regular":
-      return new RegularBot();
+      return new RegularBot({ rng: new Rng(rng.nextSeed()) });
     case "difficult":
-      return new DifficultBot();
+      return new DifficultBot({ rng: new Rng(rng.nextSeed()) });
   }
 }
 
@@ -66,7 +68,7 @@ export async function runSimulation(config: SimulationConfig): Promise<Simulatio
 
     const botsBySeat = new Array<Strategy>(4);
     for (let slot = 0; slot < 4; slot++) {
-      botsBySeat[seatOfSlot[slot] as number] = createBot(config.bots[slot] as BotName);
+      botsBySeat[seatOfSlot[slot] as number] = createBot(config.bots[slot] as BotName, rng);
     }
     const strategies = botsBySeat as [Strategy, Strategy, Strategy, Strategy];
 

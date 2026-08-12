@@ -1,168 +1,138 @@
 import type { Card } from "../card/card.ts";
-import { sameSuit, score, sum } from "../card/score.ts";
+import { score } from "../card/score.ts";
 import type { Action, PlayerView, PublicTurn, Strategy } from "../game/types.ts";
 import { exchange, knock, trade } from "../game/types.ts";
-import type { CandidateSwap } from "./helpers.ts";
 import {
-  applyPublicTurn,
-  bestSwaps,
-  INSTANT_KNOCK_SCORE,
-  KNOCK_SCORE_THRESHOLD,
-  KNOCK_TURN_LIMIT,
-  NO_IMPROVE_KNOCK_STREAK,
+  applyKnownCards,
+  bestImprovingSwap,
+  chooseFavorableByKnownHand,
+  choosePairMaker,
+  chooseSafeByKnownHand,
+  NeighborTracker,
+  randInt,
+  resultingScore,
+  unnecessaryIndices,
 } from "./helpers.ts";
+import { Rng } from "../rng.ts";
+
+// KNOCK_TURN_RANGE and BEST_SCORE_ROUNDS_AGO_RANGE are the [lo-hi]
+// ranges from the Difficult strategy in specs/bots.md.
+const KNOCK_TURN_RANGE: [number, number] = [25, 30];
+const BEST_SCORE_ROUNDS_AGO_RANGE: [number, number] = [3, 5];
 
 // DifficultBot implements the Difficult strategy described in
-// specs/bots.md: it tracks the exact set of cards known to be in each
-// opponent's hand from public trade/exchange history, avoids handing an
-// opponent a card that would let them beat the bot's own hand, and
-// factors known opponent scores into when it knocks.
+// specs/bots.md. It's identical in shape to RegularBot, but where
+// Regular only remembers its neighbors' most recent suit, Difficult
+// tracks their exact known-held cards (adding what they collect,
+// removing what they discard) and judges favorable/safe by whether a
+// card would actually improve that known -- possibly incomplete --
+// hand, per the incomplete-hand scoring rule in specs/bots.md.
 export class DifficultBot implements Strategy {
-  lastScore: number;
-  hasLastScore: boolean;
-  noImproveStreak: number;
+  private rng: Rng;
+  private neighbors = new NeighborTracker();
 
-  // delayedKnock records that the no-improve-streak knock was already
-  // deferred once (because a fully-known opponent currently scored
-  // lower) — the next time the streak condition fires, it knocks
-  // unconditionally rather than deferring again. Public, like
-  // lastScore/noImproveStreak, so a test can seed or inspect it
-  // directly.
-  delayedKnock: boolean;
+  private upstreamKnown: Card[] = [];
+  private downstreamKnown: Card[] = [];
 
-  // held maps seat -> the cards currently known to be in that seat's
-  // hand, built up via observe(). Reset every round in onRoundStart().
-  private held: Map<number, Card[]>;
+  private currentRound: number;
+  private bestScore: number;
+  private hasBestScore: boolean;
+  private bestRound: number;
 
   constructor(init?: {
-    lastScore?: number;
-    hasLastScore?: boolean;
-    noImproveStreak?: number;
-    delayedKnock?: boolean;
+    rng?: Rng;
+    bestScore?: number;
+    hasBestScore?: boolean;
+    bestRound?: number;
+    currentRound?: number;
+    upstreamKnown?: Card[];
+    downstreamKnown?: Card[];
   }) {
-    this.lastScore = init?.lastScore ?? 0;
-    this.hasLastScore = init?.hasLastScore ?? false;
-    this.noImproveStreak = init?.noImproveStreak ?? 0;
-    this.delayedKnock = init?.delayedKnock ?? false;
-    this.held = new Map();
+    this.rng = init?.rng ?? new Rng(Math.floor(Math.random() * 0x100000000));
+    this.bestScore = init?.bestScore ?? 0;
+    this.hasBestScore = init?.hasBestScore ?? false;
+    this.bestRound = init?.bestRound ?? 0;
+    this.currentRound = init?.currentRound ?? 0;
+    this.upstreamKnown = init?.upstreamKnown ?? [];
+    this.downstreamKnown = init?.downstreamKnown ?? [];
+
+    this.neighbors.configure(
+      (t) => {
+        this.upstreamKnown = applyKnownCards(this.upstreamKnown, t);
+      },
+      (t) => {
+        this.downstreamKnown = applyKnownCards(this.downstreamKnown, t);
+      },
+    );
   }
 
   onRoundStart(): void {
-    this.held = new Map();
+    this.neighbors.reset();
+    this.upstreamKnown = [];
+    this.downstreamKnown = [];
+    this.currentRound++;
   }
 
   observe(turn: PublicTurn): void {
-    applyPublicTurn(this.held, turn);
+    this.neighbors.observe(turn);
   }
 
   decide(v: PlayerView): Action {
-    const s = score(v.hand);
+    this.neighbors.setOwnSeat(v.seat);
+    const action = this.chooseAction(v);
+    this.recordBest(resultingScore(v, action));
+    return action;
+  }
 
+  private recordBest(resulting: number): void {
+    if (!this.hasBestScore || resulting >= this.bestScore) {
+      this.bestScore = resulting;
+      this.hasBestScore = true;
+      this.bestRound = this.currentRound;
+    }
+  }
+
+  private chooseAction(v: PlayerView): Action {
     if (v.isFirstTurnOfRound) {
-      if (sameSuit(v.pot) && sum(v.pot) > s) {
-        return exchange();
-      }
-      // Trading a single card isn't legal on the round's first turn
-      // (specs/rules.md) — Keep instead of taking the pot.
+      return score(v.pot) > score(v.hand) ? exchange() : knock();
+    }
+
+    if (v.ownTurnNumber >= randInt(this.rng, ...KNOCK_TURN_RANGE)) {
+      return knock();
+    }
+    if (score(v.pot) >= 30) {
+      return exchange();
+    }
+    if (
+      this.hasBestScore &&
+      score(v.hand) === this.bestScore &&
+      this.currentRound - this.bestRound > randInt(this.rng, ...BEST_SCORE_ROUNDS_AGO_RANGE)
+    ) {
       return knock();
     }
 
-    if (s <= this.lastScore && this.hasLastScore) {
-      this.noImproveStreak++;
-    } else {
-      this.noImproveStreak = 0;
-      this.delayedKnock = false;
-    }
-    this.lastScore = s;
-    this.hasLastScore = true;
-
-    if (s >= INSTANT_KNOCK_SCORE) {
-      return knock();
+    const improving = bestImprovingSwap(v);
+    if (improving) {
+      return trade(improving.potIdx, improving.handIdx);
     }
 
-    const opponentScores = this.fullyKnownOpponentScores(v.seat);
-    if (s > KNOCK_SCORE_THRESHOLD && !opponentScores.some((os) => os > s)) {
-      return knock();
+    const unnecessary = unnecessaryIndices(v.hand);
+
+    const favorable = chooseFavorableByKnownHand(v, unnecessary, this.upstreamKnown);
+    if (favorable) {
+      return trade(favorable.potIdx, favorable.handIdx);
     }
 
-    if (this.noImproveStreak >= NO_IMPROVE_KNOCK_STREAK) {
-      if (opponentScores.some((os) => os < s) && !this.delayedKnock) {
-        this.delayedKnock = true;
-      } else {
-        return knock();
-      }
+    const pair = choosePairMaker(v, unnecessary);
+    if (pair) {
+      return trade(pair.potIdx, pair.handIdx);
     }
 
-    if (v.ownTurnNumber >= KNOCK_TURN_LIMIT) {
-      return knock();
-    }
-    return this.chooseSwap(v);
-  }
-
-  // chooseSwap picks among the swaps tied for the highest resulting
-  // score: first it drops any swap that would hand an opponent a card
-  // completing a known-held pair into a hand beating the bot's own
-  // (unless doing so would leave no swap at all); then, among what's
-  // left, it prefers the discard whose suit matches the fewest
-  // opponents' known-held cards. Remaining ties keep candidateSwaps'
-  // order, same as bestExchange.
-  private chooseSwap(v: PlayerView): Action {
-    const tied = bestSwaps(v);
-    if (tied.length === 1) {
-      const only = tied[0] as CandidateSwap;
-      return trade(only.potIdx, only.handIdx);
+    const safeHandIdx = chooseSafeByKnownHand(v, this.downstreamKnown);
+    if (safeHandIdx !== undefined) {
+      return trade(randInt(this.rng, 0, 2), safeHandIdx);
     }
 
-    const nonFeeding = tied.filter((cand) => !this.feedsAnOpponent(v, cand));
-    const survivors = nonFeeding.length > 0 ? nonFeeding : tied;
-
-    let best = survivors[0] as CandidateSwap;
-    let bestConflicts = Infinity;
-    for (const cand of survivors) {
-      const discardSuit = (v.hand[cand.handIdx] as Card).suit;
-      let conflicts = 0;
-      for (const [seat, cards] of this.held) {
-        if (seat === v.seat) {
-          continue;
-        }
-        if (cards.some((c) => c.suit === discardSuit)) {
-          conflicts++;
-        }
-      }
-      if (conflicts < bestConflicts) {
-        bestConflicts = conflicts;
-        best = cand;
-      }
-    }
-    return trade(best.potIdx, best.handIdx);
-  }
-
-  // feedsAnOpponent reports whether discarding cand's card would, for
-  // some opponent with exactly 2 known-held cards, complete a 3-card
-  // hand scoring higher than the bot's own resulting hand.
-  private feedsAnOpponent(v: PlayerView, cand: CandidateSwap): boolean {
-    const discard = v.hand[cand.handIdx] as Card;
-    for (const [seat, cards] of this.held) {
-      if (seat === v.seat || cards.length !== 2) {
-        continue;
-      }
-      const hypothetical = [...cards, discard] as [Card, Card, Card];
-      if (score(hypothetical) > cand.score) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // fullyKnownOpponentScores returns the current score of every other
-  // seat whose entire hand is known (held.length === 3).
-  private fullyKnownOpponentScores(ownSeat: number): number[] {
-    const scores: number[] = [];
-    for (const [seat, cards] of this.held) {
-      if (seat !== ownSeat && cards.length === 3) {
-        scores.push(score(cards as [Card, Card, Card]));
-      }
-    }
-    return scores;
+    return trade(randInt(this.rng, 0, 2), randInt(this.rng, 0, 2));
   }
 }

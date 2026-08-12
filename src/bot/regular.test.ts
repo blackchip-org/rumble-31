@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { parseCard } from "../card/card.ts";
 import type { Hand, Pot, PlayerView, PublicTurn } from "../game/types.ts";
 import { RegularBot } from "./regular.ts";
+import { bestImprovingSwap } from "./helpers.ts";
 
 function mustHand(...notation: [string, string, string]): Hand {
   return [parseCard(notation[0]), parseCard(notation[1]), parseCard(notation[2])];
@@ -14,7 +15,7 @@ function mustPot(...notation: [string, string, string]): Pot {
 function baseView(overrides: Partial<PlayerView>): PlayerView {
   return {
     hand: mustHand("7c", "8d", "9s"),
-    pot: mustPot("Kc", "Kd", "Ks"),
+    pot: mustPot("Kc", "Qd", "Js"),
     seat: 0,
     isFirstTurnOfRound: false,
     ownTurnNumber: 1,
@@ -26,16 +27,11 @@ function turn(seat: number, type: PublicTurn["type"], given: string[], taken: st
   return { seat, type, given: given.map(parseCard), taken: taken.map(parseCard) };
 }
 
-test("decide on the first turn", () => {
-  const cases: Array<{
-    name: string;
-    hand: [string, string, string];
-    pot: [string, string, string];
-    wantAction: string;
-  }> = [
+test("decide on the first turn: take pot only if it improves the hand", () => {
+  const cases: Array<{ name: string; hand: [string, string, string]; pot: [string, string, string]; wantAction: string }> = [
     { name: "same-suit pot beats hand score", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kh", "Qh"], wantAction: "exchange" },
-    { name: "same-suit pot does not beat hand score", hand: ["Ah", "Kh", "Qh"], pot: ["7c", "8d", "9s"], wantAction: "knock" },
-    { name: "mixed-suit pot never triggers exchange", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kc", "Qd"], wantAction: "knock" },
+    { name: "pot does not beat hand score", hand: ["Ah", "Kh", "Qh"], pot: ["7c", "8d", "9s"], wantAction: "knock" },
+    { name: "a mixed-suit pot can beat the hand too", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kc", "Qd"], wantAction: "exchange" },
   ];
   for (const { name, hand, pot, wantAction } of cases) {
     const v = baseView({ hand: mustHand(...hand), pot: mustPot(...pot), isFirstTurnOfRound: true, ownTurnNumber: 1 });
@@ -44,111 +40,98 @@ test("decide on the first turn", () => {
   }
 });
 
-test("decide knock conditions", () => {
-  const cases: Array<{
-    name: string;
-    bot: RegularBot;
-    hand: [string, string, string];
-    ownTurnNumber: number;
-    wantKnock: boolean;
-  }> = [
-    { name: "20th own turn forces a knock", bot: new RegularBot(), hand: ["7c", "8d", "9s"], ownTurnNumber: 20, wantKnock: true },
-    {
-      name: "score of 31 (already maxed) forces an immediate knock",
-      bot: new RegularBot(),
-      hand: ["Ah", "Kh", "Qh"], // 31
-      ownTurnNumber: 2,
-      wantKnock: true,
-    },
-    {
-      name: "score over 25 but below the instant-knock threshold still forces a knock",
-      bot: new RegularBot(),
-      hand: ["Kh", "Qh", "7h"], // 27
-      ownTurnNumber: 2,
-      wantKnock: true,
-    },
-    {
-      name: "4th consecutive non-improving turn forces a knock",
-      bot: new RegularBot({ lastScore: 18, hasLastScore: true, noImproveStreak: 3 }),
-      hand: ["7c", "Tc", "9s"], // 17 (clubs), not an improvement over 18
-      ownTurnNumber: 5,
-      wantKnock: true,
-    },
-    {
-      name: "an improving turn resets the streak and does not knock",
-      bot: new RegularBot({ lastScore: 10, hasLastScore: true, noImproveStreak: 3 }),
-      hand: ["7c", "Tc", "9s"], // 17 (clubs), improves on 10
-      ownTurnNumber: 5,
-      wantKnock: false,
-    },
-    { name: "ordinary turn does not knock", bot: new RegularBot(), hand: ["7c", "8d", "9s"], ownTurnNumber: 2, wantKnock: false },
-  ];
-  for (const { name, bot, hand, ownTurnNumber, wantKnock } of cases) {
-    const v = baseView({ hand: mustHand(...hand), ownTurnNumber });
-    const gotKnock = bot.decide(v).type === "knock";
-    assert.equal(gotKnock, wantKnock, name);
+test("knocks once the bot's own turn number reaches the [25-30] range, regardless of hand/pot", () => {
+  const v = baseView({ ownTurnNumber: 100 });
+  const b = new RegularBot();
+  assert.equal(b.decide(v).type, "knock");
+});
+
+test("does not force a turn-limit knock below the [25-30] range", () => {
+  const v = baseView({ ownTurnNumber: 1 });
+  const b = new RegularBot();
+  assert.notEqual(b.decide(v).type, "knock");
+});
+
+test("exchanges all cards whenever the pot's score is >= 30", () => {
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Ah", "Kh", "Qh"), ownTurnNumber: 2 });
+  const b = new RegularBot();
+  assert.equal(b.decide(v).type, "exchange");
+});
+
+test("knocks when the hand ties its best-ever score and that best was reached more than [3-5] rounds ago", () => {
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 2 });
+  const b = new RegularBot({ bestScore: 9, hasBestScore: true, bestRound: 1, currentRound: 8 });
+  assert.equal(b.decide(v).type, "knock");
+});
+
+test("does not force that knock in the same round the best score was set", () => {
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 2 });
+  const b = new RegularBot({ bestScore: 9, hasBestScore: true, bestRound: 1, currentRound: 1 });
+  assert.notEqual(b.decide(v).type, "knock");
+});
+
+test("trades to improve the hand when a pot card would help it", () => {
+  const hand = mustHand("7c", "8d", "9s");
+  const pot = mustPot("Ah", "Kd", "7s");
+  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const b = new RegularBot();
+  const action = b.decide(v);
+
+  const want = bestImprovingSwap(v);
+  assert.ok(want);
+  assert.equal(action.type, "trade");
+  assert.equal(action.potIndex, want?.potIdx);
+  assert.equal(action.handIndex, want?.handIdx);
+});
+
+test("records the resulting score as its best even from the round's first turn", () => {
+  const b = new RegularBot();
+  b.onRoundStart(); // currentRound = 1
+
+  const first = b.decide(baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("7s", "8s", "9s"), isFirstTurnOfRound: true }));
+  assert.equal(first.type, "exchange"); // resulting score = score(pot) = 24
+
+  for (let i = 0; i < 7; i++) {
+    b.onRoundStart(); // currentRound = 8, more than [3-5] rounds past round 1
   }
+
+  const v = baseView({ hand: mustHand("7s", "8s", "9s"), pot: mustPot("Kd", "Qh", "Jc"), ownTurnNumber: 2 });
+  assert.equal(bestImprovingSwap(v), undefined, "tying the recorded best of 24 with no better swap available");
+  assert.equal(b.decide(v).type, "knock");
 });
 
-test("the no-improve streak resets after a knock-eligible improvement", () => {
-  const b = new RegularBot();
-  const view = (hand: [string, string, string], turn: number): PlayerView => baseView({ hand: mustHand(...hand), ownTurnNumber: turn });
-
-  b.decide(view(["7c", "Tc", "9s"], 1)); // establishes lastScore = 17 (clubs)
-  b.decide(view(["7c", "Tc", "9s"], 2)); // 17, no improvement, streak = 1
-  b.decide(view(["7c", "Tc", "9s"], 3)); // 17, no improvement, streak = 2
-  const action = b.decide(view(["8c", "Tc", "9s"], 4)); // 18 (clubs), improves on 17
-
-  assert.notEqual(action.type, "knock");
-  assert.equal(b.noImproveStreak, 0);
-});
-
-test("chooseSwap avoids feeding an opponent's apparent target suit when scores tie", () => {
-  // Both swaps below leave the hand at score 21 (Kc + the taken Ac
-  // forms clubs either way); one discards Th (hearts), the other Js
-  // (spades). An opponent seen holding two hearts should steer the bot
-  // away from the hearts discard.
-  const hand = mustHand("Th", "Kc", "Js");
-  const pot = mustPot("Ac", "Td", "9c");
-  const v = baseView({ hand, pot, seat: 0 });
-
+test("wires observed neighbor turns through to the favorable-pickup preference", () => {
   const b = new RegularBot();
   b.onRoundStart();
-  b.observe(turn(1, "trade", ["7d"], ["Qh"]));
-  b.observe(turn(1, "trade", ["8s"], ["Kh"]));
+
+  // Seat 0 is the bot, turn order 0, 1, 2, 3. Replay the round the way
+  // the engine actually broadcasts it: every turn, including the bot's
+  // own, goes through observe().
+  const priming = b.decide(
+    baseView({ seat: 0, isFirstTurnOfRound: true, hand: mustHand("Ah", "Kh", "Qh"), pot: mustPot("7c", "8d", "9s") }),
+  );
+  assert.equal(priming.type, "knock");
+  b.observe(turn(0, "knock", [], []));
+
+  b.observe(turn(1, "trade", ["7h"], ["7s"]));
+  b.observe(turn(2, "trade", ["8h"], ["9d"]));
+  // Seat 3 acts immediately before the bot's next turn -- it becomes
+  // upstream once decide() runs below, and its taken suit (hearts)
+  // becomes the suit to avoid.
+  b.observe(turn(3, "trade", ["9h"], ["Qh"]));
+
+  // Hand: 7c/8c necessary (clubs, 15), 9s unnecessary. Pot: Th (hearts
+  // -- upstream's collecting suit, unfavorable), Td and 7d (diamonds,
+  // favorable). No swap improves 15 here, so the favorable-pickup
+  // bullet is what decides the trade.
+  const hand = mustHand("7c", "8c", "9s");
+  const pot = mustPot("Th", "Td", "7d");
+  const v = baseView({ seat: 0, hand, pot, ownTurnNumber: 2 });
+  assert.equal(bestImprovingSwap(v), undefined);
 
   const action = b.decide(v);
   assert.equal(action.type, "trade");
-  assert.equal(action.potIndex, 0);
-  assert.equal(action.handIndex, 2, "must discard Js (spades), not Th (hearts)");
-});
-
-test("chooseSwap with no observed opponents falls back to the lowest-index tie", () => {
-  const hand = mustHand("Th", "Kc", "Js");
-  const pot = mustPot("Ac", "Td", "9c");
-  const v = baseView({ hand, pot, seat: 0 });
-
-  const b = new RegularBot();
-  b.onRoundStart();
-
-  const action = b.decide(v);
-  assert.equal(action.type, "trade");
-  assert.equal(action.potIndex, 0);
-  assert.equal(action.handIndex, 0);
-});
-
-test("onRoundStart clears previously observed opponent state", () => {
-  const hand = mustHand("Th", "Kc", "Js");
-  const pot = mustPot("Ac", "Td", "9c");
-  const v = baseView({ hand, pot, seat: 0 });
-
-  const b = new RegularBot();
-  b.onRoundStart();
-  b.observe(turn(1, "trade", ["7d"], ["Qh"]));
-  b.observe(turn(1, "trade", ["8s"], ["Kh"]));
-
-  b.onRoundStart(); // new round: prior opponent tracking must be gone
-
-  const action = b.decide(v);
-  assert.equal(action.handIndex, 0, "with no history this round, falls back to the lowest-index tie");
+  assert.notEqual(action.potIndex, 0, "must avoid Th, the suit upstream just took");
+  assert.equal(action.potIndex, 1);
+  assert.equal(action.handIndex, 2);
 });

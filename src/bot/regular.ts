@@ -1,133 +1,149 @@
-import type { Card, Suit } from "../card/card.ts";
-import { sameSuit, score, sum } from "../card/score.ts";
+import type { Suit } from "../card/card.ts";
+import { score } from "../card/score.ts";
 import type { Action, PlayerView, PublicTurn, Strategy } from "../game/types.ts";
 import { exchange, knock, trade } from "../game/types.ts";
-import type { CandidateSwap } from "./helpers.ts";
 import {
-  applyPublicTurn,
-  bestSwaps,
-  INSTANT_KNOCK_SCORE,
-  KNOCK_SCORE_THRESHOLD,
-  KNOCK_TURN_LIMIT,
-  NO_IMPROVE_KNOCK_STREAK,
+  bestImprovingSwap,
+  chooseFavorableBySuit,
+  choosePairMaker,
+  chooseSafeBySuit,
+  dominantSuit,
+  NeighborTracker,
+  randInt,
+  resultingScore,
+  unnecessaryIndices,
 } from "./helpers.ts";
+import { Rng } from "../rng.ts";
+
+// KNOCK_TURN_RANGE and BEST_SCORE_ROUNDS_AGO_RANGE are the [lo-hi]
+// ranges from the Regular strategy in specs/bots.md.
+const KNOCK_TURN_RANGE: [number, number] = [25, 30];
+const BEST_SCORE_ROUNDS_AGO_RANGE: [number, number] = [3, 5];
 
 // RegularBot implements the Regular strategy described in specs/bots.md:
-// like EasyBot, but it tracks opponents' apparent target suit from
-// public trade/exchange history and avoids feeding it back to them when
-// a trade would otherwise be an even choice.
+// like EasyBot, but it tracks its upstream and downstream neighbors'
+// most recent suits from public trade/exchange history, and prefers
+// trades that lean on that information over purely random ones.
 export class RegularBot implements Strategy {
-  lastScore: number;
-  hasLastScore: boolean;
-  noImproveStreak: number;
+  private rng: Rng;
+  private neighbors = new NeighborTracker();
 
-  // held maps seat -> the cards currently known to be in that seat's
-  // hand, built up via observe(). Reset every round in onRoundStart().
-  private held: Map<number, Card[]>;
+  private lastSuitUpstreamTook: Suit | undefined;
+  private lastSuitUpstreamDiscarded: Suit | undefined;
+  private lastSuitDownstreamTook: Suit | undefined;
 
-  constructor(init?: { lastScore?: number; hasLastScore?: boolean; noImproveStreak?: number }) {
-    this.lastScore = init?.lastScore ?? 0;
-    this.hasLastScore = init?.hasLastScore ?? false;
-    this.noImproveStreak = init?.noImproveStreak ?? 0;
-    this.held = new Map();
+  // currentRound, bestScore/hasBestScore/bestRound track "best score and
+  // round" from specs/bots.md across the bot's whole lifetime (a Game's
+  // worth of rounds), not reset in onRoundStart.
+  private currentRound: number;
+  private bestScore: number;
+  private hasBestScore: boolean;
+  private bestRound: number;
+
+  constructor(init?: {
+    rng?: Rng;
+    bestScore?: number;
+    hasBestScore?: boolean;
+    bestRound?: number;
+    currentRound?: number;
+    lastSuitUpstreamTook?: Suit;
+    lastSuitUpstreamDiscarded?: Suit;
+    lastSuitDownstreamTook?: Suit;
+  }) {
+    this.rng = init?.rng ?? new Rng(Math.floor(Math.random() * 0x100000000));
+    this.bestScore = init?.bestScore ?? 0;
+    this.hasBestScore = init?.hasBestScore ?? false;
+    this.bestRound = init?.bestRound ?? 0;
+    this.currentRound = init?.currentRound ?? 0;
+    this.lastSuitUpstreamTook = init?.lastSuitUpstreamTook;
+    this.lastSuitUpstreamDiscarded = init?.lastSuitUpstreamDiscarded;
+    this.lastSuitDownstreamTook = init?.lastSuitDownstreamTook;
+
+    this.neighbors.configure(
+      (t) => {
+        if (t.taken.length > 0) {
+          this.lastSuitUpstreamTook = dominantSuit(t.taken);
+        }
+        if (t.given.length > 0) {
+          this.lastSuitUpstreamDiscarded = dominantSuit(t.given);
+        }
+      },
+      (t) => {
+        if (t.taken.length > 0) {
+          this.lastSuitDownstreamTook = dominantSuit(t.taken);
+        }
+      },
+    );
   }
 
   onRoundStart(): void {
-    this.held = new Map();
+    this.neighbors.reset();
+    this.lastSuitUpstreamTook = undefined;
+    this.lastSuitUpstreamDiscarded = undefined;
+    this.lastSuitDownstreamTook = undefined;
+    this.currentRound++;
   }
 
   observe(turn: PublicTurn): void {
-    applyPublicTurn(this.held, turn);
+    this.neighbors.observe(turn);
   }
 
   decide(v: PlayerView): Action {
-    const s = score(v.hand);
+    this.neighbors.setOwnSeat(v.seat);
+    const action = this.chooseAction(v);
+    this.recordBest(resultingScore(v, action));
+    return action;
+  }
 
+  private recordBest(resulting: number): void {
+    if (!this.hasBestScore || resulting >= this.bestScore) {
+      this.bestScore = resulting;
+      this.hasBestScore = true;
+      this.bestRound = this.currentRound;
+    }
+  }
+
+  private chooseAction(v: PlayerView): Action {
     if (v.isFirstTurnOfRound) {
-      if (sameSuit(v.pot) && sum(v.pot) > s) {
-        return exchange();
-      }
-      // Trading a single card isn't legal on the round's first turn
-      // (specs/rules.md) — Keep instead of taking the pot.
+      return score(v.pot) > score(v.hand) ? exchange() : knock();
+    }
+
+    if (v.ownTurnNumber >= randInt(this.rng, ...KNOCK_TURN_RANGE)) {
+      return knock();
+    }
+    if (score(v.pot) >= 30) {
+      return exchange();
+    }
+    if (
+      this.hasBestScore &&
+      score(v.hand) === this.bestScore &&
+      this.currentRound - this.bestRound > randInt(this.rng, ...BEST_SCORE_ROUNDS_AGO_RANGE)
+    ) {
       return knock();
     }
 
-    if (s <= this.lastScore && this.hasLastScore) {
-      this.noImproveStreak++;
-    } else {
-      this.noImproveStreak = 0;
-    }
-    this.lastScore = s;
-    this.hasLastScore = true;
-
-    if (s >= INSTANT_KNOCK_SCORE) {
-      return knock();
-    }
-    if (s > KNOCK_SCORE_THRESHOLD) {
-      return knock();
-    }
-    if (this.noImproveStreak >= NO_IMPROVE_KNOCK_STREAK) {
-      return knock();
-    }
-    if (v.ownTurnNumber >= KNOCK_TURN_LIMIT) {
-      return knock();
-    }
-    return this.chooseSwap(v);
-  }
-
-  // chooseSwap picks among the swaps tied for the highest resulting
-  // score, preferring to discard a card whose suit matches the fewest
-  // opponents' apparent target suit (the suit(s) tied for most common
-  // among that opponent's known-held cards). Remaining ties keep
-  // candidateSwaps' order, same as bestExchange.
-  private chooseSwap(v: PlayerView): Action {
-    const tied = bestSwaps(v);
-    if (tied.length === 1) {
-      const only = tied[0] as CandidateSwap;
-      return trade(only.potIdx, only.handIdx);
+    const improving = bestImprovingSwap(v);
+    if (improving) {
+      return trade(improving.potIdx, improving.handIdx);
     }
 
-    const targetSuits = this.apparentTargetSuits(v.seat);
+    const unnecessary = unnecessaryIndices(v.hand);
 
-    let best = tied[0] as CandidateSwap;
-    let bestConflicts = Infinity;
-    for (const cand of tied) {
-      const discardSuit = (v.hand[cand.handIdx] as Card).suit;
-      let conflicts = 0;
-      for (const targets of targetSuits.values()) {
-        if (targets.has(discardSuit)) {
-          conflicts++;
-        }
-      }
-      if (conflicts < bestConflicts) {
-        bestConflicts = conflicts;
-        best = cand;
-      }
+    const favorable = chooseFavorableBySuit(v, unnecessary, this.lastSuitUpstreamTook, this.lastSuitUpstreamDiscarded);
+    if (favorable) {
+      return trade(favorable.potIdx, favorable.handIdx);
     }
-    return trade(best.potIdx, best.handIdx);
-  }
 
-  // apparentTargetSuits computes, for every other seat with known-held
-  // cards, the suit(s) tied for most common among them.
-  private apparentTargetSuits(ownSeat: number): Map<number, Set<Suit>> {
-    const result = new Map<number, Set<Suit>>();
-    for (const [seat, cards] of this.held) {
-      if (seat === ownSeat || cards.length === 0) {
-        continue;
-      }
-      const counts = new Map<Suit, number>();
-      for (const c of cards) {
-        counts.set(c.suit, (counts.get(c.suit) ?? 0) + 1);
-      }
-      const max = Math.max(...counts.values());
-      const targets = new Set<Suit>();
-      for (const [suit, n] of counts) {
-        if (n === max) {
-          targets.add(suit);
-        }
-      }
-      result.set(seat, targets);
+    const pair = choosePairMaker(v, unnecessary);
+    if (pair) {
+      return trade(pair.potIdx, pair.handIdx);
     }
-    return result;
+
+    const safeHandIdx = chooseSafeBySuit(v, this.lastSuitDownstreamTook);
+    if (safeHandIdx !== undefined) {
+      return trade(randInt(this.rng, 0, 2), safeHandIdx);
+    }
+
+    return trade(randInt(this.rng, 0, 2), randInt(this.rng, 0, 2));
   }
 }

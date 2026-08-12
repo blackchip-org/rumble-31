@@ -1,52 +1,51 @@
-import { sameSuit, score, sum } from "../card/score.ts";
+import { score } from "../card/score.ts";
 import type { Action, PlayerView, Strategy } from "../game/types.ts";
-import { exchange, knock } from "../game/types.ts";
-import { bestExchange, KNOCK_SCORE_THRESHOLD, KNOCK_TURN_LIMIT, NO_IMPROVE_KNOCK_STREAK } from "./helpers.ts";
+import { exchange, knock, trade } from "../game/types.ts";
+import { bestImprovingSwap, randInt, unnecessaryIndices } from "./helpers.ts";
+import { Rng } from "../rng.ts";
+
+// KNOCK_TURN_RANGE and KNOCK_SCORE_RANGE are the [lo-hi] ranges from the
+// Easy strategy in specs/bots.md.
+const KNOCK_TURN_RANGE: [number, number] = [18, 22];
+const KNOCK_SCORE_RANGE: [number, number] = [28, 30];
 
 // EasyBot implements the Easy strategy described in specs/bots.md. It
-// carries state across turns (its own score history) and is free to be
-// reused across multiple rounds — e.g. for the whole of a Game, where
-// it keeps accumulating that tracking from one round to the next.
+// mimics a new player: it never looks at what other players are doing,
+// so it carries no state across turns beyond its own random rolls.
 export class EasyBot implements Strategy {
-  lastScore: number;
-  hasLastScore: boolean;
-  noImproveStreak: number;
+  private rng: Rng;
 
-  constructor(init?: { lastScore?: number; hasLastScore?: boolean; noImproveStreak?: number }) {
-    this.lastScore = init?.lastScore ?? 0;
-    this.hasLastScore = init?.hasLastScore ?? false;
-    this.noImproveStreak = init?.noImproveStreak ?? 0;
+  constructor(init?: { rng?: Rng }) {
+    this.rng = init?.rng ?? new Rng(Math.floor(Math.random() * 0x100000000));
   }
 
   decide(v: PlayerView): Action {
-    const s = score(v.hand);
-
     if (v.isFirstTurnOfRound) {
-      if (sameSuit(v.pot) && sum(v.pot) > s) {
-        return exchange();
-      }
-      // Trading a single card isn't legal on the round's first turn
-      // (specs/rules.md) — Keep instead of taking the pot.
+      return score(v.pot) > score(v.hand) ? exchange() : knock();
+    }
+
+    if (v.ownTurnNumber >= randInt(this.rng, ...KNOCK_TURN_RANGE)) {
+      return knock();
+    }
+    if (score(v.pot) >= 30) {
+      return exchange();
+    }
+
+    const improving = bestImprovingSwap(v);
+    if (improving) {
+      return trade(improving.potIdx, improving.handIdx);
+    }
+
+    if (score(v.hand) >= randInt(this.rng, ...KNOCK_SCORE_RANGE)) {
       return knock();
     }
 
-    if (s <= this.lastScore && this.hasLastScore) {
-      this.noImproveStreak++;
-    } else {
-      this.noImproveStreak = 0;
+    const unnecessary = unnecessaryIndices(v.hand);
+    if (unnecessary.length > 0) {
+      const handIdx = unnecessary[randInt(this.rng, 0, unnecessary.length - 1)] as number;
+      return trade(randInt(this.rng, 0, 2), handIdx);
     }
-    this.lastScore = s;
-    this.hasLastScore = true;
 
-    if (v.ownTurnNumber >= KNOCK_TURN_LIMIT) {
-      return knock();
-    }
-    if (s > KNOCK_SCORE_THRESHOLD) {
-      return knock();
-    }
-    if (this.noImproveStreak >= NO_IMPROVE_KNOCK_STREAK) {
-      return knock();
-    }
-    return bestExchange(v);
+    return trade(randInt(this.rng, 0, 2), randInt(this.rng, 0, 2));
   }
 }
