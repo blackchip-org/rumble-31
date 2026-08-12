@@ -66,10 +66,10 @@ test("formatComboTable", () => {
   assert.deepEqual(formatComboTable(100, 3, combos), [
     "Played 100 game(s) per combo (2 combos) with seed 3",
     "",
-    "Combo  Games  Easy avg  Regular avg  Difficult avg  Ties  Avg Rounds",
-    "-----  -----  --------  -----------  -------------  ----  ----------",
-    "eerd   100    25.0%     25.0%        25.0%          4.0%  9.50",
-    "rrrr   100    —         25.0%        —              5.0%  9.26",
+    "Combo  Games  Bot 1  Bot 2  Bot 3  Bot 4  Ties  Avg Rounds",
+    "-----  -----  -----  -----  -----  -----  ----  ----------",
+    "eerd   100    30.0%  20.0%  25.0%  25.0%  4.0%  9.50",
+    "rrrr   100    26.0%  24.0%  25.0%  25.0%  5.0%  9.26",
   ]);
 });
 

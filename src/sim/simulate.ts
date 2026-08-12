@@ -153,31 +153,24 @@ function comboLabel(bots: readonly BotName[]): string {
   return bots.map((b) => b[0]).join("");
 }
 
-// avgWinPct returns the win rate of an individual bot of type among
-// bots, averaged over however many of that type are present (so a
-// combo fielding two easy bots reports the same kind of number as one
-// fielding a single easy bot -- comparable to the no-edge baseline of
-// 1/4 -- instead of their combined share of the 4 seats). Returns "—"
-// if the combo has none of that type.
-function avgWinPct(bots: readonly BotName[], wins: readonly number[], games: number, type: BotName): string {
-  const slots = bots.reduce<number[]>((acc, b, i) => (b === type ? [...acc, i] : acc), []);
-  if (slots.length === 0) {
-    return "—";
-  }
-  const total = slots.reduce((sum, i) => sum + (wins[i] as number), 0);
-  return `${((total / (games * slots.length)) * 100).toFixed(1)}%`;
+// slotWinPct returns the win rate of the slot-th bot in a combo.
+function slotWinPct(wins: readonly number[], games: number, slot: number): string {
+  return `${(((wins[slot] as number) / games) * 100).toFixed(1)}%`;
 }
 
 // formatComboTable renders every combo's result as a single table, one
-// row per combo, columns aligned by their widest cell.
+// row per combo, columns aligned by their widest cell. Bot N columns
+// are ordered to match comboLabel, so each cell's difficulty can be
+// read off the Combo column's N-th letter.
 export function formatComboTable(games: number, seed: number, combos: readonly ComboResult[]): string[] {
-  const headers = ["Combo", "Games", "Easy avg", "Regular avg", "Difficult avg", "Ties", "Avg Rounds"];
+  const headers = ["Combo", "Games", "Bot 1", "Bot 2", "Bot 3", "Bot 4", "Ties", "Avg Rounds"];
   const rows = combos.map(({ bots, result }) => [
     comboLabel(bots),
     String(games),
-    avgWinPct(bots, result.wins, games, "easy"),
-    avgWinPct(bots, result.wins, games, "regular"),
-    avgWinPct(bots, result.wins, games, "difficult"),
+    slotWinPct(result.wins, games, 0),
+    slotWinPct(result.wins, games, 1),
+    slotWinPct(result.wins, games, 2),
+    slotWinPct(result.wins, games, 3),
     `${((result.ties / games) * 100).toFixed(1)}%`,
     (result.totalRounds / games).toFixed(2),
   ]);
