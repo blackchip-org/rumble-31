@@ -18,21 +18,25 @@ export interface Action {
 }
 
 // trade returns an action that swaps the pot card at potIdx with the
-// hand card at handIdx.
+// hand card at handIdx. Not legal on the round's first turn — the
+// first player to act only has exchange ("Take Pot") or knock
+// ("Keep") available, since they alone can see the private pot.
 export function trade(potIdx: number, handIdx: number): Action {
   return { type: "trade", potIndex: potIdx, handIndex: handIdx };
 }
 
-// exchange returns an action that swaps the entire hand with the pot.
-// It is legal on any turn. Except on the round's very first turn,
-// choosing it also ends the round the same way a knock does.
+// exchange returns an action that swaps the entire hand with the pot
+// ("Take Pot" on the round's first turn). It is legal on any turn.
+// Except on the round's very first turn, choosing it also ends the
+// round the same way a knock does.
 export function exchange(): Action {
   return { type: "exchange", potIndex: 0, handIndex: 0 };
 }
 
 // knock returns an action that ends the player's turn without
-// exchanging, starting the endgame. It is legal on any turn except the
-// round's first turn.
+// exchanging, starting the endgame ("Keep" on the round's first turn,
+// where it leaves the hand untouched but does not start the endgame).
+// It is legal on any turn.
 export function knock(): Action {
   return { type: "knock", potIndex: 0, handIndex: 0 };
 }

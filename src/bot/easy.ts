@@ -25,7 +25,9 @@ export class EasyBot implements Strategy {
       if (sameSuit(v.pot) && sum(v.pot) > s) {
         return exchange();
       }
-      return bestExchange(v);
+      // Trading a single card isn't legal on the round's first turn
+      // (specs/rules.md) — Keep instead of taking the pot.
+      return knock();
     }
 
     if (s <= this.lastScore && this.hasLastScore) {

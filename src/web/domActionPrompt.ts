@@ -9,7 +9,10 @@ import { TradeSelection } from "./tradeSelection.ts";
 // player's hand (score box included — South's score is always public),
 // then resolves once the player either clicks a hand-card/pot-card pair
 // (a trade, in either order) or clicks the standing Take Pot / Knock
-// buttons.
+// buttons. On the round's first turn, per specs/rules.md, only Take Pot
+// or Keep are available: clicking a card does nothing, and the second
+// button reads "Keep" instead of "Knock" (still resolves to knock() —
+// round.ts is what makes it not act as a real knock that turn).
 export class DomActionPrompt implements Strategy {
   private potEl: HTMLElement;
   private handEl: HTMLElement;
@@ -33,6 +36,7 @@ export class DomActionPrompt implements Strategy {
     const handCards = Array.from(this.handEl.children) as HTMLElement[];
     const potCards = Array.from(this.potEl.children) as HTMLElement[];
     const selection = new TradeSelection();
+    const isFirstTurn = view.isFirstTurnOfRound;
 
     return new Promise((resolve) => {
       let settled = false;
@@ -49,6 +53,7 @@ export class DomActionPrompt implements Strategy {
         settled = true;
         this.takePotBtn.disabled = true;
         this.knockBtn.disabled = true;
+        this.knockBtn.textContent = "Knock";
         this.takePotBtn.removeEventListener("click", onTakePot);
         this.knockBtn.removeEventListener("click", onKnock);
         handCards.forEach((el) => el.classList.remove("is-selected"));
@@ -61,28 +66,33 @@ export class DomActionPrompt implements Strategy {
 
       this.takePotBtn.disabled = false;
       this.knockBtn.disabled = false;
+      this.knockBtn.textContent = isFirstTurn ? "Keep" : "Knock";
       this.takePotBtn.addEventListener("click", onTakePot);
       this.knockBtn.addEventListener("click", onKnock);
 
-      handCards.forEach((el, i) => {
-        el.addEventListener("click", () => {
-          selection.clickHand(i);
-          syncSelection();
-          if (selection.ready()) {
-            finish(selection.action());
-          }
+      // Trading a single card isn't legal on the round's first turn —
+      // only Take Pot/Keep are, via the buttons above.
+      if (!isFirstTurn) {
+        handCards.forEach((el, i) => {
+          el.addEventListener("click", () => {
+            selection.clickHand(i);
+            syncSelection();
+            if (selection.ready()) {
+              finish(selection.action());
+            }
+          });
         });
-      });
 
-      potCards.forEach((el, i) => {
-        el.addEventListener("click", () => {
-          selection.clickPot(i);
-          syncSelection();
-          if (selection.ready()) {
-            finish(selection.action());
-          }
+        potCards.forEach((el, i) => {
+          el.addEventListener("click", () => {
+            selection.clickPot(i);
+            syncSelection();
+            if (selection.ready()) {
+              finish(selection.action());
+            }
+          });
         });
-      });
+      }
     });
   }
 }

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Game, newGame } from "./game.ts";
-import { trade, knock, exchange, strategyFunc } from "./types.ts";
+import { Game, newGame, nextActiveSeatClockwise, prevActiveSeatCounterClockwise } from "./game.ts";
+import { knock, exchange, strategyFunc } from "./types.ts";
 import type { Hand, PlayerResult, PlayerView, Result, Strategy } from "./types.ts";
 import { Rng } from "../rng.ts";
 
@@ -94,10 +94,11 @@ test("simultaneous elimination of the last two seats ends the game in a tie", ()
   assert.deepEqual(g.winners(), [2, 3]);
 });
 
-// quickPlay trades once on the first turn and knocks every turn after,
-// ending each round quickly. It's stateless, so the same value can be
-// shared across all four seats.
-const quickPlay: Strategy = strategyFunc((v: PlayerView) => (v.isFirstTurnOfRound ? trade(0, 0) : knock()));
+// quickPlay always knocks: Keep on the round's first turn (trade isn't
+// legal there), a real knock on any later turn, ending each round
+// quickly. It's stateless, so the same value can be shared across all
+// four seats.
+const quickPlay: Strategy = strategyFunc(() => knock());
 
 test("run plays a full game to a valid conclusion", async () => {
   for (const seed of [1, 2, 3, 42]) {
@@ -277,4 +278,94 @@ test("newGame's initialDeal applies only to the first round played", async () =>
   };
   await g.playRound();
   assert.notDeepEqual(round2Hand, assignedHand);
+});
+
+test("nextActiveSeatClockwise skips eliminated seats and wraps", () => {
+  assert.equal(nextActiveSeatClockwise(0, [0, 1, 2, 3]), 1);
+  assert.equal(nextActiveSeatClockwise(3, [0, 1, 2, 3]), 0);
+  assert.equal(nextActiveSeatClockwise(0, [0, 2, 3]), 2, "must skip eliminated seat 1");
+  assert.equal(nextActiveSeatClockwise(2, [0, 2]), 0, "must wrap past eliminated seats 1 and 3");
+});
+
+test("prevActiveSeatCounterClockwise skips eliminated seats and wraps", () => {
+  assert.equal(prevActiveSeatCounterClockwise(1, [0, 1, 2, 3]), 0);
+  assert.equal(prevActiveSeatCounterClockwise(0, [0, 1, 2, 3]), 3);
+  assert.equal(prevActiveSeatCounterClockwise(3, [0, 3]), 0, "must skip eliminated seats 1 and 2");
+});
+
+// Regression test: specs/rules.md's dealer rotation must skip a seat
+// eliminated before this round was played, not just seats eliminated
+// by it — the dealer should never land on a seat no longer in the game.
+test("playRound advances the dealer clockwise, skipping an eliminated seat", async () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = new Game({
+    strategies,
+    rng: new Rng(1),
+    eliminated: [false, true, false, false],
+    dealerSeat: 0,
+  });
+
+  await g.playRound();
+
+  assert.equal(g.dealerSeat, 2, "dealer must skip eliminated seat 1");
+});
+
+test("playRound wraps the dealer from seat 3 back to seat 0", async () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = new Game({ strategies, rng: new Rng(1), dealerSeat: 3 });
+
+  await g.playRound();
+
+  assert.equal(g.dealerSeat, 0);
+});
+
+// The seat clockwise of the dealer acts first, per specs/rules.md —
+// not the dealer itself.
+test("playRound deals to the seat clockwise of the dealer first", async () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = new Game({ strategies, rng: new Rng(1), dealerSeat: 1 });
+
+  let reportedFirstSeat: number | undefined;
+  g.onDeal = (_pot, _hands, firstSeat) => {
+    reportedFirstSeat = firstSeat;
+  };
+
+  await g.playRound();
+  assert.equal(reportedFirstSeat, 2);
+});
+
+// A resumed game (specs/state.md) restores its dealer exactly, with no
+// rotation applied on the first playRound() call of the new instance —
+// only a genuinely new round advances the dealer.
+test("a restored dealerSeat is used as-is for the resumed round, then advances normally", async () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = new Game({ strategies, rng: new Rng(1), dealerSeat: 2 });
+  assert.equal(g.dealerSeat, 2);
+
+  let firstRoundFirstSeat: number | undefined;
+  g.onDeal = (_pot, _hands, firstSeat) => {
+    firstRoundFirstSeat = firstSeat;
+  };
+  await g.playRound();
+  assert.equal(firstRoundFirstSeat, 3, "the restored dealer's round must not have been advanced first");
+  assert.equal(g.dealerSeat, 3, "the dealer must advance once this round is over");
+});
+
+// newGame with no explicit dealerSeat and no debug-forced firstSeat
+// picks a dealer at random among the initially active seats, up front
+// (available even before the first round is dealt).
+test("newGame picks a random initial dealer among active seats", () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = newGame(1, strategies);
+  assert.ok(g.dealerSeat !== undefined && g.dealerSeat >= 0 && g.dealerSeat < 4);
+});
+
+// The debug turn parameter (specs/params.md) forces round 1's
+// firstSeat directly; the notional dealer it implies is derived as the
+// active seat counter-clockwise of that forced seat, so later rounds
+// still rotate sensibly.
+test("a debug-forced firstSeat derives a matching notional dealer", () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = newGame(1, strategies, undefined, { firstSeat: 2 });
+  assert.equal(g.dealerSeat, 1);
 });

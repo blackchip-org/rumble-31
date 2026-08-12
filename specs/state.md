@@ -25,7 +25,8 @@ The stored object records:
   `over`. The error screen is never recorded here (see "Error screen"
   below).
 - If the screen is `game` or `over`: each seat's strikes and
-  elimination status, and the current round number.
+  elimination status, the current round number, and which seat holds
+  the dealer button (specs/rules.md).
 - If the screen is `game` and a round is in progress: that round's
   checkpoint -- every active seat's current hand, the current pot,
   which seat acts next, whether that seat's turn is the round's first
@@ -59,15 +60,15 @@ specs/params.md:
 
 - If valid saved state exists, the application starts on the screen
   it names, instead of the Main Screen.
-- If that screen is `game`, the saved strikes, eliminations, and
-  round number are restored. If a round-in-progress checkpoint was
-  saved, that round resumes from the checkpoint: hands and the pot
-  are placed immediately with no deal animation (the same as the
-  animation skip described in specs/params.md for the north/south/
-  east/west/pot parameters), and the checkpoint's first-turn and
-  knocked state are restored so the round ends under the same rules
-  a freshly dealt round would. If no round-in-progress checkpoint was
-  saved, the next round deals normally.
+- If that screen is `game`, the saved strikes, eliminations, round
+  number, and dealer button are restored. If a round-in-progress
+  checkpoint was saved, that round resumes from the checkpoint: hands
+  and the pot are placed immediately with no deal animation (the same
+  as the animation skip described in specs/params.md for the
+  north/south/east/west/pot parameters), and the checkpoint's
+  first-turn and knocked state are restored so the round ends under
+  the same rules a freshly dealt round would. If no round-in-progress
+  checkpoint was saved, the next round deals normally.
 - If that screen is `over`, the saved outcome is redrawn directly,
   with no game replayed.
 - If there is no saved state, or it is invalid, the application

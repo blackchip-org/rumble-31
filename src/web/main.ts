@@ -281,11 +281,12 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
     appendLogLine(logEl, line);
   }
 
-  // Mirrors round.ts's own knock detection (a knock, or an exchange on
-  // any turn but the round's very first) to tag the knocker's panel.
-  // The tag is cleared with the rest of the turn state once the round
-  // ends (see the roundNum loop in main()).
-  if (!seatKnocked() && (rec.action.type === "knock" || (rec.action.type === "exchange" && rec.turnIndex !== 0))) {
+  // Mirrors round.ts's own knock detection (a knock or an exchange, on
+  // any turn but the round's very first — Take Pot/Keep on that turn
+  // never counts) to tag the knocker's panel. The tag is cleared with
+  // the rest of the turn state once the round ends (see the roundNum
+  // loop in main()).
+  if (!seatKnocked() && rec.turnIndex !== 0 && (rec.action.type === "knock" || rec.action.type === "exchange")) {
     setPanelState(seatOf(rec.seat).panel, "knocked");
   }
 
@@ -304,10 +305,13 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 // card faces, every other seat's card backs, then the pot — pausing
 // DEAL_ANIMATION_DELAY between each. Game.playRound awaits onDeal, so
 // the round's first turn doesn't begin until this finishes. Per
-// specs/gui.md.
-async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>): Promise<void> {
+// specs/gui.md. The pot is private (dealt as card backs) unless South
+// is firstSeat — the round's first player to act, the only one who
+// may see it before their turn resolves.
+async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, firstSeat: number): Promise<void> {
+  const potPrivate = firstSeat !== 0;
   const southHand = hands.get(0);
-  for (const line of roundStartLines(roundNum, pot, southHand)) {
+  for (const line of roundStartLines(roundNum, pot, southHand, firstSeat)) {
     appendLogLine(logEl, line);
   }
 
@@ -327,7 +331,14 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   potEl.replaceChildren();
 
   for (const step of dealOrder(activeSeats)) {
-    const el = step.kind === "hand" ? (step.seat === 0 ? cardEl((southHand as Hand)[step.cardIndex] as Card) : backEl()) : cardEl(pot[step.potIndex] as Card);
+    const el =
+      step.kind === "hand"
+        ? step.seat === 0
+          ? cardEl((southHand as Hand)[step.cardIndex] as Card)
+          : backEl()
+        : potPrivate
+          ? backEl()
+          : cardEl(pot[step.potIndex] as Card);
     el.classList.add("card--deal-in");
     if (step.kind === "hand") {
       seatOf(step.seat).hand.appendChild(el);
@@ -350,10 +361,12 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 // renderDealInstant places round 1's already-dealt hands/pot directly,
 // with no per-card animation or sound — used instead of animateDeal
 // when specs/params.md's north/south/east/west/pot debug params
-// pre-populate the deal, per its "dealing is not animated" note.
-function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>): void {
+// pre-populate the deal, per its "dealing is not animated" note. The
+// pot is private (rendered as card backs) unless South is firstSeat,
+// same as animateDeal.
+function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, firstSeat: number): void {
   const southHand = hands.get(0);
-  for (const line of roundStartLines(roundNum, pot, southHand)) {
+  for (const line of roundStartLines(roundNum, pot, southHand, firstSeat)) {
     appendLogLine(logEl, line);
   }
 
@@ -370,7 +383,11 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
       renderBacks(seatOf(seat).hand, hand.length);
     }
   }
-  renderCards(potEl, pot);
+  if (firstSeat === 0) {
+    renderCards(potEl, pot);
+  } else {
+    renderBacks(potEl, pot.length);
+  }
 
   if (southHand !== undefined) {
     setScore(seatOf(0).score, score(southHand));
@@ -382,8 +399,10 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 // roundStartLines or resetting won/struck/panel state — this isn't a
 // new deal (specs/state.md), it's redisplaying a round already in
 // progress, whose deal was already logged and whose panel state was
-// already restored before the round loop began.
-function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>): void {
+// already restored before the round loop began. potPrivate mirrors
+// animateDeal's own condition: still true only if the checkpoint was
+// taken before the round's first turn resolved.
+function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>, potPrivate: boolean): void {
   const southHand = hands.get(0);
   for (const [seat, hand] of hands) {
     if (seat === 0) {
@@ -392,7 +411,11 @@ function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>): void {
       renderBacks(seatOf(seat).hand, hand.length);
     }
   }
-  renderCards(potEl, pot);
+  if (potPrivate) {
+    renderBacks(potEl, pot.length);
+  } else {
+    renderCards(potEl, pot);
+  }
 
   if (southHand !== undefined) {
     setScore(seatOf(0).score, score(southHand));
@@ -468,6 +491,7 @@ async function main(resume?: GameState): Promise<void> {
         eliminated: resume.eliminated,
         rng: new Rng(seed),
         initialDeal: resume.checkpoint ? checkpointToOverride(resume.checkpoint) : undefined,
+        dealerSeat: resume.dealerSeat,
       })
     : newGame(seed, strategies, params.initialStrikes, params.initialDeal);
 
@@ -500,7 +524,7 @@ async function main(resume?: GameState): Promise<void> {
 
   const startRoundNum = resume?.roundNum ?? 1;
 
-  saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: startRoundNum, checkpoint: undefined, log: logLines() });
+  saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: startRoundNum, dealerSeat: g.dealerSeat as number, checkpoint: undefined, log: logLines() });
 
   for (let roundNum = startRoundNum; ; roundNum++) {
     // roundHands/roundPot/roundTurnIndex/roundKnocked/roundKnockerSeat
@@ -520,11 +544,11 @@ async function main(resume?: GameState): Promise<void> {
       roundHands = new Map(hands);
       roundPot = pot;
       if (roundNum === startRoundNum && resume?.checkpoint) {
-        renderResumedRound(pot, hands);
+        renderResumedRound(pot, hands, firstSeat !== 0 && resume.checkpoint.turnIndex === 0);
       } else if (roundNum === startRoundNum && params.skipDealAnimation) {
-        renderDealInstant(roundNum, pot, hands);
+        renderDealInstant(roundNum, pot, hands, firstSeat);
       } else {
-        await animateDeal(roundNum, pot, hands);
+        await animateDeal(roundNum, pot, hands, firstSeat);
       }
       // A resumed round that was already knocked before reload gets no
       // "knocked" turn of its own to earn the panel tag from — apply it
@@ -536,6 +560,7 @@ async function main(resume?: GameState): Promise<void> {
         strikes: g.strikes,
         eliminated: g.eliminated,
         roundNum,
+        dealerSeat: g.dealerSeat as number,
         checkpoint: {
           hands: [...roundHands.entries()],
           pot: roundPot,
@@ -554,10 +579,11 @@ async function main(resume?: GameState): Promise<void> {
       hands.set(rec.seat, rec.handAfter);
       roundPot = rec.potAfter;
       roundTurnIndex = rec.turnIndex + 1;
-      // Mirrors round.ts's own knock detection (a knock, or an
-      // exchange on any turn but the round's first) so a resumed round
-      // still ends under the same rule a freshly dealt one would.
-      if (!roundKnocked && (rec.action.type === "knock" || (rec.action.type === "exchange" && rec.turnIndex !== 0))) {
+      // Mirrors round.ts's own knock detection (a knock or an exchange,
+      // on any turn but the round's first — Take Pot/Keep on that turn
+      // never counts) so a resumed round still ends under the same
+      // rule a freshly dealt one would.
+      if (!roundKnocked && rec.turnIndex !== 0 && (rec.action.type === "knock" || rec.action.type === "exchange")) {
         roundKnocked = true;
         roundKnockerSeat = rec.seat;
       }
@@ -568,6 +594,7 @@ async function main(resume?: GameState): Promise<void> {
         strikes: g.strikes,
         eliminated: g.eliminated,
         roundNum,
+        dealerSeat: g.dealerSeat as number,
         checkpoint: {
           hands: [...hands.entries()],
           pot: roundPot as Pot,
@@ -641,12 +668,19 @@ async function main(resume?: GameState): Promise<void> {
       saveState(
         {
           screen: "over",
-          game: { strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, log: logLines(), southWon: g.winners().includes(0) },
+          game: {
+            strikes: g.strikes,
+            eliminated: g.eliminated,
+            roundNum: roundNum + 1,
+            dealerSeat: g.dealerSeat as number,
+            log: logLines(),
+            southWon: g.winners().includes(0),
+          },
         },
         localStorage,
       );
     } else {
-      saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, checkpoint: undefined, log: logLines() });
+      saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, dealerSeat: g.dealerSeat as number, checkpoint: undefined, log: logLines() });
     }
 
     await pauseBetweenRounds(3000);
@@ -741,7 +775,7 @@ function showDebugGameOverScreen(params: DebugParams): void {
   const eliminated = params.initialStrikes.map((s) => s >= 3) as [boolean, boolean, boolean, boolean];
   const southWon = params.initialStrikes[0] < 3;
   saveState(
-    { screen: "over", game: { strikes: params.initialStrikes, eliminated, roundNum: 1, log: logLines(), southWon } },
+    { screen: "over", game: { strikes: params.initialStrikes, eliminated, roundNum: 1, dealerSeat: 0, log: logLines(), southWon } },
     localStorage,
   );
   showGameOverScreen(southWon);

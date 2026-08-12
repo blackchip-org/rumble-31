@@ -35,7 +35,10 @@ should immediately start.
 ## turn
 
 The player that should start first. Value should be a seat name (north,
-south, etc)
+south, etc). This overrides the normal random choice of dealer
+(specs/rules.md) for the game's first round: the dealer is taken to be
+the active seat immediately counter-clockwise of the forced seat, so
+later rounds still rotate the dealer sensibly from there.
 
 # screen
 

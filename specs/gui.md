@@ -79,6 +79,15 @@ Above South's player panel, is a panel of two buttons arranged horizontally:
 These buttons are always visible. They are disabled outside of the
 player's turn.
 
+On the round's first turn, the pot is private (see "Dealing" below),
+and the second button reads "Keep" instead of "Knock" -- same
+position and style, but clicking it leaves South's hand untouched
+instead of knocking (see specs/rules.md: neither Take Pot nor Keep
+counts as a knock on this turn). Clicking a hand or pot card has no
+effect on this turn -- trading a single card isn't available until the
+round's second turn. The button reverts to reading "Knock", and
+card-clicking to trade resumes working, from South's second turn on.
+
 To trade a card from a players hand with one from the pot, the player:
 
 - Clicks on the card from the hand to trade; then
@@ -106,6 +115,14 @@ fixed delay separates each card as it's dealt, so the whole animation
 takes about one second with all four players still in the game, and
 proportionally less once players have been eliminated (fewer cards
 left to deal).
+
+The pot is private to everyone except the round's first player to act
+(specs/rules.md). If South is not that player, the pot's three cards
+are dealt showing the light red card back tile too, the same as a
+private bot hand. If South is the first player to act, the pot's
+cards show their real face as dealt, same as today. Either way, once
+the first player has taken their turn (Take Pot or Keep), the pot's
+cards turn face-up and stay public for the rest of the round.
 
 A player's panel is always the same size, whether it currently holds
 zero, one, two, or three cards; each card appears directly in its

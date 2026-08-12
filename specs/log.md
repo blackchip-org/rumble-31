@@ -23,6 +23,16 @@ the log message.
     Pot is dealt [7h 8c 9d]
     South is dealt [7h 8c 9d]
 
+The pot is private to everyone except the round's first player to act
+(specs/rules.md). If South is not that player, the pot's cards are not
+yet known, so the "Pot is dealt" line omits them instead:
+
+    Pot is dealt
+
+The pot's actual cards are then logged for the first time by the
+existing "Pot is [...]" line below, once the first player has taken
+their turn.
+
 When a player trades a card with the pot use the following where 7h is the
 card from the player's hand that is going to the pot and 8d is the card
 from the pot that is going to the player's hand.
@@ -42,6 +52,11 @@ When a player knocks, use:
 After the player's action, the pot should be announced again:
 
     Pot is [7h 8c 9d]
+
+A knock doesn't otherwise touch the pot, so this second line is
+skipped for it -- except on the round's first turn (Keep), which is
+the only way the pot's cards ever get logged for the first time when
+the first player to act doesn't take it.
 
 At the start of a players turn (and before bots start "thinking"), use:
 

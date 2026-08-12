@@ -11,6 +11,35 @@ export interface RoundOutcome {
   eliminated: number[];
 }
 
+// nextActiveSeatClockwise returns the next seat clockwise from seat
+// (seat+1, seat+2, ... mod 4) that appears in active. seat itself need
+// not be active — e.g. a dealer who was just eliminated — so this
+// can't reuse round.ts's own turn-order wraparound, which only ever
+// steps from a seat already known to be active.
+export function nextActiveSeatClockwise(seat: number, active: readonly number[]): number {
+  for (let i = 1; i <= 4; i++) {
+    const candidate = (seat + i) % 4;
+    if (active.includes(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`nextActiveSeatClockwise: no active seat found from ${seat}`);
+}
+
+// prevActiveSeatCounterClockwise is nextActiveSeatClockwise's mirror,
+// walking seat-1, seat-2, ... mod 4 instead — used to derive a
+// notional dealer for a debug-forced first seat (specs/params.md's
+// turn parameter), so later rounds still rotate sensibly from it.
+export function prevActiveSeatCounterClockwise(seat: number, active: readonly number[]): number {
+  for (let i = 1; i <= 4; i++) {
+    const candidate = (seat - i + 4) % 4;
+    if (active.includes(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`prevActiveSeatCounterClockwise: no active seat found from ${seat}`);
+}
+
 // Game plays a series of rounds among four fixed seats until only one
 // remains active, per specs/rules.md. Once a seat is eliminated it is
 // left out of every later round entirely — not dealt in, never takes a
@@ -20,6 +49,15 @@ export class Game {
   strategies: [Strategy, Strategy, Strategy, Strategy] | undefined;
   strikes: [number, number, number, number];
   eliminated: [boolean, boolean, boolean, boolean];
+
+  // dealerSeat is the dealer for whichever round is currently in
+  // progress, or about to be dealt next — advanced (skipping
+  // eliminated seats) at the end of playRound, once that round's
+  // outcome is known, rather than at the start of the next call. That
+  // way it always holds the right value for a caller to persist at
+  // any point (deal time, mid-round, between rounds) and hand back via
+  // init.dealerSeat to resume correctly, per specs/state.md.
+  dealerSeat: number | undefined;
 
   // onDeal, if set, is called (and awaited, if it returns a Promise)
   // with each round's freshly dealt pot, every dealt-in seat's hand,
@@ -48,6 +86,7 @@ export class Game {
     eliminated?: [boolean, boolean, boolean, boolean];
     rng?: Rng;
     initialDeal?: RoundDealOverride;
+    dealerSeat?: number;
   }) {
     this.strategies = init?.strategies;
     this.strikes = init?.strikes ?? [0, 0, 0, 0];
@@ -57,6 +96,14 @@ export class Game {
     this.over = false;
     this.rng = init?.rng;
     this.pendingInitialDeal = init?.initialDeal;
+
+    if (init?.dealerSeat !== undefined) {
+      this.dealerSeat = init.dealerSeat;
+    } else if (this.rng) {
+      const active = this.activeSeats();
+      const forcedFirst = init?.initialDeal?.firstSeat;
+      this.dealerSeat = forcedFirst !== undefined ? prevActiveSeatCounterClockwise(forcedFirst, active) : (active[this.rng.intn(active.length)] as number);
+    }
   }
 
   // active reports whether more than one seat remains — i.e. whether the
@@ -85,7 +132,9 @@ export class Game {
 
     const override = this.pendingInitialDeal;
     this.pendingInitialDeal = undefined;
-    const r = newRound(this.rng.nextSeed(), seats, override);
+    const firstSeat = override?.firstSeat ?? nextActiveSeatClockwise(this.dealerSeat as number, active);
+
+    const r = newRound(this.rng.nextSeed(), seats, firstSeat, override);
     await this.onDeal?.(
       r.pot,
       new Map(r.players.map((p) => [p.seat, p.hand])),
@@ -96,6 +145,12 @@ export class Game {
     const { result } = await r.run();
 
     const { struck, eliminated } = this.applyResult(active, result);
+
+    const stillActive = this.activeSeats();
+    if (stillActive.length > 1) {
+      this.dealerSeat = nextActiveSeatClockwise(this.dealerSeat as number, stillActive);
+    }
+
     return { result, struck, eliminated };
   }
 
@@ -168,12 +223,15 @@ export class Game {
 // more strikes begins the game already eliminated, per applyResult's
 // own threshold. initialDeal, if given, is applied only to the game's
 // first round (for the web GUI's debug params — specs/params.md).
+// dealerSeat, if given, fixes the game's starting dealer instead of
+// picking one randomly (or deriving it from initialDeal.firstSeat).
 export function newGame(
   seed: number,
   strategies: [Strategy, Strategy, Strategy, Strategy],
   initialStrikes: [number, number, number, number] = [0, 0, 0, 0],
   initialDeal?: RoundDealOverride,
+  dealerSeat?: number,
 ): Game {
   const eliminated = initialStrikes.map((s) => s >= 3) as [boolean, boolean, boolean, boolean];
-  return new Game({ strategies, rng: new Rng(seed), strikes: [...initialStrikes], eliminated, initialDeal });
+  return new Game({ strategies, rng: new Rng(seed), strikes: [...initialStrikes], eliminated, initialDeal, dealerSeat });
 }

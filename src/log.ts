@@ -14,12 +14,15 @@ export function gameStartLines(seed: number, version: string): string[] {
 // hand (no other seat's hand is ever logged). South is omitted once
 // already eliminated, since no hand is dealt to them. Who goes first
 // isn't stated separately — it's implied by the very next "Seat's
-// turn" line.
-export function roundStartLines(roundNum: number, pot: Pot, southHand: Hand | undefined): string[] {
+// turn" line. The pot is private to everyone but firstSeat (specs/
+// rules.md): its cards are only shown here if South is firstSeat —
+// otherwise the "Pot is dealt" line omits them, and they're logged for
+// the first time by potLine, once the first player has acted.
+export function roundStartLines(roundNum: number, pot: Pot, southHand: Hand | undefined, firstSeat: number): string[] {
   const lines = [
     "",
     `=== Round ${roundNum} ===`,
-    `Pot is dealt [${cardsNotation(pot)}]`,
+    firstSeat === 0 ? `Pot is dealt [${cardsNotation(pot)}]` : "Pot is dealt",
   ];
   if (southHand !== undefined) {
     lines.push(`South is dealt [${cardsNotation(southHand)}]`);
@@ -46,7 +49,10 @@ export function turnLines(rec: TurnRecord): string[] {
     case "exchange":
       return [`${seat} exchanges [${cardsNotation(rec.handBefore)}] for [${cardsNotation(rec.potBefore)}]`, potLine(rec)];
     case "knock":
-      return [`${seat} knocks`];
+      // On the round's first turn (Keep), the pot was never touched but
+      // may still have been private — reveal it here since this is the
+      // only announcement this turn makes.
+      return rec.turnIndex === 0 ? [`${seat} knocks`, potLine(rec)] : [`${seat} knocks`];
   }
 }
 

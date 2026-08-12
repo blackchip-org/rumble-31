@@ -7,7 +7,9 @@
 import type { Hand, Pot } from "../game/types.ts";
 
 const STORAGE_KEY = "rumble31.state";
-const SCHEMA_VERSION = 1;
+// Bumped to 2 when dealerSeat was added to GameState — an old v1 save
+// is simply treated as absent (see loadState), no migration needed.
+const SCHEMA_VERSION = 2;
 
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
@@ -38,6 +40,7 @@ export interface GameState {
   strikes: [number, number, number, number];
   eliminated: [boolean, boolean, boolean, boolean];
   roundNum: number;
+  dealerSeat: number;
   log: string[];
   checkpoint?: RoundCheckpoint;
 }

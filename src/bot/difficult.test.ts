@@ -41,8 +41,8 @@ test("decide on the first turn", () => {
     wantAction: string;
   }> = [
     { name: "same-suit pot beats hand score", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kh", "Qh"], wantAction: "exchange" },
-    { name: "same-suit pot does not beat hand score", hand: ["Ah", "Kh", "Qh"], pot: ["7c", "8d", "9s"], wantAction: "trade" },
-    { name: "mixed-suit pot never triggers exchange", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kc", "Qd"], wantAction: "trade" },
+    { name: "same-suit pot does not beat hand score", hand: ["Ah", "Kh", "Qh"], pot: ["7c", "8d", "9s"], wantAction: "knock" },
+    { name: "mixed-suit pot never triggers exchange", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kc", "Qd"], wantAction: "knock" },
   ];
   for (const { name, hand, pot, wantAction } of cases) {
     const v = baseView({ hand: mustHand(...hand), pot: mustPot(...pot), isFirstTurnOfRound: true, ownTurnNumber: 1 });

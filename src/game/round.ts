@@ -19,9 +19,11 @@ import type {
 // RoundDealOverride lets a round's deal skip its normal fully-random
 // setup for debugging (specs/params.md): assignedHands/assignedPot
 // pre-populate specific seats/the pot with fixed cards instead of
-// dealing them from the shuffled deck, and firstSeat fixes who acts
-// first instead of picking randomly. Only ever used for a game's very
-// first round — see Game.pendingInitialDeal.
+// dealing them from the shuffled deck, and firstSeat forces who acts
+// first instead of the seat Game would otherwise derive from dealer
+// rotation (specs/rules.md) — Game reads firstSeat itself before
+// calling newRound, which no longer consults it. Only ever used for a
+// game's very first round — see Game.pendingInitialDeal.
 //
 // turnIndex, knocked, and knockerSeat additionally resume a round
 // already in progress (specs/state.md): turnIndex is the count of
@@ -80,7 +82,18 @@ export class Round {
   // three aces (which ends the round immediately, including at deal
   // time). Once the round has ended, every other player gets exactly one
   // more turn and the round ends before the player who ended it would
-  // act again. Returns the final result and a log of every turn taken.
+  // act again.
+  //
+  // A player's hand scoring 31 also ends the round immediately, per
+  // specs/rules.md, except on that player's own first turn: an action
+  // that brings their hand to 31 ends the round right after (mirroring
+  // the three-aces check), and if their hand was already at 31 going
+  // into their second turn — reached during their first turn, which
+  // isn't checked — the round ends there instead, before they act.
+  // Checking a third time or later would never trigger, since the
+  // second-turn check would already have ended the round by then.
+  //
+  // Returns the final result and a log of every turn taken.
   async run(): Promise<{ result: Result; log: TurnRecord[] }> {
     for (const p of this.players) {
       p.strategy.onRoundStart?.();
@@ -108,7 +121,16 @@ export class Round {
         break;
       }
 
-      ownTurnNum.set(seat, (ownTurnNum.get(seat) ?? 0) + 1);
+      // A hand already at 31 going into this seat's second turn — the
+      // one case a post-action check on this same seat's first turn
+      // couldn't have caught, since that check is suppressed there —
+      // ends the round now, before decide() is called.
+      const priorOwnTurns = ownTurnNum.get(seat) ?? 0;
+      if (priorOwnTurns === 1 && score(player.hand) === 31) {
+        return { result: this.computeResult(), log };
+      }
+
+      ownTurnNum.set(seat, priorOwnTurns + 1);
       const isFirstTurn = turnIdx === 0;
       const view: PlayerView = {
         hand: player.hand,
@@ -120,7 +142,7 @@ export class Round {
 
       const action = await player.strategy.decide(view);
       try {
-        validateAction(action);
+        validateAction(action, turnIdx);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         throw new Error(`seat ${seat} turn ${turnIdx}: ${message}`);
@@ -140,7 +162,10 @@ export class Round {
       if (hasThreeAces(this.players)) {
         break;
       }
-      if (!knocked && (action.type === "knock" || (action.type === "exchange" && !isFirstTurn))) {
+      if ((ownTurnNum.get(seat) as number) >= 2 && score(player.hand) === 31) {
+        break;
+      }
+      if (!knocked && !isFirstTurn && (action.type === "knock" || action.type === "exchange")) {
         knocked = true;
         knockerSeat = seat;
       }
@@ -218,15 +243,18 @@ export class Round {
 }
 
 // newRound deals a new round among the given seats (one strategy per
-// seat, 2 to 4 of them — an eliminated seat is simply left out) and
-// picks the first seat to act, all derived from seed so a round is
-// fully reproducible. override, when given, pre-populates specific
-// seats/the pot and/or fixes the first seat, per RoundDealOverride —
-// see Game.playRound, which only ever passes one for a game's first
-// round.
+// seat, 2 to 4 of them — an eliminated seat is simply left out), all
+// derived from seed so a round is fully reproducible. firstSeat is who
+// acts first — Game always computes this (dealer rotation, or a
+// forced seat for debugging/resuming — specs/params.md, specs/
+// state.md); newRound itself never picks it. override, when given,
+// pre-populates specific seats/the pot and/or resumes an in-progress
+// round's turnIndex/knocked state, per RoundDealOverride — see
+// Game.playRound, which only ever passes one for a game's first round.
 export function newRound(
   seed: number,
   seats: ReadonlyArray<{ seat: number; strategy: Strategy }>,
+  firstSeat: number,
   override?: RoundDealOverride,
 ): Round {
   const rng = new Rng(seed);
@@ -241,7 +269,6 @@ export function newRound(
         shuffledDeck(rng),
         seats.map((s) => s.seat),
       );
-  const firstSeat = override?.firstSeat ?? (seats[rng.intn(seats.length)]?.seat as number);
 
   const players: Player[] = seats.map((s) => ({
     seat: s.seat,
@@ -360,10 +387,17 @@ function hasThreeAces(players: readonly Player[]): boolean {
   return players.some((p) => p.hand.every((c) => c.rank === "A"));
 }
 
-// validateAction rejects actions that carry out-of-range indices.
-export function validateAction(a: Action): void {
+// validateAction rejects actions that carry out-of-range indices, and
+// a "trade" on the round's first turn (turnIdx === 0) — per
+// specs/rules.md, the first player to act only has Take Pot
+// (exchange) or Keep (knock) available, since they alone can see the
+// private pot.
+export function validateAction(a: Action, turnIdx: number): void {
   switch (a.type) {
     case "trade":
+      if (turnIdx === 0) {
+        throw new Error("trade is not legal on the round's first turn");
+      }
       if (a.potIndex < 0 || a.potIndex > 2 || a.handIndex < 0 || a.handIndex > 2) {
         throw new Error(`trade index out of range: pot=${a.potIndex} hand=${a.handIndex}`);
       }

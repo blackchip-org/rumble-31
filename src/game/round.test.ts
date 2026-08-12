@@ -20,6 +20,15 @@ const nilStrategy: Strategy = strategyFunc(() => {
   throw new Error("nilStrategy should never be called");
 });
 
+// passTurn returns a Strategy that never affects the round's
+// knock-ending state: Keep (knock()) on the round's first turn, since
+// trade isn't legal there, and an otherwise-inconsequential single-card
+// trade on every later turn. Used throughout as a filler for seats
+// whose exact action doesn't matter to a test.
+function passTurn(): Strategy {
+  return strategyFunc((v: PlayerView) => (v.isFirstTurnOfRound ? knock() : trade(0, 0)));
+}
+
 function newTestRound(
   hands: [[string, string, string], [string, string, string], [string, string, string], [string, string, string]],
   pot: [string, string, string],
@@ -84,18 +93,21 @@ test("apply: knock changes nothing", () => {
 });
 
 test("validateAction", () => {
-  const cases: Array<{ name: string; action: Action; wantErr: boolean }> = [
-    { name: "trade legal", action: trade(0, 0), wantErr: false },
-    { name: "trade pot index out of range", action: trade(3, 0), wantErr: true },
-    { name: "trade hand index negative", action: trade(0, -1), wantErr: true },
-    { name: "exchange legal", action: exchange(), wantErr: false },
-    { name: "knock legal", action: knock(), wantErr: false },
+  const cases: Array<{ name: string; action: Action; turnIdx: number; wantErr: boolean }> = [
+    { name: "trade legal on a later turn", action: trade(0, 0), turnIdx: 1, wantErr: false },
+    { name: "trade not legal on the round's first turn", action: trade(0, 0), turnIdx: 0, wantErr: true },
+    { name: "trade pot index out of range", action: trade(3, 0), turnIdx: 1, wantErr: true },
+    { name: "trade hand index negative", action: trade(0, -1), turnIdx: 1, wantErr: true },
+    { name: "exchange legal on the first turn", action: exchange(), turnIdx: 0, wantErr: false },
+    { name: "exchange legal on a later turn", action: exchange(), turnIdx: 1, wantErr: false },
+    { name: "knock legal on the first turn", action: knock(), turnIdx: 0, wantErr: false },
+    { name: "knock legal on a later turn", action: knock(), turnIdx: 1, wantErr: false },
   ];
-  for (const { name, action, wantErr } of cases) {
+  for (const { name, action, turnIdx, wantErr } of cases) {
     if (wantErr) {
-      assert.throws(() => validateAction(action), name);
+      assert.throws(() => validateAction(action, turnIdx), name);
     } else {
-      assert.doesNotThrow(() => validateAction(action), name);
+      assert.doesNotThrow(() => validateAction(action, turnIdx), name);
     }
   }
 });
@@ -138,7 +150,7 @@ test("computeResult picks a single winner even with other ties", () => {
 });
 
 test("run: knock ends the round after one full lap", async () => {
-  const pass = strategyFunc(() => trade(0, 0));
+  const pass = passTurn();
   const knockOnce = (): Strategy => {
     let called = false;
     return strategyFunc(() => {
@@ -164,7 +176,7 @@ test("run: knock ends the round after one full lap", async () => {
 
   const { log } = await r.run();
 
-  // Seat 0 exchanges (turn 0), seat 1 knocks (turn 1), seats 2 and 3
+  // Seat 0 keeps (turn 0), seat 1 knocks (turn 1), seats 2 and 3
   // each get one more turn (turns 2, 3), seat 0 gets its promised extra
   // lap turn (turn 4), then the round stops before seat 1 acts again.
   assert.equal(log.length, 5);
@@ -176,7 +188,7 @@ test("run: knock ends the round after one full lap", async () => {
 });
 
 test("run: onTurn callback fires once per logged turn, in order", async () => {
-  const pass = strategyFunc(() => trade(0, 0));
+  const pass = passTurn();
   const knockOnce = (): Strategy => {
     let called = false;
     return strategyFunc(() => {
@@ -216,7 +228,7 @@ test("run: onTurn callback fires once per logged turn, in order", async () => {
 // otherwise an async onTurn and the next decide() call could race, and
 // a UI animation could be interrupted by the next turn starting.
 test("run: awaits an async onTurn before the next seat acts", async () => {
-  const pass = strategyFunc(() => trade(0, 0));
+  const pass = passTurn();
 
   const r = newTestRound(
     [
@@ -254,8 +266,10 @@ test("run: awaits an async onTurn before the next seat acts", async () => {
 });
 
 test("run: three aces mid-round ends the round immediately", async () => {
-  // Seat 0 exchanges its 7h for the pot's third ace, completing three
-  // aces mid-round; the round must stop right there.
+  // Seat 0 keeps its hand on the round's first turn (harmless); seat 1
+  // then trades its 7h for the pot's third ace, completing three aces
+  // mid-round, and the round must stop right there.
+  const keepOnFirstTurn = strategyFunc(() => knock());
   const drawAce = strategyFunc(() => trade(2, 0));
   const neverCalled = strategyFunc((): Action => {
     throw new Error("strategy invoked after three-aces should have ended the round");
@@ -263,18 +277,18 @@ test("run: three aces mid-round ends the round immediately", async () => {
 
   const r = newTestRound(
     [
-      ["7h", "Ad", "Ac"],
       ["7c", "8c", "9c"],
+      ["7h", "Ad", "Ac"],
       ["7d", "8d", "9d"],
       ["7s", "8s", "9s"],
     ],
     ["Kh", "Kc", "Ah"],
-    [drawAce, neverCalled, neverCalled, neverCalled],
+    [keepOnFirstTurn, drawAce, neverCalled, neverCalled],
   );
   r.firstSeat = 0;
 
   const { log } = await r.run();
-  assert.equal(log.length, 1);
+  assert.equal(log.length, 2);
 });
 
 test("run: three aces already dealt ends the round with no turns", async () => {
@@ -297,6 +311,109 @@ test("run: three aces already dealt ends the round with no turns", async () => {
   assert.equal(log.length, 0);
 });
 
+test("run: a trade bringing a hand to 31 on that player's own first turn does not end the round", async () => {
+  // Seat 0 keeps on the round's first turn (harmless). Seat 1's own
+  // first turn (turnIdx 1, not the round's first turn) trades into a
+  // hand scoring 31 — this must not end the round, since it's seat 1's
+  // own first turn. Seats 2, 3, and seat 0's second turn all still get
+  // asked to act afterward, proving the round continued.
+  const drawTo31 = strategyFunc(() => trade(1, 2));
+
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("7c", "8c", "9c"), strategy: strategyFunc(() => knock()) },
+    { seat: 1, hand: mustHand("Ah", "Kh", "Jc"), strategy: drawTo31 },
+    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: passTurn() },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: passTurn() },
+  ];
+  // Seat 1's trade(1, 2) swaps its Jc for the pot's Th, completing 31
+  // (A + K + T of hearts).
+  const r = new Round(mustPot("Kc", "Th", "Qd"), players, 0);
+
+  const { log } = await r.run();
+
+  // Seat 1's turn (index 1) trades into 31, but the round keeps going:
+  // seats 2, 3, and seat 0's second turn (index 4) all still act.
+  assert.equal(log.length, 5, "the round must not have ended at seat 1's first-turn 31");
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [0, 1, 2, 3, 0],
+  );
+  assert.equal(log[1]?.scoreAfter, 31);
+});
+
+test("run: a hand already at 31 entering a player's second turn ends the round before they act", async () => {
+  // Seat 1 is dealt a 31 hand outright and Keeps on its own first turn
+  // (which coincides with the round's first turn here). By the time
+  // play wraps back around to seat 1's second turn, its hand is still
+  // 31 — the round must end right there, before seat 1's decide() is
+  // called a second time.
+  let seat1Calls = 0;
+  const seat1Strategy = strategyFunc(() => {
+    seat1Calls++;
+    if (seat1Calls > 1) {
+      throw new Error("seat 1 should not be asked to act a second time");
+    }
+    return knock();
+  });
+
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("7c", "8c", "9c"), strategy: passTurn() },
+    { seat: 1, hand: mustHand("Ah", "Kh", "Th"), strategy: seat1Strategy },
+    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: passTurn() },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: passTurn() },
+  ];
+  const r = new Round(mustPot("Kc", "Qd", "Jc"), players, 1);
+
+  const { log, result } = await r.run();
+
+  assert.equal(seat1Calls, 1, "seat 1's decide() must only be called once");
+  assert.equal(log.length, 4);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [1, 2, 3, 0],
+  );
+  assert.deepEqual(result.winners, [1]);
+});
+
+test("run: a trade bringing a hand to 31 on a later turn ends the round immediately", async () => {
+  // Seat 0 keeps on the round's first turn, then trades into a 31 hand
+  // on its own second turn (turnIdx 4) — the round must end right
+  // there, before seat 1 (whose own second turn would be next) acts
+  // again.
+  let seat0Calls = 0;
+  const seat0Strategy = strategyFunc(() => {
+    seat0Calls++;
+    return seat0Calls === 1 ? knock() : trade(1, 2);
+  });
+  let seat1Calls = 0;
+  const seat1Strategy = strategyFunc(() => {
+    seat1Calls++;
+    if (seat1Calls > 1) {
+      throw new Error("seat 1 should not be asked to act a second time");
+    }
+    return trade(0, 0);
+  });
+
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("Ah", "Kh", "7c"), strategy: seat0Strategy },
+    { seat: 1, hand: mustHand("7h", "8h", "9c"), strategy: seat1Strategy },
+    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: passTurn() },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: passTurn() },
+  ];
+  const r = new Round(mustPot("Kc", "Th", "Qd"), players, 0);
+
+  const { log } = await r.run();
+
+  assert.equal(seat0Calls, 2);
+  assert.equal(seat1Calls, 1, "seat 1 must not get a second turn once seat 0 reaches 31");
+  assert.equal(log.length, 5);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [0, 1, 2, 3, 0],
+  );
+  assert.equal(log[4]?.scoreAfter, 31);
+});
+
 test("run: isFirstTurnOfRound is true for exactly one decide call", async () => {
   let firstTurnCalls = 0;
   const spy = (): Strategy =>
@@ -316,7 +433,8 @@ test("run: isFirstTurnOfRound is true for exactly one decide call", async () => 
       if (n >= 2) {
         return knock();
       }
-      return trade(0, 0);
+      // trade isn't legal on the round's first turn.
+      return v.isFirstTurnOfRound ? knock() : trade(0, 0);
     });
   };
 
@@ -360,7 +478,7 @@ test("run: the view passed to a strategy matches ground truth", async () => {
       return knock();
     });
 
-  (r.players[0] as Player).strategy = strategyFunc(() => trade(0, 0));
+  (r.players[0] as Player).strategy = strategyFunc(() => knock());
   (r.players[1] as Player).strategy = checker(1);
   (r.players[2] as Player).strategy = checker(2);
   (r.players[3] as Player).strategy = checker(3);
@@ -403,8 +521,43 @@ test("run: exchanging on the round's first turn does not end it", async () => {
   assert.equal(log[1]?.action.type, "knock");
 });
 
+test("run: knocking on the round's first turn (Keep) does not end it", async () => {
+  // Seat 0 knocks (Keeps) on the round's very first turn, which must
+  // not end the round; seat 1 then knocks for real to end it, proving
+  // seat 0's Keep was inert.
+  const keepOnFirstTurn = strategyFunc((v: PlayerView) => (v.isFirstTurnOfRound ? knock() : trade(0, 0)));
+  const knockOnce = (): Strategy => {
+    let called = false;
+    return strategyFunc(() => {
+      if (!called) {
+        called = true;
+        return knock();
+      }
+      throw new Error("knocking seat was asked to act again");
+    });
+  };
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Kh", "Kc", "Kd"],
+    [keepOnFirstTurn, knockOnce(), keepOnFirstTurn, keepOnFirstTurn],
+  );
+  r.firstSeat = 0;
+
+  const { log } = await r.run();
+
+  assert.equal(log.length, 5, "round must not have ended at seat 0's first-turn Keep");
+  assert.equal(log[0]?.action.type, "knock");
+  assert.equal(log[1]?.action.type, "knock");
+});
+
 test("run: exchanging after the first turn acts as a knock", async () => {
-  const pass = strategyFunc(() => trade(0, 0));
+  const pass = passTurn();
   const exchangeOnce = (): Strategy => {
     let called = false;
     return strategyFunc(() => {
@@ -416,6 +569,11 @@ test("run: exchanging after the first turn acts as a knock", async () => {
     });
   };
 
+  // Pot is three kings (30.5), not three aces (32) — since seat 0 now
+  // Keeps rather than trading on the round's first turn, a three-aces
+  // pot would reach seat 1's hand via its exchange and end the round
+  // via the (unrelated) three-aces rule before this test's own knock
+  // detection is exercised.
   const r = newTestRound(
     [
       ["7h", "8h", "9h"],
@@ -423,7 +581,7 @@ test("run: exchanging after the first turn acts as a knock", async () => {
       ["7d", "8d", "9d"],
       ["7s", "8s", "9s"],
     ],
-    ["Ah", "Ac", "Ad"],
+    ["Kh", "Kc", "Kd"],
     [pass, exchangeOnce(), pass, pass],
   );
   r.firstSeat = 0;
@@ -443,7 +601,7 @@ test("run: exchanging after the first turn acts as a knock", async () => {
 
 test("newRound deals distinct hands and a pot from a full deck", () => {
   const seats = [0, 1, 2, 3].map((seat) => ({ seat, strategy: nilStrategy }));
-  const r = newRound(42, seats);
+  const r = newRound(42, seats, 2);
 
   const seen = new Set<string>();
   for (const p of r.players) {
@@ -459,12 +617,12 @@ test("newRound deals distinct hands and a pot from a full deck", () => {
     seen.add(key);
   }
   assert.equal(seen.size, 15);
-  assert.ok(r.firstSeat >= 0 && r.firstSeat < 4);
+  assert.equal(r.firstSeat, 2);
 });
 
 test("newRound deals only to the given seats when fewer than four are active", () => {
   const seats = [0, 2, 3].map((seat) => ({ seat, strategy: nilStrategy }));
-  const r = newRound(42, seats);
+  const r = newRound(42, seats, 3);
 
   assert.deepEqual(
     r.players.map((p) => p.seat),
@@ -484,11 +642,11 @@ test("newRound deals only to the given seats when fewer than four are active", (
     seen.add(key);
   }
   assert.equal(seen.size, 12);
-  assert.ok([0, 2, 3].includes(r.firstSeat));
+  assert.equal(r.firstSeat, 3);
 });
 
 test("run cycles turn order among sparse seats in clockwise (ascending, wrapping) order", async () => {
-  const pass = strategyFunc(() => trade(0, 0));
+  const pass = passTurn();
   const knockOnce = (): Strategy => {
     let called = false;
     return strategyFunc(() => {
@@ -543,7 +701,7 @@ test("newRound with a RoundDealOverride", () => {
   ];
 
   for (const { name, override } of cases) {
-    const r = newRound(42, seats, override);
+    const r = newRound(42, seats, 0, override);
 
     for (const [seat, hand] of override.assignedHands ?? []) {
       assert.deepEqual(r.players.find((p) => p.seat === seat)?.hand, hand, `${name}: assigned hand`);
@@ -572,9 +730,9 @@ test("newRound with a RoundDealOverride", () => {
   }
 });
 
-test("newRound with a RoundDealOverride honors a forced firstSeat", () => {
+test("newRound's firstSeat parameter is honored alongside a RoundDealOverride", () => {
   const seats = [0, 1, 2, 3].map((seat) => ({ seat, strategy: nilStrategy }));
-  const r = newRound(42, seats, { firstSeat: 3 });
+  const r = newRound(42, seats, 3, { assignedHands: new Map([[2, mustHand("7s", "8h", "9c")]]) });
   assert.equal(r.firstSeat, 3);
 });
 
@@ -640,7 +798,8 @@ test("run: onRoundStart fires even when three aces are already dealt", async () 
 test("run: observe broadcasts the same redacted PublicTurn to every active seat, in order", async () => {
   const logs: PublicTurn[][] = [[], [], [], []];
   const pass = (seat: number): Strategy => ({
-    decide: () => trade(0, 0),
+    // trade isn't legal on the round's first turn.
+    decide: (v) => (v.isFirstTurnOfRound ? knock() : trade(0, 0)),
     observe: (turn) => logs[seat]?.push(turn),
   });
   const knockOnce = (seat: number): Strategy => {
@@ -684,12 +843,7 @@ test("run: observe broadcasts the same redacted PublicTurn to every active seat,
     assert.deepEqual(logs[3]?.[i], logs[0]?.[i], `turn ${i}`);
   }
 
-  assert.deepEqual(logs[0]?.[0], {
-    seat: 0,
-    type: "trade",
-    given: [parseCard("7h")],
-    taken: [parseCard("Ah")],
-  });
+  assert.deepEqual(logs[0]?.[0], { seat: 0, type: "knock", given: [], taken: [] });
   assert.deepEqual(logs[0]?.[1], { seat: 1, type: "knock", given: [], taken: [] });
 });
 
@@ -733,7 +887,7 @@ test("run: observe reports an exchange as all three cards given and taken", asyn
 });
 
 test("run: strategies that implement only decide are unaffected by the new hooks", async () => {
-  const pass = strategyFunc(() => trade(0, 0));
+  const pass = passTurn();
   const r = newTestRound(
     [
       ["7h", "8h", "9h"],
@@ -751,7 +905,7 @@ test("run: strategies that implement only decide are unaffected by the new hooks
 
 test("newRound with a RoundDealOverride honors turnIndex/knocked/knockerSeat", () => {
   const seats = [0, 1, 2, 3].map((seat) => ({ seat, strategy: nilStrategy }));
-  const r = newRound(42, seats, { turnIndex: 5, knocked: true, knockerSeat: 2 });
+  const r = newRound(42, seats, 1, { turnIndex: 5, knocked: true, knockerSeat: 2 });
   assert.equal(r.turnIndex, 5);
   assert.equal(r.knocked, true);
   assert.equal(r.knockerSeat, 2);
@@ -816,7 +970,7 @@ test("run: a round resumed with turnIndex > 0 never reports isFirstTurnOfRound a
 // wraps back around to the knocker, giving every other seat exactly
 // one more turn — not a full extra round.
 test("run: a round resumed already knocked ends after the remaining seats' one lap", async () => {
-  const pass = strategyFunc(() => trade(0, 0));
+  const pass = passTurn();
   const neverCalled = strategyFunc((): Action => {
     throw new Error("knocker should not be asked to act again");
   });
