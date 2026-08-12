@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Comic Neue Font",
+    "license": "OFL-1.1",
+    "text": "assets/ComicNeue.OFL.txt"
+  },
+  {
+    "name": "Inconsolata Font",
+    "license": "OFL-1.1",
+    "text": "assets/Inconsolata.OFL.txt"
+  },
+  {
+    "name": "New Rocker Font",
+    "license": "OFL-1.1",
+    "text": "assets/NewRocker.OFL.txt"
+  },
+  {
+    "name": "Rumble-31",
+    "license": "MIT",
+    "text": "LICENSE"
+  }
+]
