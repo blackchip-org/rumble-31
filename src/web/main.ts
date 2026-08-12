@@ -4,7 +4,7 @@
 
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
-import { Bot } from "../bot/bot.ts";
+import { EasyBot } from "../bot/easy.ts";
 import { DEAL_ANIMATION_DELAY, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
@@ -453,7 +453,7 @@ async function main(resume?: GameState): Promise<void> {
 
   const seed = Date.now();
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn);
-  const bots: [Bot, Bot, Bot] = [new Bot(), new Bot(), new Bot()];
+  const bots: [EasyBot, EasyBot, EasyBot] = [new EasyBot(), new EasyBot(), new EasyBot()];
   const strategies: [Strategy, Strategy, Strategy, Strategy] = [
     withTurnUi(0, human),
     withTurnUi(1, bots[0]),

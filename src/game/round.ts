@@ -10,6 +10,7 @@ import type {
   PlayerResult,
   PlayerView,
   Pot,
+  PublicTurn,
   Result,
   Strategy,
   TurnRecord,
@@ -81,6 +82,10 @@ export class Round {
   // more turn and the round ends before the player who ended it would
   // act again. Returns the final result and a log of every turn taken.
   async run(): Promise<{ result: Result; log: TurnRecord[] }> {
+    for (const p of this.players) {
+      p.strategy.onRoundStart?.();
+    }
+
     if (hasThreeAces(this.players)) {
       return { result: this.computeResult(), log: [] };
     }
@@ -124,6 +129,12 @@ export class Round {
       const record = this.apply(seat, action, turnIdx);
       log.push(record);
       turnIdx++;
+
+      const publicTurn = toPublicTurn(record);
+      for (const p of this.players) {
+        p.strategy.observe?.(publicTurn);
+      }
+
       await this.onTurn?.(record);
 
       if (hasThreeAces(this.players)) {
@@ -318,6 +329,30 @@ function dealCardsWithOverride(
   const pot = override.assignedPot ?? dealtPot;
 
   return { hands, pot };
+}
+
+// toPublicTurn redacts a TurnRecord down to what's publicly observable:
+// the specific cards that moved between hand and pot, never the
+// untouched rest of a hand.
+function toPublicTurn(record: TurnRecord): PublicTurn {
+  switch (record.action.type) {
+    case "trade":
+      return {
+        seat: record.seat,
+        type: "trade",
+        given: [record.handBefore[record.action.handIndex] as Card],
+        taken: [record.potBefore[record.action.potIndex] as Card],
+      };
+    case "exchange":
+      return {
+        seat: record.seat,
+        type: "exchange",
+        given: [...record.handBefore],
+        taken: [...record.potBefore],
+      };
+    case "knock":
+      return { seat: record.seat, type: "knock", given: [], taken: [] };
+  }
 }
 
 // hasThreeAces reports whether any player currently holds three aces.

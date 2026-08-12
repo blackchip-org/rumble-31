@@ -56,12 +56,36 @@ export interface PlayerView {
   ownTurnNumber: number;
 }
 
+// PublicTurn is the publicly-observable outcome of one player's turn:
+// exactly what specs/log.md announces (the cards that moved), never the
+// untouched rest of a hand. given/taken are empty for a knock, length 1
+// for a trade, and length 3 for an exchange.
+export interface PublicTurn {
+  seat: number;
+  type: ActionType;
+  given: Card[];
+  taken: Card[];
+}
+
 // Strategy decides an action for a player given their view of the round.
 // A synchronous Strategy (e.g. a bot, or the CLI's blocking-stdin human)
 // returns Action directly; one that waits on external input (e.g. a
 // browser click) returns a Promise<Action> instead.
+//
+// onRoundStart and observe are optional hooks for a Strategy that wants
+// to track public information across a round: onRoundStart fires once
+// per round, for every active seat's strategy, before any turns are
+// taken, so per-round state can be reset; observe fires for every
+// active seat's strategy after every turn (including the acting seat's
+// own), with that turn's PublicTurn. Each Strategy that implements
+// observe is responsible for building and owning its own model from
+// what it's shown — the engine never hands out a shared, canonical
+// history, so a strategy that wants imperfect memory can do so on its
+// own without any change here.
 export interface Strategy {
   decide(view: PlayerView): Action | Promise<Action>;
+  onRoundStart?(): void;
+  observe?(turn: PublicTurn): void;
 }
 
 // strategyFunc adapts a plain function to the Strategy interface.

@@ -6,7 +6,7 @@ import { score } from "../card/score.ts";
 import { Round, newRound, validateAction } from "./round.ts";
 import type { RoundDealOverride } from "./round.ts";
 import { trade, exchange, knock, strategyFunc } from "./types.ts";
-import type { Action, Hand, Player, Pot, PlayerView, Strategy, TurnRecord } from "./types.ts";
+import type { Action, Hand, Player, Pot, PlayerView, PublicTurn, Strategy, TurnRecord } from "./types.ts";
 
 function mustHand(...notation: [string, string, string]): Hand {
   return [parseCard(notation[0]), parseCard(notation[1]), parseCard(notation[2])];
@@ -576,6 +576,177 @@ test("newRound with a RoundDealOverride honors a forced firstSeat", () => {
   const seats = [0, 1, 2, 3].map((seat) => ({ seat, strategy: nilStrategy }));
   const r = newRound(42, seats, { firstSeat: 3 });
   assert.equal(r.firstSeat, 3);
+});
+
+test("run: onRoundStart fires once per active seat before any decide() call", async () => {
+  const events: string[] = [];
+  const spy = (seat: number): Strategy => ({
+    onRoundStart: () => events.push(`start:${seat}`),
+    decide: () => {
+      events.push(`decide:${seat}`);
+      return knock();
+    },
+  });
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Ah", "Ac", "Ad"],
+    [spy(0), spy(1), spy(2), spy(3)],
+  );
+  r.firstSeat = 0;
+
+  await r.run();
+
+  const startEvents = events.filter((e) => e.startsWith("start:"));
+  const firstDecideIdx = events.findIndex((e) => e.startsWith("decide:"));
+  assert.equal(startEvents.length, 4);
+  assert.ok(
+    events.slice(0, firstDecideIdx).every((e) => e.startsWith("start:")),
+    "every onRoundStart must fire before the first decide()",
+  );
+});
+
+test("run: onRoundStart fires even when three aces are already dealt", async () => {
+  let starts = 0;
+  const neverDecides: Strategy = {
+    onRoundStart: () => {
+      starts++;
+    },
+    decide: (): Action => {
+      throw new Error("strategy invoked when three aces were already dealt");
+    },
+  };
+
+  const r = newTestRound(
+    [
+      ["Ah", "Ad", "Ac"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Kh", "Kc", "As"],
+    [neverDecides, neverDecides, neverDecides, neverDecides],
+  );
+
+  await r.run();
+  assert.equal(starts, 4);
+});
+
+test("run: observe broadcasts the same redacted PublicTurn to every active seat, in order", async () => {
+  const logs: PublicTurn[][] = [[], [], [], []];
+  const pass = (seat: number): Strategy => ({
+    decide: () => trade(0, 0),
+    observe: (turn) => logs[seat]?.push(turn),
+  });
+  const knockOnce = (seat: number): Strategy => {
+    let called = false;
+    return {
+      decide: () => {
+        if (!called) {
+          called = true;
+          return knock();
+        }
+        throw new Error("knocking seat was asked to act again");
+      },
+      observe: (turn) => logs[seat]?.push(turn),
+    };
+  };
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Ah", "Ac", "Ad"],
+    [pass(0), knockOnce(1), pass(2), pass(3)],
+  );
+  r.firstSeat = 0;
+
+  const { log } = await r.run();
+  assert.equal(log.length, 5);
+
+  // Every seat, including the knocker (who takes no further turns but
+  // stays part of the round), must see all 5 turns, in order, and every
+  // seat must see exactly the same thing for a given turn.
+  for (const seatLog of logs) {
+    assert.equal(seatLog.length, 5);
+  }
+  for (let i = 0; i < 5; i++) {
+    assert.deepEqual(logs[1]?.[i], logs[0]?.[i], `turn ${i}`);
+    assert.deepEqual(logs[2]?.[i], logs[0]?.[i], `turn ${i}`);
+    assert.deepEqual(logs[3]?.[i], logs[0]?.[i], `turn ${i}`);
+  }
+
+  assert.deepEqual(logs[0]?.[0], {
+    seat: 0,
+    type: "trade",
+    given: [parseCard("7h")],
+    taken: [parseCard("Ah")],
+  });
+  assert.deepEqual(logs[0]?.[1], { seat: 1, type: "knock", given: [], taken: [] });
+});
+
+test("run: observe reports an exchange as all three cards given and taken", async () => {
+  const seen: PublicTurn[] = [];
+  const exchangeOnce = (): Strategy => {
+    let called = false;
+    return {
+      decide: (v: PlayerView) => {
+        if (v.isFirstTurnOfRound && !called) {
+          called = true;
+          return exchange();
+        }
+        return knock();
+      },
+      observe: (turn) => seen.push(turn),
+    };
+  };
+  const pass: Strategy = { decide: () => knock() };
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Ah", "Ac", "Ad"],
+    [exchangeOnce(), pass, pass, pass],
+  );
+  r.firstSeat = 0;
+
+  await r.run();
+
+  assert.deepEqual(seen[0], {
+    seat: 0,
+    type: "exchange",
+    given: [parseCard("7h"), parseCard("8h"), parseCard("9h")],
+    taken: [parseCard("Ah"), parseCard("Ac"), parseCard("Ad")],
+  });
+});
+
+test("run: strategies that implement only decide are unaffected by the new hooks", async () => {
+  const pass = strategyFunc(() => trade(0, 0));
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Ah", "Ac", "Ad"],
+    [pass, strategyFunc(() => knock()), pass, pass],
+  );
+  r.firstSeat = 0;
+  const { log } = await r.run();
+  assert.equal(log.length, 5);
 });
 
 test("newRound with a RoundDealOverride honors turnIndex/knocked/knockerSeat", () => {

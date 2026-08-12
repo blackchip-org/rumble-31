@@ -8,7 +8,9 @@
     "prepare": "node scripts/gen-buildtime.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test 'src/**/*.test.ts'",
+    "preweb:dev": "npm run prepare",
     "web:dev": "vite",
+    "preweb:build": "npm run prepare",
     "web:build": "vite build",
     "web:preview": "vite preview"
   },
