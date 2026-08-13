@@ -76,6 +76,6 @@ empty log, same as any other debug-seeded game.
 For the settings screen (settings), reaching it through this
 parameter always shows the "Main Menu" back button with the bot
 difficulty toggles enabled, same as reaching it from the Main
-screen -- see specs/gui.md's Settings Screen section.
+screen -- see specs/screens/settings.md.
 
 

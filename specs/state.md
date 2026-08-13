@@ -7,9 +7,10 @@ later returns finds it exactly as they left it: on the same screen
 game rather than back at the Main Screen.
 
 State is saved as it changes, not just on exit. Saved state is
-distinct from the Settings Screen's saved preferences (specs/gui.md,
-`rumble31.settings`), which have their own separate storage and are
-never read, written, or cleared by anything in this spec.
+distinct from the Settings Screen's saved preferences
+(specs/screens/settings.md, `rumble31.settings`), which have their
+own separate storage and are never read, written, or cleared by
+anything in this spec.
 
 ## What is stored
 
@@ -51,8 +52,8 @@ The stored object records:
   re-tags the most recently saved one under `menu` instead of `game`.
 - If the screen is `settings`: which screen it was entered from --
   `main`, or `menu` together with that same `game` state -- per
-  specs/gui.md's Settings Screen section, driving its back button and
-  whether the bot-difficulty toggles are disabled.
+  specs/screens/settings.md, driving its back button and whether the
+  bot-difficulty toggles are disabled.
 - The log panel's lines, so the visible history and Save Log survive
   a reload.
 
@@ -68,8 +69,7 @@ State is written to local storage:
 - When the game ends.
 
 Settings changes are not covered by this spec; they continue to save
-independently, as described in specs/gui.md's Settings Screen
-section.
+independently, as described in specs/screens/settings.md.
 
 ## When state is restored
 
