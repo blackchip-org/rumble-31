@@ -26,13 +26,20 @@ function slide(el: HTMLElement, fromX: number, fromY: number, toX: number, toY: 
 // returning card lands only when conceal is true. Resolves once both
 // legs have finished and both real elements show their final content.
 //
+// takenIsSecret is true only for a first-turn exchange (Take Pot) by a
+// concealed (bot) hand: unlike every other trade/exchange, cardToHand
+// comes from the still-private pot (specs/rules.md) and must never be
+// shown, not even mid-flight — the return leg's ghost stays a
+// face-down back tile for its whole journey instead of briefly
+// exposing cardToHand before landing concealed.
+//
 // Neither real element is moved or reparented: a single "ghost" clone,
 // position: fixed and appended straight to document.body, plays both
 // legs of the journey. This sidesteps z-index/stacking concerns between
 // the hand and pot panels (separate DOM subtrees, one of them under an
 // ancestor with overflow: hidden) that would make animating the real,
 // in-flow elements fragile.
-export async function animateCardTrade(handSlotEl: HTMLElement, potSlotEl: HTMLElement, cardToPot: Card, cardToHand: Card, conceal: boolean): Promise<void> {
+export async function animateCardTrade(handSlotEl: HTMLElement, potSlotEl: HTMLElement, cardToPot: Card, cardToHand: Card, conceal: boolean, takenIsSecret = false): Promise<void> {
   const legMs = TRADE_ANIMATION_DURATION / 2;
 
   const handRect = handSlotEl.getBoundingClientRect();
@@ -58,7 +65,7 @@ export async function animateCardTrade(handSlotEl: HTMLElement, potSlotEl: HTMLE
   // now, so editing potSlotEl's face underneath is invisible. potSlotEl
   // itself never moves — only the ghost travels on, for the return leg.
   setCardFace(potSlotEl, cardToPot);
-  setCardFace(ghost, cardToHand);
+  setCardFace(ghost, takenIsSecret ? null : cardToHand);
 
   await slide(ghost, dx, dy, 0, 0, legMs);
 

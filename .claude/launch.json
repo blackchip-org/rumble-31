@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "web:dev"],
       "port": 5173
+    },
+    {
+      "name": "rumble-31-web-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "web:dev", "--", "--port", "6173"],
+      "port": 6173
     }
   ]
 }

@@ -360,7 +360,12 @@ function dealCardsWithOverride(
 
 // toPublicTurn redacts a TurnRecord down to what's publicly observable:
 // the specific cards that moved between hand and pot, never the
-// untouched rest of a hand.
+// untouched rest of a hand. An exchange on the round's first turn
+// (Take Pot) is a special case: the pot is still private at that
+// point (specs/rules.md), so what the acting seat drew from it stays
+// private forever, exactly like any other hand — only what they gave
+// up (their old hand, which becomes the round's new public pot) is
+// safe to report.
 function toPublicTurn(record: TurnRecord): PublicTurn {
   switch (record.action.type) {
     case "trade":
@@ -375,7 +380,7 @@ function toPublicTurn(record: TurnRecord): PublicTurn {
         seat: record.seat,
         type: "exchange",
         given: [...record.handBefore],
-        taken: [...record.potBefore],
+        taken: record.turnIndex === 0 ? [] : [...record.potBefore],
       };
     case "knock":
       return { seat: record.seat, type: "knock", given: [], taken: [] };

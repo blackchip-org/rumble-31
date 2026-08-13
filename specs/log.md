@@ -16,8 +16,7 @@ seed being used.
     Starting game with seed X
 
 The log for the start of each round looks like the following. X is the round
-number. A blank line is emitted before
-the log message.
+number. A blank line is emitted before the log message.
 
     === Round X ===
     Pot is dealt [7h 8c 9d]
@@ -32,6 +31,12 @@ yet known, so the "Pot is dealt" line omits them instead:
 The pot's actual cards are then logged for the first time by the
 existing "Pot is [...]" line below, once the first player has taken
 their turn.
+
+For the first player to act in a round, their choices are to keep their hand
+or to keep the pot. The log messages for those are:
+
+    Seat keeps their hand
+    Seat exchanges their hand for the pot
 
 When a player trades a card with the pot use the following where 7h is the
 card from the player's hand that is going to the pot and 8d is the card
@@ -62,18 +67,27 @@ At the start of a players turn (and before bots start "thinking"), use:
 
     Seat's turn
 
-At the end of the round, announce the scores for each player using this
-format:
+If that seat is the first to act that round, instead use:
 
-    South has [7h 8c 9d] for 9.0 points with 1 strike
+    Seat goes first
 
-List all player still in the game starting with South and working clockwise. 
+At the end of the round, announce the hands first for each playing using
+this format:
+
+    South has [7h 8c 9d]
+
+When listing all seats like this, list all players still in the game starting
+with South and working clockwise.
 
 Then announce those receiving strikes using formats below. If more than one
 are receiving strikes, use the same order as above.
 
     North receives a strike
-    North receives a strike and is eliminated 
+    North receives a strike and is eliminated
+
+Then announce the scores for each player:
+
+    Seat has 9.0 points with 1 strike
 
 If the human player wins, write:
 
@@ -83,6 +97,6 @@ When the game ends, write:
 
     Game over
 
-Any other logging that currently exists in the code should be removed. 
+Any other logging that currently exists in the code should be removed.
 
 

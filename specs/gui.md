@@ -161,6 +161,15 @@ When exchanging all cards with the pot, each card should be traded
 individually. The full animation should first be applied to the first card,
 then the second card, and then the third.
 
+On the round's first turn, if the acting seat takes the pot (Take Pot),
+the cards moving from the pot to the hand stay face-down for their
+entire slide instead of being briefly exposed like a normal
+trade/exchange -- the pot is still private at that point (see "Dealing"
+above), so unlike every other trade/exchange, these cards were never
+public to begin with and must stay that way. The cards moving from the
+hand to the pot are unaffected and still animate face-up, since they
+become the round's new public pot regardless.
+
 ## Log Panel
 
 A panel in the bottom-right corner of the screen shows a running,

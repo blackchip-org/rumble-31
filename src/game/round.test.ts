@@ -847,7 +847,11 @@ test("run: observe broadcasts the same redacted PublicTurn to every active seat,
   assert.deepEqual(logs[0]?.[1], { seat: 1, type: "knock", given: [], taken: [] });
 });
 
-test("run: observe reports an exchange as all three cards given and taken", async () => {
+test("run: observe reports a first-turn exchange (Take Pot) with the taken pot redacted", async () => {
+  // The pot is still private on the round's first turn (specs/rules.md),
+  // so what the acting seat draws from it must never be broadcast via
+  // observe() — only what they gave up (their old hand, which becomes
+  // the round's new public pot) is safe to report.
   const seen: PublicTurn[] = [];
   const exchangeOnce = (): Strategy => {
     let called = false;
@@ -882,6 +886,46 @@ test("run: observe reports an exchange as all three cards given and taken", asyn
     seat: 0,
     type: "exchange",
     given: [parseCard("7h"), parseCard("8h"), parseCard("9h")],
+    taken: [],
+  });
+});
+
+test("run: observe reports a later-turn exchange as all three cards given and taken", async () => {
+  const seen: PublicTurn[] = [];
+  const exchangeSecond = (): Strategy => {
+    let called = false;
+    return {
+      decide: (v: PlayerView) => {
+        if (!v.isFirstTurnOfRound && !called) {
+          called = true;
+          return exchange();
+        }
+        return knock();
+      },
+      observe: (turn) => seen.push(turn),
+    };
+  };
+  const pass: Strategy = { decide: () => knock() };
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Ah", "Ac", "Ad"],
+    [pass, exchangeSecond(), pass, pass],
+  );
+  r.firstSeat = 0;
+
+  await r.run();
+
+  const turn = seen.find((t) => t.seat === 1);
+  assert.deepEqual(turn, {
+    seat: 1,
+    type: "exchange",
+    given: [parseCard("7c"), parseCard("8c"), parseCard("9c")],
     taken: [parseCard("Ah"), parseCard("Ac"), parseCard("Ad")],
   });
 });

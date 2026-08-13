@@ -47,8 +47,10 @@ test("roundStartLines", () => {
 });
 
 test("turnStartLine", () => {
-  assert.equal(turnStartLine(0), "South's turn");
-  assert.equal(turnStartLine(2), "North's turn");
+  assert.equal(turnStartLine(0, false), "South's turn");
+  assert.equal(turnStartLine(2, false), "North's turn");
+  assert.equal(turnStartLine(0, true), "South goes first");
+  assert.equal(turnStartLine(3, true), "East goes first");
 });
 
 test("turnLines", () => {
@@ -64,6 +66,7 @@ test("turnLines", () => {
       name: "trade names the specific cards swapped",
       rec: {
         ...base,
+        turnIndex: 1,
         action: { type: "trade", potIndex: 0, handIndex: 0 },
         handBefore: mustHand("7h", "8c", "9d"),
         potBefore: mustPot("8d", "Ah", "Kc"),
@@ -72,15 +75,28 @@ test("turnLines", () => {
       want: ["South trades [7h] for [8d]", "Pot is [7h Ah Kc]"],
     },
     {
-      name: "exchange names the whole hand and pot",
+      name: "exchange after the first turn names the whole hand and pot",
       rec: {
         ...base,
+        turnIndex: 1,
         action: { type: "exchange", potIndex: 0, handIndex: 0 },
         handBefore: mustHand("7h", "8s", "9d"),
         potBefore: mustPot("Th", "Js", "Qd"),
         potAfter: mustPot("7h", "8s", "9d"),
       },
       want: ["South exchanges [7h 8s 9d] for [Th Js Qd]", "Pot is [7h 8s 9d]"],
+    },
+    {
+      name: "exchange on the round's first turn (Take Pot) names no cards",
+      rec: {
+        ...base,
+        turnIndex: 0,
+        action: { type: "exchange", potIndex: 0, handIndex: 0 },
+        handBefore: mustHand("7h", "8s", "9d"),
+        potBefore: mustPot("Th", "Js", "Qd"),
+        potAfter: mustPot("7h", "8s", "9d"),
+      },
+      want: ["South exchanges their hand for the pot", "Pot is [7h 8s 9d]"],
     },
     {
       name: "knock has no pot line",
@@ -104,7 +120,7 @@ test("turnLines", () => {
         handBefore: mustHand("7h", "8c", "9d"),
         potBefore: mustPot("7h", "8c", "9d"),
       },
-      want: ["East knocks", "Pot is [7h 8c 9d]"],
+      want: ["East keeps their hand", "Pot is [7h 8c 9d]"],
     },
   ];
 
@@ -127,9 +143,11 @@ test("roundRecapLines", () => {
     eliminated: [],
   };
   assert.deepEqual(roundRecapLines(outcome, [1, 0, 0, 0]), [
-    "South has [7h 8c 9d] for 9.0 points with 1 strike",
-    "North has [Ah Ad Ac] for 32.0 points with 0 strikes",
+    "South has [7h 8c 9d]",
+    "North has [Ah Ad Ac]",
     "South receives a strike",
+    "South has 9.0 points with 1 strike",
+    "North has 32.0 points with 0 strikes",
   ]);
 });
 
@@ -143,8 +161,9 @@ test("roundRecapLines marks an eliminated seat", () => {
     eliminated: [2],
   };
   assert.deepEqual(roundRecapLines(outcome, [0, 0, 3, 0]), [
-    "North has [7h 8c 9d] for 24.0 points with 3 strikes",
+    "North has [7h 8c 9d]",
     "North receives a strike and is eliminated",
+    "North has 24.0 points with 3 strikes",
   ]);
 });
 

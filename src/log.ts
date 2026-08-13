@@ -31,15 +31,35 @@ export function roundStartLines(roundNum: number, pot: Pot, southHand: Hand | un
 }
 
 // turnStartLine is written right before a seat's decide() is called,
-// human and bot alike.
-export function turnStartLine(seat: number): string {
-  return `${seatName(seat)}'s turn`;
+// human and bot alike. isFirst is true only for the round's first turn
+// (specs/rules.md's Take Pot/Keep turn), which gets its own wording.
+export function turnStartLine(seat: number, isFirst: boolean): string {
+  return isFirst ? `${seatName(seat)} goes first` : `${seatName(seat)}'s turn`;
 }
 
 // turnLines is written after a turn is taken: the action, and — for
 // trade/exchange, which change the pot — the pot again afterward.
+//
+// The round's first turn (Take Pot/Keep) gets its own wording and
+// never names cards moving pot -> hand: the pot is still private at
+// that point (specs/rules.md), so what the acting seat draws from it
+// (Take Pot) must stay private forever, exactly like any other hand —
+// only what they give up (their old hand, becoming the round's new
+// public pot, per potLine below) is safe to announce. Keep doesn't
+// touch the pot at all, but this is still the only announcement that
+// turn makes, so the pot is revealed here for the first time.
 export function turnLines(rec: TurnRecord): string[] {
   const seat = seatName(rec.seat);
+  if (rec.turnIndex === 0) {
+    switch (rec.action.type) {
+      case "knock":
+        return [`${seat} keeps their hand`, potLine(rec)];
+      case "exchange":
+        return [`${seat} exchanges their hand for the pot`, potLine(rec)];
+      case "trade":
+        break; // Not legal on the round's first turn (validateAction).
+    }
+  }
   switch (rec.action.type) {
     case "trade": {
       const given = rec.handBefore[rec.action.handIndex] as Card;
@@ -49,10 +69,7 @@ export function turnLines(rec: TurnRecord): string[] {
     case "exchange":
       return [`${seat} exchanges [${cardsNotation(rec.handBefore)}] for [${cardsNotation(rec.potBefore)}]`, potLine(rec)];
     case "knock":
-      // On the round's first turn (Keep), the pot was never touched but
-      // may still have been private — reveal it here since this is the
-      // only announcement this turn makes.
-      return rec.turnIndex === 0 ? [`${seat} knocks`, potLine(rec)] : [`${seat} knocks`];
+      return [`${seat} knocks`];
   }
 }
 
@@ -61,17 +78,20 @@ function potLine(rec: TurnRecord): string {
 }
 
 // roundRecapLines is written once a round ends: every participant's
-// final hand/score/strikes, then a line for each seat that was struck
-// this round.
+// final hand, then a line for each seat struck this round, then every
+// participant's score and strike count.
 export function roundRecapLines(outcome: RoundOutcome, strikes: readonly number[]): string[] {
   const lines: string[] = [];
   for (const pr of outcome.result.players) {
-    const n = strikes[pr.seat] as number;
-    lines.push(`${seatName(pr.seat)} has [${cardsNotation(pr.hand)}] for ${pr.score.toFixed(1)} points with ${n} strike${n === 1 ? "" : "s"}`);
+    lines.push(`${seatName(pr.seat)} has [${cardsNotation(pr.hand)}]`);
   }
   for (const seat of outcome.struck) {
     const eliminated = outcome.eliminated.includes(seat);
     lines.push(`${seatName(seat)} receives a strike${eliminated ? " and is eliminated" : ""}`);
+  }
+  for (const pr of outcome.result.players) {
+    const n = strikes[pr.seat] as number;
+    lines.push(`${seatName(pr.seat)} has ${pr.score.toFixed(1)} points with ${n} strike${n === 1 ? "" : "s"}`);
   }
   return lines;
 }

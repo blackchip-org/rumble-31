@@ -199,7 +199,7 @@ function withTurnUi(seat: number, inner: Strategy): Strategy {
   return {
     async decide(v: PlayerView): Promise<Action> {
       setActiveSeat(seat, v.isFirstTurnOfRound);
-      appendLogLine(logEl, turnStartLine(seat));
+      appendLogLine(logEl, turnStartLine(seat, v.isFirstTurnOfRound));
       if (seat !== 0) {
         await sleep(MIN_BOT_THINK_TIME + Math.random() * (MAX_BOT_THINK_TIME - MIN_BOT_THINK_TIME));
       }
@@ -243,6 +243,12 @@ function pauseBetweenRounds(ms: number): Promise<void> {
 // fully finishing before the next starts; a "knock" moves no cards.
 // conceal (re-hide the traded-in card once it lands) applies whenever
 // the acting seat isn't South, whose hand is never concealed.
+//
+// An exchange on the round's first turn (Take Pot) is a further special
+// case: the pot is still private then (specs/rules.md), so unlike every
+// other trade/exchange, the cards moving pot -> hand were never public
+// to begin with and must stay hidden for the entire animation, not just
+// re-concealed on landing -- takenIsSecret drives that.
 async function animateTurnCards(rec: TurnRecord): Promise<void> {
   const hand = seatOf(rec.seat).hand;
   const conceal = rec.seat !== 0;
@@ -253,11 +259,13 @@ async function animateTurnCards(rec: TurnRecord): Promise<void> {
       await animateCardTrade(hand.children[handIndex] as HTMLElement, potEl.children[potIndex] as HTMLElement, rec.handBefore[handIndex] as Card, rec.potBefore[potIndex] as Card, conceal);
       break;
     }
-    case "exchange":
+    case "exchange": {
+      const takenIsSecret = rec.turnIndex === 0 && conceal;
       for (let i = 0; i < 3; i++) {
-        await animateCardTrade(hand.children[i] as HTMLElement, potEl.children[i] as HTMLElement, rec.handBefore[i] as Card, rec.potBefore[i] as Card, conceal);
+        await animateCardTrade(hand.children[i] as HTMLElement, potEl.children[i] as HTMLElement, rec.handBefore[i] as Card, rec.potBefore[i] as Card, conceal, takenIsSecret);
       }
       break;
+    }
     case "knock":
       break;
   }
