@@ -19,7 +19,7 @@ import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
 import { installGlobalErrorHandlers, mockError, showErrorScreen } from "./errorScreen.ts";
 import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
-import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
+import { renderStrikes, setDealer, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type PersistedState, type RoundCheckpoint } from "./state.ts";
@@ -121,6 +121,7 @@ function must<T extends HTMLElement>(id: string): T {
 interface SeatEls {
   panel: HTMLElement;
   hand: HTMLElement;
+  dealer: HTMLElement;
   score: HTMLElement;
   strikes: HTMLElement;
 }
@@ -164,6 +165,7 @@ const seatEls: [SeatEls, SeatEls, SeatEls, SeatEls] = [0, 1, 2, 3].map((seat) =>
   return {
     panel: must<HTMLElement>(`panel-${key}`),
     hand: must<HTMLElement>(seat === 0 ? "hand" : `hand-${key}`),
+    dealer: must<HTMLElement>(`dealer-${key}`),
     score: must<HTMLElement>(`score-${key}`),
     strikes: must<HTMLElement>(`strikes-${key}`),
   };
@@ -559,6 +561,10 @@ async function main(resume?: GameState): Promise<void> {
     let roundTurnIndex = roundNum === startRoundNum ? (resume?.checkpoint?.turnIndex ?? 0) : 0;
     let roundKnocked = roundNum === startRoundNum ? (resume?.checkpoint?.knocked ?? false) : false;
     let roundKnockerSeat = roundNum === startRoundNum ? (resume?.checkpoint?.knockerSeat ?? -1) : -1;
+
+    for (let seat = 0; seat < 4; seat++) {
+      setDealer(seatOf(seat).dealer, seat === g.dealerSeat);
+    }
 
     g.onDeal = async (pot, hands, firstSeat) => {
       roundHands = new Map(hands);

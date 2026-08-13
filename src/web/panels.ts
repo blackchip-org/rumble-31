@@ -32,6 +32,13 @@ export function setScore(el: HTMLElement, value: number | null): void {
   el.textContent = value === null ? "" : formatScore(value);
 }
 
+// setDealer toggles a seat's dealer-button circle between empty
+// (outline only) and filled with 'D', per gui.md.
+export function setDealer(el: HTMLElement, isDealer: boolean): void {
+  el.classList.toggle("is-dealer", isDealer);
+  el.textContent = isDealer ? "D" : "";
+}
+
 export type PanelState = "turn" | "first" | "eliminated" | "knocked" | "strike" | "none";
 
 // setWon toggles a seat panel's end-of-round win highlight. Independent

@@ -29,6 +29,13 @@ round is over and scores are announced, same as the score box below.
 information such as "turn", "first", "knocked", "eliminated", etc. Only
 one tag can be shown at any time. If there is no tag to show, it should
 still fill the same space so the panel doesn't jump when state changes.
+- A dealer's button, shown inline with the score box and strike
+indicators in the same row, placed before the score box. The
+button's circle outline (black border) is always present. When the
+seat is the dealer, the circle is filled white with the letter 'D'
+in black text in the middle. When the seat is not the dealer, the
+circle is filled dark gray instead, with no letter -- marking where
+the button would go.
 - A score box showing the current tally. If this information is private,
 the box should be empty. It is always public for the human player and
 public for bots once the round is over and scores are announced.

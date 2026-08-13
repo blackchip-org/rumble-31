@@ -506,6 +506,29 @@ body {
   line-height: 1;
 }
 
+/* Always rendered as a circle, dark-gray-filled to mark where the
+   button goes; .is-dealer fills it white with 'D' for whichever seat
+   currently holds it (see panels.ts's setDealer). Colors are literal
+   per gui.md, not theme variables -- the button's look doesn't change
+   with theme. */
+.dealer-button {
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  border: 1px solid #000;
+  background: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-strike);
+  line-height: 1;
+  color: #000;
+}
+
+.dealer-button.is-dealer {
+  background: #fff;
+}
+
 .strike.ok {
   background: rgba(76, 175, 125, 0.14);
   color: var(--good);
