@@ -1,30 +1,12 @@
 // Headless bot-vs-bot game simulation, for comparing the bot difficulty
 // strategies described in specs/bots.md without a browser.
 
-import { EasyBot } from "../bot/easy.ts";
-import { RegularBot } from "../bot/regular.ts";
-import { DifficultBot } from "../bot/difficult.ts";
 import { newGame } from "../game/game.ts";
 import type { Strategy } from "../game/types.ts";
 import { Rng } from "../rng.ts";
+import { BOT_NAMES, createBot, type BotName } from "../bot/factory.ts";
 
-export const BOT_NAMES = ["easy", "regular", "difficult"] as const;
-export type BotName = (typeof BOT_NAMES)[number];
-
-// createBot returns a freshly constructed strategy for name, per
-// specs/bots.md. rng seeds the bot's own random decisions (e.g. its
-// knock-turn range) with an independent sub-seed, so a batch stays
-// fully reproducible from config.seed alone.
-export function createBot(name: BotName, rng: Rng): Strategy {
-  switch (name) {
-    case "easy":
-      return new EasyBot({ rng: new Rng(rng.nextSeed()) });
-    case "regular":
-      return new RegularBot({ rng: new Rng(rng.nextSeed()) });
-    case "difficult":
-      return new DifficultBot({ rng: new Rng(rng.nextSeed()) });
-  }
-}
+export { BOT_NAMES, createBot, type BotName };
 
 // SimulationConfig configures a batch of independent games. Every
 // game's seed is derived from seed, so a batch is fully reproducible.

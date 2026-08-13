@@ -1,13 +1,22 @@
 // User-configurable settings (specs/gui.md's Settings Screen), persisted
 // to a Storage (localStorage in the browser) as a single JSON blob.
 
+import { BOT_NAMES, type BotName } from "../bot/factory.ts";
+
 const STORAGE_KEY = "rumble31.settings";
 
 export interface Settings {
   soundsEnabled: boolean;
+  bot1: BotName;
+  bot2: BotName;
+  bot3: BotName;
 }
 
-export const defaultSettings: Settings = { soundsEnabled: true };
+export const defaultSettings: Settings = { soundsEnabled: true, bot1: "easy", bot2: "easy", bot3: "easy" };
+
+function isBotName(value: unknown): value is BotName {
+  return typeof value === "string" && (BOT_NAMES as readonly string[]).includes(value);
+}
 
 // loadSettings reads Settings from storage, falling back to
 // defaultSettings when nothing is stored, or what's stored isn't valid
@@ -19,8 +28,12 @@ export function loadSettings(storage: Storage): Settings {
   }
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed === "object" && parsed !== null && "soundsEnabled" in parsed && typeof (parsed as { soundsEnabled: unknown }).soundsEnabled === "boolean") {
-      return { soundsEnabled: (parsed as { soundsEnabled: boolean }).soundsEnabled };
+    if (typeof parsed !== "object" || parsed === null) {
+      return { ...defaultSettings };
+    }
+    const p = parsed as Record<string, unknown>;
+    if (typeof p.soundsEnabled === "boolean" && isBotName(p.bot1) && isBotName(p.bot2) && isBotName(p.bot3)) {
+      return { soundsEnabled: p.soundsEnabled, bot1: p.bot1, bot2: p.bot2, bot3: p.bot3 };
     }
   } catch {
     // Falls through to the default below.

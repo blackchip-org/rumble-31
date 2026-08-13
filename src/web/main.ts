@@ -4,7 +4,7 @@
 
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
-import { EasyBot } from "../bot/easy.ts";
+import { BOT_NAMES, createBot, type BotName } from "../bot/factory.ts";
 import { DEAL_ANIMATION_DELAY, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
@@ -21,6 +21,7 @@ import { installGlobalErrorHandlers, mockError, showErrorScreen } from "./errorS
 import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
 import { renderStrikes, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
+import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type PersistedState, type RoundCheckpoint } from "./state.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
@@ -137,6 +138,9 @@ const aboutMainMenuBtn = must<HTMLButtonElement>("about-main-menu-btn");
 
 const settingsScreenEl = must<HTMLElement>("settings-screen");
 const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
+const bot1ToggleBtn = must<HTMLButtonElement>("bot1-toggle-btn");
+const bot2ToggleBtn = must<HTMLButtonElement>("bot2-toggle-btn");
+const bot3ToggleBtn = must<HTMLButtonElement>("bot3-toggle-btn");
 const settingsMainMenuBtn = must<HTMLButtonElement>("settings-main-menu-btn");
 
 const gameOverScreenEl = must<HTMLElement>("game-over-screen");
@@ -476,12 +480,17 @@ async function main(resume?: GameState): Promise<void> {
 
   const seed = Date.now();
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn);
-  const bots: [EasyBot, EasyBot, EasyBot] = [new EasyBot(), new EasyBot(), new EasyBot()];
+  const botRng = new Rng(seed);
+  // A resumed game keeps the bot/seat pairing it started with instead
+  // of reshuffling (specs/state.md); a brand new game shuffles the
+  // three settings-configured bots across the three bot seats
+  // (specs/bots.md).
+  const botSeats: BotSeats = resume ? resume.botSeats : assignBotSeats(settings, botRng);
   const strategies: [Strategy, Strategy, Strategy, Strategy] = [
     withTurnUi(0, human),
-    withTurnUi(1, bots[0]),
-    withTurnUi(2, bots[1]),
-    withTurnUi(3, bots[2]),
+    withTurnUi(1, createBot(botSeats[0], botRng)),
+    withTurnUi(2, createBot(botSeats[1], botRng)),
+    withTurnUi(3, createBot(botSeats[2], botRng)),
   ];
 
   const g = resume
@@ -524,7 +533,7 @@ async function main(resume?: GameState): Promise<void> {
 
   const startRoundNum = resume?.roundNum ?? 1;
 
-  saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: startRoundNum, dealerSeat: g.dealerSeat as number, checkpoint: undefined, log: logLines() });
+  saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: startRoundNum, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
 
   for (let roundNum = startRoundNum; ; roundNum++) {
     // roundHands/roundPot/roundTurnIndex/roundKnocked/roundKnockerSeat
@@ -561,6 +570,7 @@ async function main(resume?: GameState): Promise<void> {
         eliminated: g.eliminated,
         roundNum,
         dealerSeat: g.dealerSeat as number,
+        botSeats,
         checkpoint: {
           hands: [...roundHands.entries()],
           pot: roundPot,
@@ -595,6 +605,7 @@ async function main(resume?: GameState): Promise<void> {
         eliminated: g.eliminated,
         roundNum,
         dealerSeat: g.dealerSeat as number,
+        botSeats,
         checkpoint: {
           hands: [...hands.entries()],
           pot: roundPot as Pot,
@@ -673,6 +684,7 @@ async function main(resume?: GameState): Promise<void> {
             eliminated: g.eliminated,
             roundNum: roundNum + 1,
             dealerSeat: g.dealerSeat as number,
+            botSeats,
             log: logLines(),
             southWon: g.winners().includes(0),
           },
@@ -680,7 +692,7 @@ async function main(resume?: GameState): Promise<void> {
         localStorage,
       );
     } else {
-      saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, dealerSeat: g.dealerSeat as number, checkpoint: undefined, log: logLines() });
+      saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
     }
 
     await pauseBetweenRounds(3000);
@@ -731,11 +743,25 @@ function syncSoundsToggleBtn(): void {
   soundsToggleBtn.textContent = settings.soundsEnabled ? "Enabled" : "Disabled";
 }
 
+// BOT_LABELS maps a BotName to its Settings Screen button label
+// (specs/gui.md's Settings Screen section: "Easy", "Regular",
+// "Difficult").
+const BOT_LABELS: Record<BotName, string> = { easy: "Easy", regular: "Regular", difficult: "Difficult" };
+
+// syncBotToggleBtns sets each of the three bot toggle buttons' labels
+// to match settings.bot1/bot2/bot3.
+function syncBotToggleBtns(): void {
+  bot1ToggleBtn.textContent = BOT_LABELS[settings.bot1];
+  bot2ToggleBtn.textContent = BOT_LABELS[settings.bot2];
+  bot3ToggleBtn.textContent = BOT_LABELS[settings.bot3];
+}
+
 // showSettingsScreen swaps whichever screen is up for the settings
 // screen (per specs/gui.md's Main Screen section's "Settings" button),
 // and persists it as the screen to resume (specs/state.md).
 function showSettingsScreen(): void {
   syncSoundsToggleBtn();
+  syncBotToggleBtns();
   hideAllScreens();
   settingsScreenEl.hidden = false;
   saveState({ screen: "settings" }, localStorage);
@@ -775,7 +801,10 @@ function showDebugGameOverScreen(params: DebugParams): void {
   const eliminated = params.initialStrikes.map((s) => s >= 3) as [boolean, boolean, boolean, boolean];
   const southWon = params.initialStrikes[0] < 3;
   saveState(
-    { screen: "over", game: { strikes: params.initialStrikes, eliminated, roundNum: 1, dealerSeat: 0, log: logLines(), southWon } },
+    {
+      screen: "over",
+      game: { strikes: params.initialStrikes, eliminated, roundNum: 1, dealerSeat: 0, botSeats: [settings.bot1, settings.bot2, settings.bot3], log: logLines(), southWon },
+    },
     localStorage,
   );
   showGameOverScreen(southWon);
@@ -810,6 +839,28 @@ soundsToggleBtn.addEventListener("click", () => {
   settings = { ...settings, soundsEnabled: !settings.soundsEnabled };
   saveSettings(settings, localStorage);
   syncSoundsToggleBtn();
+});
+
+// nextBotName cycles a BotName through BOT_NAMES's order (specs/gui.md's
+// Settings Screen section: "Easy", "Regular", "Difficult").
+function nextBotName(name: BotName): BotName {
+  return BOT_NAMES[(BOT_NAMES.indexOf(name) + 1) % BOT_NAMES.length] as BotName;
+}
+
+bot1ToggleBtn.addEventListener("click", () => {
+  settings = { ...settings, bot1: nextBotName(settings.bot1) };
+  saveSettings(settings, localStorage);
+  syncBotToggleBtns();
+});
+bot2ToggleBtn.addEventListener("click", () => {
+  settings = { ...settings, bot2: nextBotName(settings.bot2) };
+  saveSettings(settings, localStorage);
+  syncBotToggleBtns();
+});
+bot3ToggleBtn.addEventListener("click", () => {
+  settings = { ...settings, bot3: nextBotName(settings.bot3) };
+  saveSettings(settings, localStorage);
+  syncBotToggleBtns();
 });
 
 newGameBtn.addEventListener("click", () => showGameScreen());

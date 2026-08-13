@@ -9,6 +9,13 @@ these are:
 - Regular
 - Difficult
 
+At the start of the game, each bot (of 3) is given a strategy according 
+to what is defined in the settings: the "Bot 1" setting's difficulty for
+the first bot, "Bot 2"'s for the second, and "Bot 3"'s for the third.
+These three bots are then randomly assigned to the remaining seats (the
+human is always South), so which setting ends up in which seat varies
+from game to game.
+
 In the descriptions below, the following applies:
 
 If a number is given such as [18-20], that means to generate a random number at

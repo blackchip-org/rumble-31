@@ -4,12 +4,13 @@
 // the player is on and how far into a game they've gotten, rather
 // than their preferences.
 
+import type { BotSeats } from "./botAssignment.ts";
 import type { Hand, Pot } from "../game/types.ts";
 
 const STORAGE_KEY = "rumble31.state";
-// Bumped to 2 when dealerSeat was added to GameState — an old v1 save
-// is simply treated as absent (see loadState), no migration needed.
-const SCHEMA_VERSION = 2;
+// Bumped to 3 when botSeats was added to GameState — an old save is
+// simply treated as absent (see loadState), no migration needed.
+const SCHEMA_VERSION = 3;
 
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
@@ -41,6 +42,10 @@ export interface GameState {
   eliminated: [boolean, boolean, boolean, boolean];
   roundNum: number;
   dealerSeat: number;
+  // botSeats[i] is the difficulty seated at seat i+1 (specs/bots.md),
+  // fixed for the life of the game so resuming it doesn't reshuffle
+  // which bot sits where.
+  botSeats: BotSeats;
   log: string[];
   checkpoint?: RoundCheckpoint;
 }

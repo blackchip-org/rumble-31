@@ -26,11 +26,16 @@ function memoryStorage(initial: Record<string, string> = {}): Storage {
 test("loadSettings", () => {
   const cases: Array<{ name: string; stored: Record<string, string>; want: Settings }> = [
     { name: "nothing stored: falls back to defaults", stored: {}, want: defaultSettings },
-    { name: "valid stored value: sounds disabled", stored: { "rumble31.settings": '{"soundsEnabled":false}' }, want: { soundsEnabled: false } },
-    { name: "valid stored value: sounds enabled", stored: { "rumble31.settings": '{"soundsEnabled":true}' }, want: { soundsEnabled: true } },
+    {
+      name: "valid stored value",
+      stored: { "rumble31.settings": '{"soundsEnabled":false,"bot1":"regular","bot2":"difficult","bot3":"easy"}' },
+      want: { soundsEnabled: false, bot1: "regular", bot2: "difficult", bot3: "easy" },
+    },
     { name: "malformed JSON: falls back to defaults", stored: { "rumble31.settings": "not json" }, want: defaultSettings },
-    { name: "JSON missing soundsEnabled: falls back to defaults", stored: { "rumble31.settings": "{}" }, want: defaultSettings },
-    { name: "JSON with wrong type: falls back to defaults", stored: { "rumble31.settings": '{"soundsEnabled":"yes"}' }, want: defaultSettings },
+    { name: "JSON missing soundsEnabled: falls back to defaults", stored: { "rumble31.settings": '{"bot1":"easy","bot2":"easy","bot3":"easy"}' }, want: defaultSettings },
+    { name: "JSON with wrong type for soundsEnabled: falls back to defaults", stored: { "rumble31.settings": '{"soundsEnabled":"yes","bot1":"easy","bot2":"easy","bot3":"easy"}' }, want: defaultSettings },
+    { name: "JSON missing bot1: falls back to defaults", stored: { "rumble31.settings": '{"soundsEnabled":true,"bot2":"easy","bot3":"easy"}' }, want: defaultSettings },
+    { name: "JSON with invalid bot2 value: falls back to defaults", stored: { "rumble31.settings": '{"soundsEnabled":true,"bot1":"easy","bot2":"nightmare","bot3":"easy"}' }, want: defaultSettings },
   ];
 
   for (const c of cases) {
@@ -41,9 +46,10 @@ test("loadSettings", () => {
 
 test("saveSettings round-trips through loadSettings", () => {
   const storage = memoryStorage();
-  saveSettings({ soundsEnabled: false }, storage);
-  assert.deepEqual(loadSettings(storage), { soundsEnabled: false });
+  const settings: Settings = { soundsEnabled: false, bot1: "difficult", bot2: "regular", bot3: "easy" };
+  saveSettings(settings, storage);
+  assert.deepEqual(loadSettings(storage), settings);
 
-  saveSettings({ soundsEnabled: true }, storage);
-  assert.deepEqual(loadSettings(storage), { soundsEnabled: true });
+  saveSettings(defaultSettings, storage);
+  assert.deepEqual(loadSettings(storage), defaultSettings);
 });

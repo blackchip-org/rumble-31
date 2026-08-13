@@ -25,8 +25,12 @@ The stored object records:
   `over`. The error screen is never recorded here (see "Error screen"
   below).
 - If the screen is `game` or `over`: each seat's strikes and
-  elimination status, the current round number, and which seat holds
-  the dealer button (specs/rules.md).
+  elimination status, the current round number, which seat holds
+  the dealer button (specs/rules.md), and which bot difficulty
+  (specs/bots.md) is seated at each of the three bot seats. The
+  latter is fixed for the life of the game: it is chosen once, when
+  the game starts, and does not change even if the player changes
+  the Settings Screen's bot settings while the game is in progress.
 - If the screen is `game` and a round is in progress: that round's
   checkpoint -- every active seat's current hand, the current pot,
   which seat acts next, whether that seat's turn is the round's first
@@ -61,7 +65,10 @@ specs/params.md:
 - If valid saved state exists, the application starts on the screen
   it names, instead of the Main Screen.
 - If that screen is `game`, the saved strikes, eliminations, round
-  number, and dealer button are restored. If a round-in-progress
+  number, dealer button, and bot seat assignment are restored -- the
+  same three bot difficulties stay in the same seats they started the
+  game in, rather than being reshuffled per specs/bots.md's normal
+  new-game behavior. If a round-in-progress
   checkpoint was saved, that round resumes from the checkpoint: hands
   and the pot are placed immediately with no deal animation (the same
   as the animation skip described in specs/params.md for the
