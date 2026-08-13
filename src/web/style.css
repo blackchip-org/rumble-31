@@ -951,6 +951,91 @@ body {
   background: var(--button-bg-hover);
 }
 
+/* ---------- licenses screen ---------- */
+
+.licenses-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--licenses-bg);
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+/* Same [hidden]-specificity-tie reasoning as .error-screen/.game-over-screen
+   above: display must be gated on :not([hidden]), not the bare selector. */
+.licenses-screen:not([hidden]) {
+  display: flex;
+}
+
+.licenses-title {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-licenses-title);
+  color: var(--licenses-title-color);
+}
+
+.licenses-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(90vw, 900px);
+  gap: 1.5rem;
+}
+
+.licenses-list {
+  flex: 0 0 240px;
+  min-height: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--licenses-text-color);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.licenses-textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--licenses-text-color);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  resize: none;
+}
+
+.licenses-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(60vw, 260px);
+}
+
+.licenses-buttons button {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-score);
+  cursor: pointer;
+}
+
+.licenses-buttons button:hover {
+  background: var(--button-bg-hover);
+}
+
 @media (max-width: 900px) {
   #table {
     grid-template-columns: 1fr;

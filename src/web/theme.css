@@ -117,4 +117,11 @@
   --settings-text-color: var(--ink); /* setting label/control text color */
   --font-size-settings-title: 2.25rem; /* settings screen "Settings"
                                            heading */
+
+  /* ---------- licenses screen (independently restylable) ---------- */
+  --licenses-bg: var(--bg); /* licenses screen background */
+  --licenses-title-color: #fff; /* "Licenses" heading color */
+  --licenses-text-color: var(--ink); /* list box / text area color */
+  --font-size-licenses-title: 2.25rem; /* licenses screen "Licenses"
+                                           heading */
 }

@@ -92,6 +92,7 @@ test("loadState", () => {
     { name: "valid main screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"main"}}' }, want: { screen: "main" } },
     { name: "valid settings screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"settings"}}' }, want: { screen: "settings" } },
     { name: "valid about screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"about"}}' }, want: { screen: "about" } },
+    { name: "valid licenses screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"licenses"}}' }, want: { screen: "licenses" } },
     {
       name: "valid game screen",
       stored: { "rumble31.state": JSON.stringify({ version: 4, state: { screen: "game", game: sampleGame } }) },
@@ -120,6 +121,9 @@ test("saveState round-trips through loadState", () => {
 
   saveState({ screen: "main" }, storage);
   assert.deepEqual(loadState(storage), { screen: "main" });
+
+  saveState({ screen: "licenses" }, storage);
+  assert.deepEqual(loadState(storage), { screen: "licenses" });
 
   saveState({ screen: "game", game: sampleGame }, storage);
   assert.deepEqual(loadState(storage), { screen: "game", game: sampleGame });

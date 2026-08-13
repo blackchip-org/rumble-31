@@ -25,6 +25,8 @@ import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type PersistedState, type RoundCheckpoint } from "./state.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
+import { licenses } from "./licensesData.ts";
+import { defaultLicense, sortedLicenses } from "./licensesScreen.ts";
 
 // sleep resolves after ms.
 function sleep(ms: number): Promise<void> {
@@ -136,6 +138,12 @@ const aboutScreenEl = must<HTMLElement>("about-screen");
 const aboutVersionEl = must<HTMLElement>("about-version");
 const aboutBuildEl = must<HTMLElement>("about-build");
 const aboutMainMenuBtn = must<HTMLButtonElement>("about-main-menu-btn");
+const licensesBtn = must<HTMLButtonElement>("licenses-btn");
+
+const licensesScreenEl = must<HTMLElement>("licenses-screen");
+const licensesListEl = must<HTMLSelectElement>("licenses-list");
+const licensesTextEl = must<HTMLTextAreaElement>("licenses-text");
+const licensesMainMenuBtn = must<HTMLButtonElement>("licenses-main-menu-btn");
 
 const settingsScreenEl = must<HTMLElement>("settings-screen");
 const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
@@ -776,6 +784,7 @@ function hideAllScreens(): void {
   mainScreenEl.hidden = true;
   gameScreenEl.hidden = true;
   aboutScreenEl.hidden = true;
+  licensesScreenEl.hidden = true;
   settingsScreenEl.hidden = true;
   gameOverScreenEl.hidden = true;
   errorScreenEl.hidden = true;
@@ -842,6 +851,35 @@ function showAboutScreen(): void {
   saveState({ screen: "about" }, localStorage);
 }
 
+// syncLicenseText sets the text area to the currently selected list
+// box entry's license text, per specs/gui.md's Licenses section.
+function syncLicenseText(): void {
+  const name = licensesListEl.value;
+  const entry = licenses.find((e) => e.name === name);
+  licensesTextEl.value = entry?.text ?? "";
+}
+
+// showLicensesScreen swaps whichever screen is up for the licenses
+// screen (per specs/gui.md's About Screen section's "Licenses"
+// button), populating the list box alphabetically with the
+// "Rumble-31" entry selected by default (specs/gui.md's Licenses
+// section), and persists it as the screen to resume (specs/state.md).
+function showLicensesScreen(): void {
+  licensesListEl.replaceChildren();
+  for (const entry of sortedLicenses(licenses)) {
+    const option = document.createElement("option");
+    option.value = entry.name;
+    option.textContent = entry.name;
+    licensesListEl.appendChild(option);
+  }
+  licensesListEl.value = defaultLicense(licenses)?.name ?? "";
+  syncLicenseText();
+
+  hideAllScreens();
+  licensesScreenEl.hidden = false;
+  saveState({ screen: "licenses" }, localStorage);
+}
+
 // showGameOverScreen swaps whichever screen is up for the game-over
 // screen, announcing South's win or loss per specs/gui.md's Game Over
 // Screen section: "You Won!"/"Game Over", one word per line. Callers
@@ -897,6 +935,9 @@ playAgainBtn.addEventListener("click", () => showGameScreen());
 mainMenuBtn.addEventListener("click", showMainScreen);
 aboutMainMenuBtn.addEventListener("click", showMainScreen);
 settingsMainMenuBtn.addEventListener("click", showMainScreen);
+licensesMainMenuBtn.addEventListener("click", showMainScreen);
+licensesBtn.addEventListener("click", showLicensesScreen);
+licensesListEl.addEventListener("change", syncLicenseText);
 saveLogBtn.addEventListener("click", () => downloadTextFile("rumble-31-log.txt", logText(logEl)));
 soundsToggleBtn.addEventListener("click", () => {
   settings = { ...settings, soundsEnabled: !settings.soundsEnabled };
@@ -946,6 +987,9 @@ switch (initialScreen) {
     break;
   case "about":
     showAboutScreen();
+    break;
+  case "licenses":
+    showLicensesScreen();
     break;
   case "over":
     if (savedState?.screen === "over") {

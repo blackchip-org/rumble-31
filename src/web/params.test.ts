@@ -146,6 +146,14 @@ test("parseDebugParams: valid combinations", () => {
       wantScreen: "about",
     },
     {
+      name: "screen=licenses",
+      search: "screen=licenses",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "licenses",
+    },
+    {
       name: "screen doesn't interfere with unrelated params",
       search: "screen=main&strikes=1000",
       wantInitialStrikes: [1, 0, 0, 0],
