@@ -795,6 +795,36 @@ test("run: onRoundStart fires even when three aces are already dealt", async () 
   assert.equal(starts, 4);
 });
 
+// Regression test for specs/state.md's resumed-round checkpoint: a
+// strategy resumed mid-round (e.g. a bot rebuilt from saved memory,
+// specs/bots.md) must not have that memory wiped by a second
+// onRoundStart -- only a round genuinely starting at turnIndex 0
+// should reset it.
+test("run: onRoundStart does not fire again when a round resumes with turnIndex > 0", async () => {
+  let starts = 0;
+  const spy: Strategy = {
+    onRoundStart: () => {
+      starts++;
+    },
+    decide: () => knock(),
+  };
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Kh", "Kc", "Kd"],
+    [spy, spy, spy, spy],
+  );
+  r.turnIndex = 1;
+
+  await r.run();
+  assert.equal(starts, 0);
+});
+
 test("run: observe broadcasts the same redacted PublicTurn to every active seat, in order", async () => {
   const logs: PublicTurn[][] = [[], [], [], []];
   const pass = (seat: number): Strategy => ({

@@ -95,8 +95,14 @@ export class Round {
   //
   // Returns the final result and a log of every turn taken.
   async run(): Promise<{ result: Result; log: TurnRecord[] }> {
-    for (const p of this.players) {
-      p.strategy.onRoundStart?.();
+    // A round resumed past its first turn (specs/state.md) must not
+    // re-fire onRoundStart -- that would wipe out a strategy's
+    // already-accumulated per-round memory (e.g. a bot's tracked
+    // opponent info) right back to its start-of-round blank state.
+    if (this.turnIndex === 0) {
+      for (const p of this.players) {
+        p.strategy.onRoundStart?.();
+      }
     }
 
     if (hasThreeAces(this.players)) {

@@ -12,8 +12,22 @@ import {
   randInt,
   resultingScore,
   unnecessaryIndices,
+  type NeighborSnapshot,
 } from "./helpers.ts";
 import { Rng } from "../rng.ts";
+
+// RegularBotMemory is everything RegularBot tracks across a round --
+// what snapshot() returns and the constructor init accepts back, so a
+// bot can be torn down and rebuilt (e.g. across a page reload,
+// specs/state.md) without losing what it's learned so far this round.
+export interface RegularBotMemory {
+  bestScore: number;
+  bestTurn: number;
+  lastSuitUpstreamTook?: Suit;
+  lastSuitUpstreamDiscarded?: Suit;
+  lastSuitDownstreamTook?: Suit;
+  neighbors: NeighborSnapshot;
+}
 
 // KNOCK_TURN_RANGE and BEST_SCORE_TURNS_AGO_RANGE are [lo-hi] ranges,
 // and KNOCK_SCORE is the fixed score threshold, from the Regular
@@ -48,6 +62,7 @@ export class RegularBot implements Strategy {
     lastSuitUpstreamTook?: Suit;
     lastSuitUpstreamDiscarded?: Suit;
     lastSuitDownstreamTook?: Suit;
+    neighbors?: NeighborSnapshot;
   }) {
     this.rng = init?.rng ?? new Rng(Math.floor(Math.random() * 0x100000000));
     this.bestScore = init?.bestScore ?? 0;
@@ -71,6 +86,22 @@ export class RegularBot implements Strategy {
         }
       },
     );
+    if (init?.neighbors) {
+      this.neighbors.restore(init.neighbors);
+    }
+  }
+
+  // snapshot returns everything this bot has tracked so far this round,
+  // per RegularBotMemory.
+  snapshot(): RegularBotMemory {
+    return {
+      bestScore: this.bestScore,
+      bestTurn: this.bestTurn,
+      lastSuitUpstreamTook: this.lastSuitUpstreamTook,
+      lastSuitUpstreamDiscarded: this.lastSuitUpstreamDiscarded,
+      lastSuitDownstreamTook: this.lastSuitDownstreamTook,
+      neighbors: this.neighbors.snapshot(),
+    };
   }
 
   onRoundStart(): void {

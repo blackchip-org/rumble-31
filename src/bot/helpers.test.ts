@@ -371,3 +371,42 @@ test("NeighborTracker.reset clears adjacency and history but keeps own seat and 
   assert.equal(t.upstreamSeat, 3);
   assert.deepEqual(events, ["up:3"]);
 });
+
+test("NeighborTracker.snapshot/restore round-trips discovered adjacency and turn history", () => {
+  const events: string[] = [];
+  const source = new NeighborTracker();
+  source.configure(
+    (t) => events.push(`up:${t.seat}`),
+    (t) => events.push(`down:${t.seat}`),
+  );
+  source.setOwnSeat(2);
+  source.observe(turn(2, "trade", ["8h"], ["9c"]));
+  source.observe(turn(3, "trade", ["Jc"], ["Tc"]));
+  source.observe(turn(1, "trade", ["7c"], ["Qh"]));
+  source.setOwnSeat(2);
+  assert.equal(source.upstreamSeat, 1);
+  assert.equal(source.downstreamSeat, 3);
+
+  const snap = source.snapshot();
+  const restored = new NeighborTracker();
+  restored.configure(
+    (t) => events.push(`restored-up:${t.seat}`),
+    (t) => events.push(`restored-down:${t.seat}`),
+  );
+  restored.restore(snap);
+  assert.equal(restored.upstreamSeat, 1);
+  assert.equal(restored.downstreamSeat, 3);
+
+  // restore() only carries over adjacency/history, not the private
+  // own-seat state setOwnSeat() manages -- exactly like a real bot
+  // rebuilt from memory, whose very next decide() calls setOwnSeat()
+  // again before relying on observe() (src/bot/regular.ts,
+  // src/bot/difficult.ts both do this every decide()).
+  restored.setOwnSeat(2);
+
+  // Live updates keep firing after restore, same as before it.
+  events.length = 0;
+  restored.observe(turn(1, "trade", ["9d"], ["Td"]));
+  restored.observe(turn(3, "trade", ["9c"], ["9d"]));
+  assert.deepEqual(events, ["restored-up:1", "restored-down:3"]);
+});

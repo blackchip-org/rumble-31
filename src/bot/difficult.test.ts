@@ -160,3 +160,31 @@ test("wires observed neighbor turns through to the exact known-hand favorable-pi
   assert.equal(action.potIndex, 1);
   assert.equal(action.handIndex, 2);
 });
+
+test("snapshot/restore round-trips tracked memory, including discovered neighbor adjacency", () => {
+  // Same priming sequence as the favorable-pickup test above, up to
+  // (but not including) the decision it's used to inform.
+  const b = new DifficultBot();
+  b.onRoundStart();
+  b.decide(baseView({ seat: 0, isFirstTurnOfRound: true, hand: mustHand("Ah", "Kh", "Qh"), pot: mustPot("7c", "8d", "9s") }));
+  b.observe(turn(0, "knock", [], []));
+  b.observe(turn(1, "trade", ["7h"], ["7s"]));
+  b.observe(turn(2, "trade", ["8h"], ["9d"]));
+  b.observe(turn(3, "trade", ["9h"], ["Qh"]));
+
+  // Restore into a brand new instance instead of continuing on b --
+  // the restored bot alone must still know upstream is seat 3 holding
+  // the known Qh, without ever having observed those turns itself.
+  const restored = new DifficultBot(b.snapshot());
+
+  const hand = mustHand("7c", "8c", "9s");
+  const pot = mustPot("Th", "Td", "7d");
+  const v = baseView({ seat: 0, hand, pot, ownTurnNumber: 2 });
+  assert.equal(bestImprovingSwap(v), undefined);
+
+  const action = restored.decide(v);
+  assert.equal(action.type, "trade");
+  assert.notEqual(action.potIndex, 0, "must avoid Th, which would improve upstream's known Qh");
+  assert.equal(action.potIndex, 1);
+  assert.equal(action.handIndex, 2);
+});

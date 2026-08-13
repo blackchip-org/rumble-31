@@ -40,6 +40,30 @@ const sampleGame: GameState = {
     turnIndex: 2,
     knocked: true,
     knockerSeat: 0,
+    botMemory: [
+      [1, { name: "easy" }],
+      [
+        2,
+        {
+          name: "regular",
+          bestScore: 20,
+          bestTurn: 1,
+          lastSuitUpstreamTook: "h",
+          neighbors: { upstreamSeat: 1, downstreamSeat: 3, lastTurn: { seat: 1, type: "trade", given: [{ rank: "7", suit: "h" }], taken: [{ rank: "9", suit: "c" }] } },
+        },
+      ],
+      [
+        3,
+        {
+          name: "difficult",
+          bestScore: 18,
+          bestTurn: 2,
+          upstreamKnown: [{ rank: "7", suit: "h" }],
+          downstreamKnown: [],
+          neighbors: { upstreamSeat: 2, downstreamSeat: 1, lastTurn: { seat: 2, type: "knock", given: [], taken: [] } },
+        },
+      ],
+    ],
   },
 };
 
@@ -63,24 +87,24 @@ test("loadState", () => {
     { name: "malformed JSON: no saved state", stored: { "rumble31.state": "not json" }, want: undefined },
     { name: "JSON missing version: no saved state", stored: { "rumble31.state": '{"state":{"screen":"main"}}' }, want: undefined },
     { name: "wrong schema version: no saved state", stored: { "rumble31.state": '{"version":99,"state":{"screen":"main"}}' }, want: undefined },
-    { name: "unrecognized screen: no saved state", stored: { "rumble31.state": '{"version":3,"state":{"screen":"bogus"}}' }, want: undefined },
-    { name: "screen missing entirely: no saved state", stored: { "rumble31.state": '{"version":3,"state":{}}' }, want: undefined },
-    { name: "valid main screen", stored: { "rumble31.state": '{"version":3,"state":{"screen":"main"}}' }, want: { screen: "main" } },
-    { name: "valid settings screen", stored: { "rumble31.state": '{"version":3,"state":{"screen":"settings"}}' }, want: { screen: "settings" } },
-    { name: "valid about screen", stored: { "rumble31.state": '{"version":3,"state":{"screen":"about"}}' }, want: { screen: "about" } },
+    { name: "unrecognized screen: no saved state", stored: { "rumble31.state": '{"version":4,"state":{"screen":"bogus"}}' }, want: undefined },
+    { name: "screen missing entirely: no saved state", stored: { "rumble31.state": '{"version":4,"state":{}}' }, want: undefined },
+    { name: "valid main screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"main"}}' }, want: { screen: "main" } },
+    { name: "valid settings screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"settings"}}' }, want: { screen: "settings" } },
+    { name: "valid about screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"about"}}' }, want: { screen: "about" } },
     {
       name: "valid game screen",
-      stored: { "rumble31.state": JSON.stringify({ version: 3, state: { screen: "game", game: sampleGame } }) },
+      stored: { "rumble31.state": JSON.stringify({ version: 4, state: { screen: "game", game: sampleGame } }) },
       want: { screen: "game", game: sampleGame },
     },
     {
       name: "valid over screen",
-      stored: { "rumble31.state": JSON.stringify({ version: 3, state: { screen: "over", game: sampleOver } }) },
+      stored: { "rumble31.state": JSON.stringify({ version: 4, state: { screen: "over", game: sampleOver } }) },
       want: { screen: "over", game: sampleOver },
     },
     {
-      name: "old schema version (pre-botSeats): no saved state",
-      stored: { "rumble31.state": JSON.stringify({ version: 2, state: { screen: "game", game: sampleGame } }) },
+      name: "old schema version (pre-botMemory): no saved state",
+      stored: { "rumble31.state": JSON.stringify({ version: 3, state: { screen: "game", game: sampleGame } }) },
       want: undefined,
     },
   ];

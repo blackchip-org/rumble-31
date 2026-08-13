@@ -4,12 +4,12 @@
 
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
-import { BOT_NAMES, createBot, type BotName } from "../bot/factory.ts";
+import { BOT_NAMES, createBot, snapshotBot, type BotMemory, type BotName } from "../bot/factory.ts";
 import { DEAL_ANIMATION_DELAY, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
-import type { Action, Hand, PlayerView, Pot, Strategy, TurnRecord } from "../game/types.ts";
+import type { Action, Hand, PlayerView, Pot, PublicTurn, Strategy, TurnRecord } from "../game/types.ts";
 import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnStartLine, turnLines } from "../log.ts";
 import { Rng } from "../rng.ts";
 import { version } from "../version.ts";
@@ -207,6 +207,12 @@ function withTurnUi(seat: number, inner: Strategy): Strategy {
       }
       return inner.decide(v);
     },
+    // Round (src/game/round.ts) calls these on whichever Strategy it's
+    // handed -- without forwarding them, a bot wrapped for turn UI
+    // would never get onRoundStart/observe at all, and its opponent
+    // tracking (specs/bots.md) would silently never run.
+    onRoundStart: () => inner.onRoundStart?.(),
+    observe: (t: PublicTurn) => inner.observe?.(t),
   };
 }
 
@@ -499,11 +505,31 @@ async function main(resume?: GameState): Promise<void> {
   // three settings-configured bots across the three bot seats
   // (specs/bots.md).
   const botSeats: BotSeats = resume ? resume.botSeats : assignBotSeats(settings, botRng);
+  // savedMemory carries each bot seat's tracked opponent info forward
+  // from the resumed round's checkpoint (specs/state.md), if any, so
+  // rebuilding the bots below doesn't lose what they'd already learned
+  // this round.
+  const savedMemory = new Map<number, BotMemory>(resume?.checkpoint?.botMemory ?? []);
+  // bots holds the three bot seats' raw strategies (unwrapped by
+  // withTurnUi below) so their memory can be snapshotted for the
+  // checkpoint as the round progresses.
+  const bots: [Strategy, Strategy, Strategy] = [
+    createBot(botSeats[0], botRng, savedMemory.get(1)),
+    createBot(botSeats[1], botRng, savedMemory.get(2)),
+    createBot(botSeats[2], botRng, savedMemory.get(3)),
+  ];
   const strategies: [Strategy, Strategy, Strategy, Strategy] = [
     withTurnUi(0, human),
-    withTurnUi(1, createBot(botSeats[0], botRng)),
-    withTurnUi(2, createBot(botSeats[1], botRng)),
-    withTurnUi(3, createBot(botSeats[2], botRng)),
+    withTurnUi(1, bots[0]),
+    withTurnUi(2, bots[1]),
+    withTurnUi(3, bots[2]),
+  ];
+  // botMemoryCheckpoint snapshots every bot seat's current memory,
+  // keyed by seat, for RoundCheckpoint.botMemory.
+  const botMemoryCheckpoint = (): Array<[number, BotMemory]> => [
+    [1, snapshotBot(botSeats[0], bots[0])],
+    [2, snapshotBot(botSeats[1], bots[1])],
+    [3, snapshotBot(botSeats[2], bots[2])],
   ];
 
   const g = resume
@@ -595,6 +621,7 @@ async function main(resume?: GameState): Promise<void> {
           turnIndex: roundTurnIndex,
           knocked: roundKnocked,
           knockerSeat: roundKnockerSeat,
+          botMemory: botMemoryCheckpoint(),
         },
         log: logLines(),
       });
@@ -630,6 +657,7 @@ async function main(resume?: GameState): Promise<void> {
           turnIndex: roundTurnIndex,
           knocked: roundKnocked,
           knockerSeat: roundKnockerSeat,
+          botMemory: botMemoryCheckpoint(),
         },
         log: logLines(),
       });

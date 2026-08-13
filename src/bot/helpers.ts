@@ -261,6 +261,14 @@ export function applyPublicTurn(held: Map<number, Card[]>, turn: PublicTurn): vo
   held.set(turn.seat, applyKnownCards(held.get(turn.seat) ?? [], turn));
 }
 
+// NeighborSnapshot is a NeighborTracker's discovered adjacency and last
+// observed turn, per its own snapshot()/restore().
+export interface NeighborSnapshot {
+  upstreamSeat: number | undefined;
+  downstreamSeat: number | undefined;
+  lastTurn: PublicTurn | undefined;
+}
+
 // NeighborTracker discovers a seat's upstream (the seat that acts
 // immediately before it) and downstream (the seat that acts immediately
 // after it) neighbors purely from the live sequence of PublicTurns --
@@ -286,6 +294,20 @@ export class NeighborTracker {
   configure(onUpstream: (t: PublicTurn) => void, onDownstream: (t: PublicTurn) => void): void {
     this.onUpstream = onUpstream;
     this.onDownstream = onDownstream;
+  }
+
+  // snapshot/restore capture and reapply discovered adjacency and turn
+  // history -- everything reset() clears -- so a strategy can be torn
+  // down and rebuilt (e.g. across a page reload, specs/state.md)
+  // without losing what it had already discovered this round.
+  snapshot(): NeighborSnapshot {
+    return { upstreamSeat: this.upstreamSeat, downstreamSeat: this.downstreamSeat, lastTurn: this.lastTurn };
+  }
+
+  restore(s: NeighborSnapshot): void {
+    this.upstreamSeat = s.upstreamSeat;
+    this.downstreamSeat = s.downstreamSeat;
+    this.lastTurn = s.lastTurn;
   }
 
   setOwnSeat(seat: number): void {

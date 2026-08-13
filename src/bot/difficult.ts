@@ -12,8 +12,21 @@ import {
   randInt,
   resultingScore,
   unnecessaryIndices,
+  type NeighborSnapshot,
 } from "./helpers.ts";
 import { Rng } from "../rng.ts";
+
+// DifficultBotMemory is everything DifficultBot tracks across a round --
+// what snapshot() returns and the constructor init accepts back, so a
+// bot can be torn down and rebuilt (e.g. across a page reload,
+// specs/state.md) without losing what it's learned so far this round.
+export interface DifficultBotMemory {
+  bestScore: number;
+  bestTurn: number;
+  upstreamKnown: Card[];
+  downstreamKnown: Card[];
+  neighbors: NeighborSnapshot;
+}
 
 // KNOCK_TURN_RANGE and BEST_SCORE_TURNS_AGO_RANGE are [lo-hi] ranges,
 // and KNOCK_SCORE is the fixed score threshold, from the Difficult
@@ -49,6 +62,7 @@ export class DifficultBot implements Strategy {
     bestTurn?: number;
     upstreamKnown?: Card[];
     downstreamKnown?: Card[];
+    neighbors?: NeighborSnapshot;
   }) {
     this.rng = init?.rng ?? new Rng(Math.floor(Math.random() * 0x100000000));
     this.bestScore = init?.bestScore ?? 0;
@@ -64,6 +78,21 @@ export class DifficultBot implements Strategy {
         this.downstreamKnown = applyKnownCards(this.downstreamKnown, t);
       },
     );
+    if (init?.neighbors) {
+      this.neighbors.restore(init.neighbors);
+    }
+  }
+
+  // snapshot returns everything this bot has tracked so far this round,
+  // per DifficultBotMemory.
+  snapshot(): DifficultBotMemory {
+    return {
+      bestScore: this.bestScore,
+      bestTurn: this.bestTurn,
+      upstreamKnown: this.upstreamKnown,
+      downstreamKnown: this.downstreamKnown,
+      neighbors: this.neighbors.snapshot(),
+    };
   }
 
   onRoundStart(): void {

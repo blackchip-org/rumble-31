@@ -5,12 +5,14 @@
 // than their preferences.
 
 import type { BotSeats } from "./botAssignment.ts";
+import type { BotMemory } from "../bot/factory.ts";
 import type { Hand, Pot } from "../game/types.ts";
 
 const STORAGE_KEY = "rumble31.state";
-// Bumped to 3 when botSeats was added to GameState — an old save is
-// simply treated as absent (see loadState), no migration needed.
-const SCHEMA_VERSION = 3;
+// Bumped to 4 when botMemory was added to RoundCheckpoint — an old
+// save is simply treated as absent (see loadState), no migration
+// needed.
+const SCHEMA_VERSION = 4;
 
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
@@ -31,6 +33,10 @@ export interface RoundCheckpoint {
   turnIndex: number;
   knocked: boolean;
   knockerSeat: number;
+  // botMemory[i] is [seat, memory] for one of the three bot seats: what
+  // that bot has tracked about its opponents so far this round
+  // (specs/bots.md), so a reload doesn't reset it back to blank.
+  botMemory: Array<[number, BotMemory]>;
 }
 
 // GameState is what's needed to resume the Game screen: every seat's
