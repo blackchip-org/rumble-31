@@ -25,6 +25,10 @@ The player panels should contain:
 their card is private, the light red card back tile should be shown
 instead. A bot's hand is private during play, then revealed once the
 round is over and scores are announced, same as the score box below.
+- A status tag in the upper right hand corner of the panel. This holds
+information such as "turn", "first", "knocked", "eliminated", etc. Only
+one tag can be shown at any time. If there is no tag to show, it should
+still fill the same space so the panel doesn't jump when state changes.
 - A score box showing the current tally. If this information is private,
 the box should be empty. It is always public for the human player and
 public for bots once the round is over and scores are announced.
@@ -61,8 +65,11 @@ are shown, clearing at the same time those highlights do.
 
 A player eliminated from the game (three strikes) keeps their panel in
 its usual place in the layout, but the panel is dimmed and tagged
-"eliminated", and shows no cards. A player eliminated by this round's
-strike is tagged "eliminated" instead of "strike".
+"eliminated", and shows no cards. The one exception is the round a
+player is eliminated in: their hand stays revealed (per the score
+reveal above) through that round's win/strike pause, and only goes
+blank starting with the next round's deal. A player eliminated by this
+round's strike is tagged "eliminated" instead of "strike".
 
 The player who knocks (see specs/rules.md) has their panel tagged
 "knocked" for the rest of that round. The tag is removed as soon as the
@@ -80,13 +87,19 @@ These buttons are always visible. They are disabled outside of the
 player's turn.
 
 On the round's first turn, the pot is private (see "Dealing" below),
-and the second button reads "Keep" instead of "Knock" -- same
-position and style, but clicking it leaves South's hand untouched
-instead of knocking (see specs/rules.md: neither Take Pot nor Keep
-counts as a knock on this turn). Clicking a hand or pot card has no
-effect on this turn -- trading a single card isn't available until the
-round's second turn. The button reverts to reading "Knock", and
-card-clicking to trade resumes working, from South's second turn on.
+and whichever seat acts first (South or a bot) has its panel tagged
+"First" instead of "turn", with its own distinct highlight color,
+separate from the ordinary yellowish turn highlight. When it is
+South's first turn, the two buttons read "Keep Pot" and "Keep Hand"
+instead of "Take Pot" and "Knock" -- same position and style, but
+clicking either leaves South's hand untouched instead of knocking (see
+specs/rules.md: neither Take Pot nor Keep counts as a knock on this
+turn). Clicking a hand or pot card has no effect on this turn --
+trading a single card isn't available until the round's second turn.
+All of South's hand cards highlight on South's first turn, to signal
+that "all" of South's cards are being considered rather than one. The
+buttons revert to reading "Take Pot" and "Knock", and card-clicking to
+trade resumes working, from South's second turn on.
 
 To trade a card from a players hand with one from the pot, the player:
 
@@ -183,7 +196,7 @@ blue and the text is white:
     - About
 
 Clicking on the "New Game" button navigates to the Game Screen.
-Clicking on the "Settings" button navigates to the Settings Screen. 
+Clicking on the "Settings" button navigates to the Settings Screen.
 Clicking on the "About" button navigates to the About Screen.s
 
 # Game Over Screen (over)
@@ -225,28 +238,28 @@ Contents should be in a panel centered horizontally and vertically.
 
 Main header shows "Settings"
 
-Settings are in a two column setting. The first column describes the 
-setting, the second column is a control to adjust the setting. The 
+Settings are in a two column setting. The first column describes the
+setting, the second column is a control to adjust the setting. The
 settings are:
 
 - Sounds
-- Bot 1 
+- Bot 1
 - Bot 2
 - Bot 3
 
 Sounds is a button that by default reads "Enabled". Clicking on it toggles
 to "Disabled". When this setting is disabled, the application should
-not emit any sounds. 
+not emit any sounds.
 
-For each bot setting there is a button that by default reads "Easy". 
+For each bot setting there is a button that by default reads "Easy".
 Clicking on it cycles through "Easy", "Regular", "Difficult". Changing
 a bot setting takes effect starting with the next game; it has no
 effect on a game already in progress.
 
 A "Main Menu" button is shown below the settings. Clicking on it naviages
-to the main screen. 
+to the main screen.
 
-These settings should be saved and retreived from local storage. 
+These settings should be saved and retreived from local storage.
 
 # About Screen (about)
 

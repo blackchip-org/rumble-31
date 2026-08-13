@@ -175,16 +175,17 @@ function seatOf(seat: number): SeatEls {
   return seatEls[seat] as SeatEls;
 }
 
-// setActiveSeat highlights whichever seat is currently deciding,
+// setActiveSeat highlights whichever seat is currently deciding —
+// tagged "first" instead of "turn" when it's the round's first turn —
 // leaving already-eliminated panels' dimmed state, and the current
 // round's knocked panel (if any), alone.
-function setActiveSeat(seat: number): void {
+function setActiveSeat(seat: number, isFirstTurn: boolean): void {
   for (let s = 0; s < 4; s++) {
     const panel = seatOf(s).panel;
     if (panel.classList.contains("is-eliminated") || panel.classList.contains("is-knocked")) {
       continue;
     }
-    setPanelState(panel, s === seat ? "turn" : "none");
+    setPanelState(panel, s === seat ? (isFirstTurn ? "first" : "turn") : "none");
   }
 }
 
@@ -197,7 +198,7 @@ function setActiveSeat(seat: number): void {
 function withTurnUi(seat: number, inner: Strategy): Strategy {
   return {
     async decide(v: PlayerView): Promise<Action> {
-      setActiveSeat(seat);
+      setActiveSeat(seat, v.isFirstTurnOfRound);
       appendLogLine(logEl, turnStartLine(seat));
       if (seat !== 0) {
         await sleep(MIN_BOT_THINK_TIME + Math.random() * (MAX_BOT_THINK_TIME - MIN_BOT_THINK_TIME));
@@ -323,11 +324,18 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
     setWon(seatOf(seat).panel, false);
     setStruck(seatOf(seat).panel, false);
     setPanelState(seatOf(seat).panel, hands.has(seat) ? "none" : "eliminated");
+    // Clears every seat's hand, not just this round's active ones: a
+    // seat eliminated last round still shows its final revealed hand
+    // (per specs/gui.md's Player Panel Contents section) right up
+    // until this next deal, since nothing else clears it in the
+    // meantime — see the round-end loop in main(), which deliberately
+    // leaves a newly-eliminated seat's hand alone so its reveal is
+    // actually visible through the pause.
+    seatOf(seat).hand.replaceChildren();
   }
 
   const activeSeats = [0, 1, 2, 3].filter((seat) => hands.has(seat));
   for (const seat of activeSeats) {
-    seatOf(seat).hand.replaceChildren();
     if (seat !== 0) {
       setScore(seatOf(seat).score, null);
     }
@@ -657,7 +665,12 @@ async function main(resume?: GameState): Promise<void> {
       renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
       if (g.eliminated[seat]) {
         setPanelState(seatOf(seat).panel, "eliminated");
-        seatOf(seat).hand.replaceChildren();
+        // The hand itself is left alone here — a seat eliminated by
+        // this round's strike was just revealed above (outcome.result.
+        // players) and should stay visible through the pause; a seat
+        // eliminated earlier already has an empty hand from its own
+        // elimination round and nothing has repopulated it since.
+        // animateDeal() clears it before the next deal either way.
       }
     }
 

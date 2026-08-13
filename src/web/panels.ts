@@ -32,7 +32,7 @@ export function setScore(el: HTMLElement, value: number | null): void {
   el.textContent = value === null ? "" : formatScore(value);
 }
 
-export type PanelState = "turn" | "eliminated" | "knocked" | "strike" | "none";
+export type PanelState = "turn" | "first" | "eliminated" | "knocked" | "strike" | "none";
 
 // setWon toggles a seat panel's end-of-round win highlight. Independent
 // of setPanelState since a win never coincides with turn/eliminated.
@@ -48,12 +48,16 @@ export function setStruck(panelEl: HTMLElement, struck: boolean): void {
   panelEl.classList.toggle("is-struck", struck);
 }
 
-// setPanelState toggles a seat panel's turn/eliminated/knocked/strike
-// visuals and its state tag's text; only one state applies at a time.
-// is-strike (this tag) is distinct from is-struck (setStruck's own,
-// independent end-of-round border blink) — a struck seat gets both.
+// setPanelState toggles a seat panel's turn/first/eliminated/knocked/
+// strike visuals and its state tag's text; only one state applies at a
+// time. is-strike (this tag) is distinct from is-struck (setStruck's
+// own, independent end-of-round border blink) — a struck seat gets
+// both. "first" is a distinct look from "turn" (its own highlight
+// color), used instead of "turn" for whichever seat is deciding the
+// round's first turn.
 export function setPanelState(panelEl: HTMLElement, state: PanelState): void {
   panelEl.classList.toggle("is-turn", state === "turn");
+  panelEl.classList.toggle("is-first", state === "first");
   panelEl.classList.toggle("is-eliminated", state === "eliminated");
   panelEl.classList.toggle("is-knocked", state === "knocked");
   panelEl.classList.toggle("is-strike", state === "strike");

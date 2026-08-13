@@ -232,6 +232,13 @@ body {
   filter: grayscale(0.6);
 }
 
+.panel.is-first {
+  border-color: var(--first);
+  box-shadow:
+    0 0 0 1px var(--first),
+    0 0 22px -6px var(--first-glow);
+}
+
 .panel.is-won {
   border-color: var(--win);
   box-shadow:
@@ -305,6 +312,10 @@ body {
   color: var(--accent);
 }
 
+.panel.is-first .seat-label {
+  color: var(--first);
+}
+
 .state-tag {
   /* Always holds a non-breaking space (panels.ts) and a real 1px
      border (transparent when there's no state), and stays hidden via
@@ -324,6 +335,7 @@ body {
 }
 
 .panel.is-turn .state-tag,
+.panel.is-first .state-tag,
 .panel.is-eliminated .state-tag,
 .panel.is-knocked .state-tag,
 .panel.is-strike .state-tag {
@@ -333,6 +345,11 @@ body {
 .panel.is-turn .state-tag {
   color: var(--accent);
   border-color: var(--accent-dim);
+}
+
+.panel.is-first .state-tag {
+  color: var(--first);
+  border-color: var(--first);
 }
 
 .panel.is-eliminated .state-tag {
@@ -428,6 +445,15 @@ body {
   box-shadow:
     0 0 0 2px var(--accent),
     0 6px 14px -4px rgba(217, 164, 65, 0.55);
+}
+
+/* South's whole hand, on South's first turn (domActionPrompt.ts) --
+   signals that all of South's cards, not just one, are what Keep
+   Pot/Keep Hand consider. */
+.card.is-first-turn {
+  box-shadow:
+    0 0 0 2px var(--first),
+    0 6px 14px -4px var(--first-glow);
 }
 
 .pot-cards .card,

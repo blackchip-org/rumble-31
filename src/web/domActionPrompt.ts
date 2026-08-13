@@ -10,9 +10,11 @@ import { TradeSelection } from "./tradeSelection.ts";
 // then resolves once the player either clicks a hand-card/pot-card pair
 // (a trade, in either order) or clicks the standing Take Pot / Knock
 // buttons. On the round's first turn, per specs/rules.md, only Take Pot
-// or Keep are available: clicking a card does nothing, and the second
-// button reads "Keep" instead of "Knock" (still resolves to knock() —
-// round.ts is what makes it not act as a real knock that turn).
+// or Keep are available: clicking a card does nothing, the buttons read
+// "Keep Pot"/"Keep Hand" instead of "Take Pot"/"Knock" (Keep Hand still
+// resolves to knock() — round.ts is what makes it not act as a real
+// knock that turn), and every hand card gets a highlight (is-first-turn)
+// signaling that all of the hand, not one card, is what's being kept.
 export class DomActionPrompt implements Strategy {
   private potEl: HTMLElement;
   private handEl: HTMLElement;
@@ -53,10 +55,11 @@ export class DomActionPrompt implements Strategy {
         settled = true;
         this.takePotBtn.disabled = true;
         this.knockBtn.disabled = true;
+        this.takePotBtn.textContent = "Take Pot";
         this.knockBtn.textContent = "Knock";
         this.takePotBtn.removeEventListener("click", onTakePot);
         this.knockBtn.removeEventListener("click", onKnock);
-        handCards.forEach((el) => el.classList.remove("is-selected"));
+        handCards.forEach((el) => el.classList.remove("is-selected", "is-first-turn"));
         potCards.forEach((el) => el.classList.remove("is-selected"));
         resolve(action);
       };
@@ -66,13 +69,18 @@ export class DomActionPrompt implements Strategy {
 
       this.takePotBtn.disabled = false;
       this.knockBtn.disabled = false;
-      this.knockBtn.textContent = isFirstTurn ? "Keep" : "Knock";
+      this.takePotBtn.textContent = isFirstTurn ? "Keep Pot" : "Take Pot";
+      this.knockBtn.textContent = isFirstTurn ? "Keep Hand" : "Knock";
       this.takePotBtn.addEventListener("click", onTakePot);
       this.knockBtn.addEventListener("click", onKnock);
 
       // Trading a single card isn't legal on the round's first turn —
-      // only Take Pot/Keep are, via the buttons above.
-      if (!isFirstTurn) {
+      // only Take Pot/Keep are, via the buttons above. All of South's
+      // hand cards highlight instead, to signal that "all" of the hand
+      // is what Keep Pot/Keep Hand consider.
+      if (isFirstTurn) {
+        handCards.forEach((el) => el.classList.add("is-first-turn"));
+      } else {
         handCards.forEach((el, i) => {
           el.addEventListener("click", () => {
             selection.clickHand(i);

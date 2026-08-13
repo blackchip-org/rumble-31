@@ -50,6 +50,10 @@
   --win-glow: rgba(255, 255, 255, 0.35); /* glow behind a winning
                                              panel's border */
   --knock: #7fa8d9; /* knocked state tag color/border */
+  --first: #a67fd9; /* first-turn state tag color, panel border/glow, and
+                        South's all-hand-cards highlight */
+  --first-glow: rgba(166, 127, 217, 0.35); /* glow behind the first-turn
+                                                panel border */
 
   /* ---------- main screen (independently restylable) ---------- */
   --main-bg: #1b5e3a; /* felt-green main screen background */
