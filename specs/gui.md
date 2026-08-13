@@ -71,9 +71,11 @@ reveal above) through that round's win/strike pause, and only goes
 blank starting with the next round's deal. A player eliminated by this
 round's strike is tagged "eliminated" instead of "strike".
 
-The player who knocks (see specs/rules.md) has their panel tagged
-"knocked" for the rest of that round. The tag is removed as soon as the
-round ends.
+Any player who knocks (see specs/rules.md, which also counts exchanging
+all cards as a knock) has their panel tagged "knocked" for the rest of
+that round -- not just the round's first knocker, since a later player
+may also knock or exchange on their own forced final turn. The tag is
+removed as soon as the round ends.
 
 In the center of the screen is the pot panel, showing the three cards in
 the pot arranged horizontally.

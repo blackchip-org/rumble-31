@@ -263,14 +263,6 @@ async function animateTurnCards(rec: TurnRecord): Promise<void> {
   }
 }
 
-// seatKnocked reports whether any seat is currently tagged "knocked"
-// this round — a round only ever has one knocker (round.ts's own
-// knocked/knockerSeat), so once a panel is tagged, later qualifying
-// actions don't move the tag.
-function seatKnocked(): boolean {
-  return seatEls.some((s) => s.panel.classList.contains("is-knocked"));
-}
-
 // renderTurn logs the turn per src/log.ts, plays its trade animation,
 // then keeps the pot and South's own hand/score panel live across every
 // turn. The pot is otherwise only rendered at deal time and when
@@ -288,10 +280,13 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 
   // Mirrors round.ts's own knock detection (a knock or an exchange, on
   // any turn but the round's very first — Take Pot/Keep on that turn
-  // never counts) to tag the knocker's panel. The tag is cleared with
-  // the rest of the turn state once the round ends (see the roundNum
-  // loop in main()).
-  if (!seatKnocked() && rec.turnIndex !== 0 && (rec.action.type === "knock" || rec.action.type === "exchange")) {
+  // never counts) to tag that seat's panel. round.ts itself only ever
+  // records the first such action as *the* knocker (the one whose
+  // choice ends the round), but every seat that chooses knock/exchange
+  // on its own turn gets tagged here, not just that first one. The tag
+  // is cleared with the rest of the turn state once the round ends
+  // (see the roundNum loop in main()).
+  if (rec.turnIndex !== 0 && (rec.action.type === "knock" || rec.action.type === "exchange")) {
     setPanelState(seatOf(rec.seat).panel, "knocked");
   }
 
