@@ -75,8 +75,10 @@ its usual place in the layout, but the panel is dimmed and tagged
 "eliminated", and shows no cards. The one exception is the round a
 player is eliminated in: their hand stays revealed (per the score
 reveal above) through that round's win/strike pause, and only goes
-blank starting with the next round's deal. A player eliminated by this
-round's strike is tagged "eliminated" instead of "strike".
+blank starting with the next round's deal. Their score box, though,
+clears as soon as that pause ends, rather than waiting for the next
+deal like the hand does. A player eliminated by this round's strike
+is tagged "eliminated" instead of "strike".
 
 Any player who knocks (see specs/rules.md, which also counts exchanging
 all cards as a knock) has their panel tagged "knocked" for the rest of

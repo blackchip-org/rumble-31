@@ -718,6 +718,19 @@ async function main(resume?: GameState): Promise<void> {
     }
 
     await pauseBetweenRounds(3000);
+
+    // A seat eliminated this round had its final score revealed above
+    // and left visible through the pause; now that the pause is over,
+    // clear it like any other eliminated seat's score box (already-
+    // eliminated seats never had theirs cleared past their own
+    // elimination round, since animateDeal's score-clearing loop only
+    // covers this round's active seats).
+    for (let seat = 0; seat < 4; seat++) {
+      if (g.eliminated[seat]) {
+        setScore(seatOf(seat).score, null);
+      }
+    }
+
     if (gameOver) {
       break;
     }
