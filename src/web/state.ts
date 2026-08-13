@@ -17,7 +17,7 @@ const SCHEMA_VERSION = 5;
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
 // persisted (specs/state.md's "Error screen" section).
-const STATE_SCREEN_IDS = ["main", "settings", "about", "licenses", "game", "over", "menu"] as const;
+const STATE_SCREEN_IDS = ["main", "settings", "about", "licenses", "htp", "game", "over", "menu"] as const;
 export type StateScreenId = (typeof STATE_SCREEN_IDS)[number];
 
 // RoundCheckpoint captures a round already in progress, enough to
@@ -75,6 +75,7 @@ export type PersistedState =
   | ({ screen: "settings" } & SettingsOrigin)
   | { screen: "about" }
   | { screen: "licenses" }
+  | { screen: "htp" }
   | { screen: "game"; game: GameState }
   | { screen: "over"; game: OverState }
   // Entering the Game Menu re-saves the most recently persisted `game`

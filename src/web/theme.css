@@ -125,6 +125,13 @@
   --font-size-licenses-title: 2.25rem; /* licenses screen "Licenses"
                                            heading */
 
+  /* ---------- how to play screen (independently restylable) ---------- */
+  --htp-bg: var(--bg); /* how to play screen background */
+  --htp-title-color: #fff; /* "How to Play" heading color */
+  --htp-text-color: var(--ink); /* text area color */
+  --font-size-htp-title: 2.25rem; /* how to play screen "How to Play"
+                                      heading */
+
   /* ---------- game menu screen (independently restylable) ---------- */
   --menu-bg: var(--bg); /* game menu screen background */
   --menu-title-color: #fff; /* "Game Menu" heading color */

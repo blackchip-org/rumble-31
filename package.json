@@ -5,7 +5,7 @@
   "description": "Rumble-31 card game engine, playable in the browser.",
   "type": "module",
   "scripts": {
-    "prepare": "node scripts/gen-buildtime.mjs && node scripts/gen-licenses.mjs",
+    "prepare": "node scripts/gen-buildtime.mjs && node scripts/gen-licenses.mjs && node scripts/gen-how-to-play.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test 'src/**/*.test.ts'",
     "simulate": "node src/sim/cli.ts",

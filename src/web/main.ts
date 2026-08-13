@@ -27,6 +27,7 @@ import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, l
 import { animateCardTrade } from "./tradeAnim.ts";
 import { licenses } from "./licensesData.ts";
 import { defaultLicense, sortedLicenses } from "./licensesScreen.ts";
+import { howToPlayText } from "./howToPlayData.ts";
 import { buildDebugMenuGameState } from "./gameMenu.ts";
 
 // sleep resolves after ms.
@@ -154,6 +155,7 @@ const mainScreenEl = must<HTMLElement>("main-screen");
 const gameScreenEl = must<HTMLElement>("game-screen");
 const menuBtn = must<HTMLButtonElement>("menu-btn");
 const newGameBtn = must<HTMLButtonElement>("new-game-btn");
+const htpBtn = must<HTMLButtonElement>("htp-btn");
 const settingsBtn = must<HTMLButtonElement>("settings-btn");
 const aboutBtn = must<HTMLButtonElement>("about-btn");
 
@@ -176,6 +178,10 @@ const licensesScreenEl = must<HTMLElement>("licenses-screen");
 const licensesListEl = must<HTMLSelectElement>("licenses-list");
 const licensesTextEl = must<HTMLTextAreaElement>("licenses-text");
 const licensesMainMenuBtn = must<HTMLButtonElement>("licenses-main-menu-btn");
+
+const htpScreenEl = must<HTMLElement>("htp-screen");
+const htpTextEl = must<HTMLTextAreaElement>("htp-text");
+const htpMainMenuBtn = must<HTMLButtonElement>("htp-main-menu-btn");
 
 const settingsScreenEl = must<HTMLElement>("settings-screen");
 const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
@@ -892,6 +898,7 @@ function hideAllScreens(): void {
   menuScreenEl.hidden = true;
   aboutScreenEl.hidden = true;
   licensesScreenEl.hidden = true;
+  htpScreenEl.hidden = true;
   settingsScreenEl.hidden = true;
   gameOverScreenEl.hidden = true;
   errorScreenEl.hidden = true;
@@ -1042,6 +1049,18 @@ function showLicensesScreen(): void {
   saveState({ screen: "licenses" }, localStorage);
 }
 
+// showHtpScreen swaps whichever screen is up for the How to Play
+// screen (per specs/gui.md's How to Play section), populating the
+// text area with how-to-play.md's contents (baked in at build time by
+// scripts/gen-how-to-play.mjs), and persists it as the screen to
+// resume (specs/state.md).
+function showHtpScreen(): void {
+  htpTextEl.value = howToPlayText;
+  hideAllScreens();
+  htpScreenEl.hidden = false;
+  saveState({ screen: "htp" }, localStorage);
+}
+
 // showGameOverScreen swaps whichever screen is up for the game-over
 // screen, announcing South's win or loss per specs/gui.md's Game Over
 // Screen section: "You Won!"/"Game Over", one word per line. Callers
@@ -1098,6 +1117,8 @@ mainMenuBtn.addEventListener("click", showMainScreen);
 aboutMainMenuBtn.addEventListener("click", showMainScreen);
 licensesMainMenuBtn.addEventListener("click", showMainScreen);
 licensesBtn.addEventListener("click", showLicensesScreen);
+htpMainMenuBtn.addEventListener("click", showMainScreen);
+htpBtn.addEventListener("click", showHtpScreen);
 
 // settingsBackBtn returns to wherever Settings was entered from
 // (specs/gui.md's Settings Screen section): the Main screen, or --
@@ -1189,6 +1210,9 @@ switch (initialScreen) {
     break;
   case "licenses":
     showLicensesScreen();
+    break;
+  case "htp":
+    showHtpScreen();
     break;
   case "over":
     if (savedState?.screen === "over") {

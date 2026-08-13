@@ -216,10 +216,12 @@ in white.
 - The following buttons. The background color of the button should be a dark
 blue and the text is white:
     - New Game
+    - How to Play
     - Settings
     - About
 
 Clicking on the "New Game" button navigates to the Game Screen.
+Clicking on the "How to Play" button navigates to the How to Play screen.
 Clicking on the "Settings" button navigates to the Settings Screen.
 Clicking on the "About" button navigates to the About Screen.s
 
@@ -322,8 +324,12 @@ The header for this panel is:
     Version <VERSION>
     Built on <BUILD DATE>
 
-    By Mike and Terri McGann
-    Featuring Claude Code
+    By
+    Mike McGann
+    Terri McGann
+
+    Featuring
+    Claude Code
 
 The Rumble-31 text uses the New Rocker font. The remaining text is bold.
 <VERSION> is the version number of the game, and <BUILD DATE> is the
@@ -365,3 +371,15 @@ item's license text instead.
 
 At the bottom is a button, "Main Menu" that navigates the user back to the
 Main Menu when clicked.
+
+# How to Play (htp)
+
+The how to play screen starts with a centered header that reads
+"How to Play"
+
+Next is a text area with the contents of how-to-play.md found in the root
+directory of this repository. This content should be scrollable and take
+up most of the screen.
+
+At the bottom is a "Main Menu" button that returns to the main menu when
+clicked.

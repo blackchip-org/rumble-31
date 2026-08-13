@@ -22,8 +22,8 @@ fresh, the same as a first-ever visit.
 The stored object records:
 
 - Which screen is showing: `main`, `settings`, `about`, `licenses`,
-  `game`, `over`, or `menu`. The error screen is never recorded here
-  (see "Error screen" below).
+  `htp`, `game`, `over`, or `menu`. The error screen is never recorded
+  here (see "Error screen" below).
 - If the screen is `game`, `over`, or `menu`: each seat's strikes and
   elimination status, the current round number, which seat holds
   the dealer button (specs/rules.md), and which bot difficulty

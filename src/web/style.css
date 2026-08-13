@@ -1166,6 +1166,64 @@ body {
   background: var(--button-bg-hover);
 }
 
+/* ---------- how to play screen ---------- */
+
+.htp-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--htp-bg);
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+/* Same [hidden]-specificity-tie reasoning as .licenses-screen above:
+   display must be gated on :not([hidden]), not the bare selector. */
+.htp-screen:not([hidden]) {
+  display: flex;
+}
+
+.htp-title {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-htp-title);
+  color: var(--htp-title-color);
+}
+
+.htp-textarea {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(90vw, 900px);
+  padding: 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--htp-text-color);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  resize: none;
+}
+
+.htp-buttons button {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-score);
+  cursor: pointer;
+}
+
+.htp-buttons button:hover {
+  background: var(--button-bg-hover);
+}
+
 @media (max-width: 900px) {
   #table {
     grid-template-columns: 1fr;
