@@ -22,9 +22,9 @@ fresh, the same as a first-ever visit.
 The stored object records:
 
 - Which screen is showing: `main`, `settings`, `about`, `licenses`,
-  `game`, or `over`. The error screen is never recorded here (see
-  "Error screen" below).
-- If the screen is `game` or `over`: each seat's strikes and
+  `game`, `over`, or `menu`. The error screen is never recorded here
+  (see "Error screen" below).
+- If the screen is `game`, `over`, or `menu`: each seat's strikes and
   elimination status, the current round number, which seat holds
   the dealer button (specs/rules.md), and which bot difficulty
   (specs/bots.md) is seated at each of the three bot seats. The
@@ -44,6 +44,15 @@ The stored object records:
   not been dealt yet.
 - If the screen is `over`: the final win/loss outcome, so the screen
   can be redrawn without replaying the game.
+- If the screen is `menu`: the same fields recorded for `game` above
+  (including that round's checkpoint, if any), read back exactly as
+  last saved for the `game` screen -- entering the Game Menu (see
+  "The Game Menu screen" below) does not create new game state, it
+  re-tags the most recently saved one under `menu` instead of `game`.
+- If the screen is `settings`: which screen it was entered from --
+  `main`, or `menu` together with that same `game` state -- per
+  specs/gui.md's Settings Screen section, driving its back button and
+  whether the bot-difficulty toggles are disabled.
 - The log panel's lines, so the visible history and Save Log survive
   a reload.
 
@@ -86,8 +95,31 @@ specs/params.md:
   checkpoint was saved, the next round deals normally.
 - If that screen is `over`, the saved outcome is redrawn directly,
   with no game replayed.
+- If that screen is `menu`, the Game Menu screen is shown directly
+  with the saved `game` state, restored the same way as the `game`
+  screen above but without resuming play (see "The Game Menu screen"
+  below).
+- If that screen is `settings`, the saved origin decides its back
+  button and bot-toggle state, restoring a `menu` origin's `game`
+  state the same way as above so returning to the Game Menu (rather
+  than Resume) still works after the reload.
 - If there is no saved state, or it is invalid, the application
   behaves as it does today: a bare visit shows the Main Screen.
+
+## The Game Menu screen
+
+Opening the Game Menu (or the Settings screen reached from it) stops
+the in-progress game outright rather than pausing it in place: no
+further bot turns, round-end pause, or sounds. "Resume" restarts the
+Game screen from the last checkpoint saved before the Game Menu was
+entered -- the same mechanism used to resume a game after a page
+reload, described above -- so nothing is lost, but nothing in the
+game's own log or checkpoint advances while the menu is shown, even
+across a reload.
+
+"Abandon" clears all saved state (as if local storage had been
+wiped) and returns to the Main screen; the game cannot be resumed
+after that.
 
 ## Interaction with debug parameters
 

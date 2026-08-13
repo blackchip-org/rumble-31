@@ -1,7 +1,6 @@
 # GUI
 
-The GUI is organized into different "screens". Right now, there is only
-one screen: the game screen
+The GUI is organized into different "screens".
 
 At typical desktop window sizes, the game screen fits entirely within
 the browser viewport; it does not scroll. Elements (cards in
@@ -11,6 +10,11 @@ small to fit the whole screen, the page falls back to scrolling so
 every panel stays reachable.
 
 # Game Screen (game)
+
+There is a bar at the very top of the screen. On the left hand side, it
+has the title of the game "Rumble-31". On the right hand side is a
+button labeled "Menu". Clicking on Menu, or pressing the Escape key,
+navigates to the Game Menu screen.
 
 The game screen has four panels -- one for each player.
 
@@ -276,10 +280,37 @@ Clicking on it cycles through "Easy", "Regular", "Difficult". Changing
 a bot setting takes effect starting with the next game; it has no
 effect on a game already in progress.
 
-A "Main Menu" button is shown below the settings. Clicking on it naviages
-to the main screen.
+When the Settings screen is entered via the Game Menu, the Bot settings
+should be disabled. Those settings should not be modified while a game
+is in progress.
 
-These settings should be saved and retreived from local storage.
+A "Main Menu" or "Game Menu" button is shown below the settings depending
+on which screen it came from. Clicking on that button will navigate back to
+that screen. If this screen was entered using a URL parameter, it shows
+the "Main Menu" button.
+
+These settings should be saved and retrieved from local storage.
+
+# Game Menu Screen (menu)
+
+The game menu screen has a heading "Game Menu" followed by the following
+buttons:
+
+- Resume
+- Settings
+- Abandon
+
+The "Abandon" button should using a reddish fill color to distinguish it
+from the other buttons.
+
+Clicking on Resume navigates to the Game Screen.
+Clicking on Settings navigates to the Settings Screen.
+
+Clicking on Abandon should first show a dialog box centered on the screen
+asking "Are you sure you want to abandon the game?" with "Yes" and "No"
+buttons below it. Clicking on "Yes" clears all game state and navigates
+back to the Main Menu. Clicking on "No" dismisses the dialog box.
+
 
 # About Screen (about)
 

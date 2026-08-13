@@ -22,6 +22,7 @@
     <div id="game-screen" hidden>
       <header id="header">
         <h1>Rumble-31</h1>
+        <button id="menu-btn" type="button">Menu</button>
       </header>
 
       <main id="table">
@@ -115,10 +116,29 @@
           <button id="bot3-toggle-btn" type="button"></button>
         </div>
         <div class="settings-buttons">
-          <button id="settings-main-menu-btn" type="button">Main Menu</button>
+          <button id="settings-back-btn" type="button"></button>
         </div>
       </div>
     </section>
+
+    <section id="menu-screen" class="menu-screen" hidden>
+      <div class="menu-panel">
+        <h1 class="menu-title">Game Menu</h1>
+        <div class="menu-buttons">
+          <button id="menu-resume-btn" type="button">Resume</button>
+          <button id="menu-settings-btn" type="button">Settings</button>
+          <button id="menu-abandon-btn" class="menu-abandon-btn" type="button">Abandon</button>
+        </div>
+      </div>
+    </section>
+
+    <dialog id="abandon-dialog" class="abandon-dialog">
+      <p class="abandon-dialog-message">Are you sure you want to abandon the game?</p>
+      <div class="abandon-dialog-buttons">
+        <button id="abandon-yes-btn" type="button">Yes</button>
+        <button id="abandon-no-btn" type="button">No</button>
+      </div>
+    </dialog>
 
     <section id="game-over-screen" class="game-over-screen" hidden>
       <div class="game-over-panel">

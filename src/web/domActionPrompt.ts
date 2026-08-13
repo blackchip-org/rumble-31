@@ -21,13 +21,15 @@ export class DomActionPrompt implements Strategy {
   private scoreEl: HTMLElement;
   private takePotBtn: HTMLButtonElement;
   private knockBtn: HTMLButtonElement;
+  private signal: AbortSignal;
 
-  constructor(potEl: HTMLElement, handEl: HTMLElement, scoreEl: HTMLElement, takePotBtn: HTMLButtonElement, knockBtn: HTMLButtonElement) {
+  constructor(potEl: HTMLElement, handEl: HTMLElement, scoreEl: HTMLElement, takePotBtn: HTMLButtonElement, knockBtn: HTMLButtonElement, signal: AbortSignal) {
     this.potEl = potEl;
     this.handEl = handEl;
     this.scoreEl = scoreEl;
     this.takePotBtn = takePotBtn;
     this.knockBtn = knockBtn;
+    this.signal = signal;
   }
 
   decide(view: PlayerView): Promise<Action> {
@@ -48,11 +50,13 @@ export class DomActionPrompt implements Strategy {
         potCards.forEach((el, i) => el.classList.toggle("is-selected", selection.potIndex() === i));
       };
 
-      const finish = (action: Action) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
+      // detach undoes everything decide() attached to the DOM, without
+      // settling the promise -- shared by finish() (a real decision,
+      // which also resolves) and onAbort below (the game was paused or
+      // abandoned mid-turn, so this decide() must stop touching the
+      // DOM but never resolve, since round.ts is never going to look
+      // at its result).
+      const detach = () => {
         this.takePotBtn.disabled = true;
         this.knockBtn.disabled = true;
         this.takePotBtn.textContent = "Take Pot";
@@ -61,11 +65,30 @@ export class DomActionPrompt implements Strategy {
         this.knockBtn.removeEventListener("click", onKnock);
         handCards.forEach((el) => el.classList.remove("is-selected", "is-first-turn"));
         potCards.forEach((el) => el.classList.remove("is-selected"));
+        this.signal.removeEventListener("abort", onAbort);
+      };
+
+      const finish = (action: Action) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        detach();
         resolve(action);
+      };
+
+      const onAbort = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        detach();
       };
 
       const onTakePot = () => finish(exchange());
       const onKnock = () => finish(knock());
+
+      this.signal.addEventListener("abort", onAbort);
 
       this.takePotBtn.disabled = false;
       this.knockBtn.disabled = false;

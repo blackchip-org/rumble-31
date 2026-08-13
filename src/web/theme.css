@@ -124,4 +124,16 @@
   --licenses-text-color: var(--ink); /* list box / text area color */
   --font-size-licenses-title: 2.25rem; /* licenses screen "Licenses"
                                            heading */
+
+  /* ---------- game menu screen (independently restylable) ---------- */
+  --menu-bg: var(--bg); /* game menu screen background */
+  --menu-title-color: #fff; /* "Game Menu" heading color */
+  --font-size-menu-title: 2.25rem; /* game menu screen "Game Menu"
+                                       heading */
+  --menu-abandon-bg: var(--bad); /* Abandon button's reddish fill,
+                                     reusing the strike/eliminated red */
+  --menu-abandon-bg-hover: #c94a5b; /* Abandon button background on
+                                        hover -- a darker shade of
+                                        --menu-abandon-bg */
+  --menu-abandon-fg: #fff; /* Abandon button text color */
 }

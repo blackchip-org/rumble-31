@@ -22,11 +22,12 @@ import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
 import { renderStrikes, setDealer, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
-import { clearState, loadState, saveState, type GameState, type OverState, type PersistedState, type RoundCheckpoint } from "./state.ts";
+import { clearState, loadState, saveState, type GameState, type OverState, type PersistedState, type RoundCheckpoint, type SettingsOrigin } from "./state.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 import { licenses } from "./licensesData.ts";
 import { defaultLicense, sortedLicenses } from "./licensesScreen.ts";
+import { buildDebugMenuGameState } from "./gameMenu.ts";
 
 // sleep resolves after ms.
 function sleep(ms: number): Promise<void> {
@@ -45,6 +46,27 @@ const dealAudio = new Audio(dealSoundUrl);
 // Settings Screen), loaded once at startup and kept in sync with
 // localStorage as the player changes them.
 let settings: Settings = loadSettings(localStorage);
+
+// currentGameAbort controls whichever game main() is currently
+// running (if any). Opening the Game Menu, abandoning, or starting
+// another game via showGameScreen all abort it first -- see
+// withTurnUi/DomActionPrompt below for what actually stops in
+// response, and specs/state.md's Game Menu section for why "pause" is
+// implemented as "stop outright, Resume restarts from the last
+// checkpoint" rather than actually suspending anything.
+let currentGameAbort: AbortController | undefined;
+
+// currentMenuGame is the game the Game Menu screen is currently
+// showing (specs/gui.md's Game Menu Screen), so Resume and "Settings"
+// (which carries it onward for its own "Game Menu" back button) don't
+// need to re-read it from storage.
+let currentMenuGame: GameState | undefined;
+
+// currentSettingsOrigin is which screen Settings was entered from
+// (specs/gui.md's Settings Screen section), driving its back button's
+// label/destination and whether the bot-difficulty toggles are
+// disabled.
+let currentSettingsOrigin: SettingsOrigin = { from: "main" };
 
 // playDealSound plays deal.wav for one card being dealt, restarting
 // dealAudio from the beginning, unless the player has disabled sounds.
@@ -130,9 +152,19 @@ interface SeatEls {
 
 const mainScreenEl = must<HTMLElement>("main-screen");
 const gameScreenEl = must<HTMLElement>("game-screen");
+const menuBtn = must<HTMLButtonElement>("menu-btn");
 const newGameBtn = must<HTMLButtonElement>("new-game-btn");
 const settingsBtn = must<HTMLButtonElement>("settings-btn");
 const aboutBtn = must<HTMLButtonElement>("about-btn");
+
+const menuScreenEl = must<HTMLElement>("menu-screen");
+const menuResumeBtn = must<HTMLButtonElement>("menu-resume-btn");
+const menuSettingsBtn = must<HTMLButtonElement>("menu-settings-btn");
+const menuAbandonBtn = must<HTMLButtonElement>("menu-abandon-btn");
+
+const abandonDialogEl = must<HTMLDialogElement>("abandon-dialog");
+const abandonYesBtn = must<HTMLButtonElement>("abandon-yes-btn");
+const abandonNoBtn = must<HTMLButtonElement>("abandon-no-btn");
 
 const aboutScreenEl = must<HTMLElement>("about-screen");
 const aboutVersionEl = must<HTMLElement>("about-version");
@@ -150,7 +182,7 @@ const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
 const bot1ToggleBtn = must<HTMLButtonElement>("bot1-toggle-btn");
 const bot2ToggleBtn = must<HTMLButtonElement>("bot2-toggle-btn");
 const bot3ToggleBtn = must<HTMLButtonElement>("bot3-toggle-btn");
-const settingsMainMenuBtn = must<HTMLButtonElement>("settings-main-menu-btn");
+const settingsBackBtn = must<HTMLButtonElement>("settings-back-btn");
 
 const gameOverScreenEl = must<HTMLElement>("game-over-screen");
 const gameOverLine1El = must<HTMLElement>("game-over-line1");
@@ -199,19 +231,42 @@ function setActiveSeat(seat: number, isFirstTurn: boolean): void {
   }
 }
 
+// pending returns a Promise that never resolves -- used once a game
+// has been aborted (Menu/Abandon, see currentGameAbort above) to
+// freeze a turn permanently in place, rather than letting it resolve
+// into a decision nothing is going to look at anymore.
+function pending<T>(): Promise<T> {
+  return new Promise<T>(() => {});
+}
+
 // withTurnUi wraps a seat's strategy so that, before deciding, it
 // highlights that seat's panel and logs the "Seat's turn" line — and
 // for bots, also pauses for a random duration between
 // MIN_BOT_THINK_TIME and MAX_BOT_THINK_TIME, the non-blocking,
 // setTimeout-based analog of cli/cli.ts's thinking(), which pauses via
 // a blocking sleep instead.
-function withTurnUi(seat: number, inner: Strategy): Strategy {
+//
+// signal is what actually implements "pausing" the game (Menu/
+// Abandon, specs/gui.md's Game Menu Screen): once aborted, whichever
+// seat is next asked to decide is frozen there via pending() instead
+// of ever being asked, so Round.run() never advances past this point.
+// A decision already in flight when the game is aborted is instead
+// handled by DomActionPrompt (for South) or simply allowed to finish
+// (for a bot -- see main()'s onTurn, which discards its effect once
+// aborted).
+function withTurnUi(seat: number, inner: Strategy, signal: AbortSignal): Strategy {
   return {
     async decide(v: PlayerView): Promise<Action> {
+      if (signal.aborted) {
+        return pending();
+      }
       setActiveSeat(seat, v.isFirstTurnOfRound);
       appendLogLine(logEl, turnStartLine(seat, v.isFirstTurnOfRound));
       if (seat !== 0) {
         await sleep(MIN_BOT_THINK_TIME + Math.random() * (MAX_BOT_THINK_TIME - MIN_BOT_THINK_TIME));
+        if (signal.aborted) {
+          return pending();
+        }
       }
       return inner.decide(v);
     },
@@ -224,17 +279,20 @@ function withTurnUi(seat: number, inner: Strategy): Strategy {
   };
 }
 
-// pauseBetweenRounds resolves after ms, or as soon as the player clicks
-// anywhere on the page, whichever comes first.
-function pauseBetweenRounds(ms: number): Promise<void> {
+// pauseBetweenRounds resolves after ms, as soon as the player clicks
+// anywhere on the page, or as soon as signal aborts (Menu/Abandon
+// mid-pause, specs/gui.md's Game Menu Screen), whichever comes first.
+function pauseBetweenRounds(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     const finish = () => {
       clearTimeout(timer);
       document.removeEventListener("click", onClick);
+      signal.removeEventListener("abort", finish);
       resolve();
     };
     const onClick = () => finish();
     const timer = setTimeout(finish, ms);
+    signal.addEventListener("abort", finish);
     // Attaching this listener is deferred to a fresh task rather than
     // done immediately: when South's own action ends the round (only
     // possible when West is the knocker, since turn order wraps
@@ -332,7 +390,15 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 // specs/gui.md. The pot is private (dealt as card backs) unless South
 // is firstSeat — the round's first player to act, the only one who
 // may see it before their turn resolves.
-async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, firstSeat: number): Promise<void> {
+//
+// signal aborting mid-animation (Menu/Abandon, specs/gui.md's Game
+// Menu Screen) stops the per-card loop outright, not just its sound:
+// the seat panels/pot this deals into are the same persistent DOM
+// elements a freshly resumed game's own deal will render into, so a
+// stale iteration still appending cards after the player has already
+// navigated away (and possibly Resumed into a new deal of its own)
+// would corrupt what's on screen.
+async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, firstSeat: number, signal: AbortSignal): Promise<void> {
   const potPrivate = firstSeat !== 0;
   const southHand = hands.get(0);
   for (const line of roundStartLines(roundNum, pot, southHand, firstSeat)) {
@@ -362,6 +428,9 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   potEl.replaceChildren();
 
   for (const step of dealOrder(activeSeats)) {
+    if (signal.aborted) {
+      return;
+    }
     const el =
       step.kind === "hand"
         ? step.seat === 0
@@ -497,8 +566,13 @@ function checkpointToOverride(checkpoint: RoundCheckpoint): RoundDealOverride {
 // main plays one game on the Game screen: a brand new one, or — when
 // resume is given (specs/state.md, a page revisited with no debug
 // parameters and a saved game screen) — one picked back up from a
-// saved checkpoint instead of starting over.
-async function main(resume?: GameState): Promise<void> {
+// saved checkpoint instead of starting over. signal aborts the game
+// outright (Menu/Abandon, specs/gui.md's Game Menu Screen) rather than
+// pausing it in place — see withTurnUi and the abort checks scattered
+// through the round loop below, and abortCurrentGame's own comment for
+// why "Resume" is just re-entering main() from the last checkpoint
+// instead of literally suspending this call.
+async function main(resume: GameState | undefined, signal: AbortSignal): Promise<void> {
   const params = debugParams;
 
   initCardSheetVars();
@@ -506,7 +580,7 @@ async function main(resume?: GameState): Promise<void> {
   unlockDealSoundOnFirstGesture();
 
   const seed = Date.now();
-  const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn);
+  const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn, signal);
   const botRng = new Rng(seed);
   // A resumed game keeps the bot/seat pairing it started with instead
   // of reshuffling (specs/state.md); a brand new game shuffles the
@@ -527,10 +601,10 @@ async function main(resume?: GameState): Promise<void> {
     createBot(botSeats[2], botRng, savedMemory.get(3)),
   ];
   const strategies: [Strategy, Strategy, Strategy, Strategy] = [
-    withTurnUi(0, human),
-    withTurnUi(1, bots[0]),
-    withTurnUi(2, bots[1]),
-    withTurnUi(3, bots[2]),
+    withTurnUi(0, human, signal),
+    withTurnUi(1, bots[0], signal),
+    withTurnUi(2, bots[1], signal),
+    withTurnUi(3, bots[2], signal),
   ];
   // botMemoryCheckpoint snapshots every bot seat's current memory,
   // keyed by seat, for RoundCheckpoint.botMemory.
@@ -583,6 +657,10 @@ async function main(resume?: GameState): Promise<void> {
   saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: startRoundNum, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
 
   for (let roundNum = startRoundNum; ; roundNum++) {
+    if (signal.aborted) {
+      return;
+    }
+
     // roundHands/roundPot/roundTurnIndex/roundKnocked/roundKnockerSeat
     // track this round's live state through every deal and turn, kept
     // in sync by onDeal/onTurn below — enough to build a
@@ -601,6 +679,9 @@ async function main(resume?: GameState): Promise<void> {
     }
 
     g.onDeal = async (pot, hands, firstSeat) => {
+      if (signal.aborted) {
+        return;
+      }
       roundHands = new Map(hands);
       roundPot = pot;
       if (roundNum === startRoundNum && resume?.checkpoint) {
@@ -608,7 +689,14 @@ async function main(resume?: GameState): Promise<void> {
       } else if (roundNum === startRoundNum && params.skipDealAnimation) {
         renderDealInstant(roundNum, pot, hands, firstSeat);
       } else {
-        await animateDeal(roundNum, pot, hands, firstSeat);
+        await animateDeal(roundNum, pot, hands, firstSeat, signal);
+      }
+      // A deal animation in flight when the game was aborted mid-way
+      // must not still persist this round's checkpoint afterwards --
+      // otherwise Resume would read back a deal the player never
+      // actually saw finish (specs/gui.md's Game Menu Screen).
+      if (signal.aborted) {
+        return;
       }
       // A resumed round that was already knocked before reload gets no
       // "knocked" turn of its own to earn the panel tag from — apply it
@@ -635,7 +723,17 @@ async function main(resume?: GameState): Promise<void> {
       });
     };
     g.onTurn = async (rec) => {
+      if (signal.aborted) {
+        return;
+      }
       await renderTurn(rec);
+
+      // Mirrors the onDeal check above: a trade/exchange animation in
+      // flight when the game was aborted mid-way must not still
+      // persist this turn's checkpoint afterwards.
+      if (signal.aborted) {
+        return;
+      }
 
       const hands = roundHands as Map<number, Hand>;
       hands.set(rec.seat, rec.handAfter);
@@ -672,6 +770,10 @@ async function main(resume?: GameState): Promise<void> {
     };
 
     const outcome = await g.playRound();
+
+    if (signal.aborted) {
+      return;
+    }
 
     // The round's over, so nobody's "on turn" or "knocked" anymore —
     // clear both before applying this round's win/strike highlights, or
@@ -753,7 +855,11 @@ async function main(resume?: GameState): Promise<void> {
       saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
     }
 
-    await pauseBetweenRounds(3000);
+    await pauseBetweenRounds(3000, signal);
+
+    if (signal.aborted) {
+      return;
+    }
 
     // A seat eliminated this round had its final score revealed above
     // and left visible through the pause; now that the pause is over,
@@ -783,6 +889,7 @@ async function main(resume?: GameState): Promise<void> {
 function hideAllScreens(): void {
   mainScreenEl.hidden = true;
   gameScreenEl.hidden = true;
+  menuScreenEl.hidden = true;
   aboutScreenEl.hidden = true;
   licensesScreenEl.hidden = true;
   settingsScreenEl.hidden = true;
@@ -790,13 +897,58 @@ function hideAllScreens(): void {
   errorScreenEl.hidden = true;
 }
 
+// abortCurrentGame stops whichever game main() is currently running
+// (if any, per currentGameAbort's own comment) and cleans up anything
+// that could otherwise keep running or lingering visibly after the
+// player has navigated away: a deal sound already mid-playback, and
+// any in-flight card-trade "ghost" element (tradeAnim.ts), which
+// animates as a position: fixed element appended straight to
+// document.body rather than under the (now hidden) game screen.
+function abortCurrentGame(): void {
+  currentGameAbort?.abort();
+  dealAudio.pause();
+  for (const ghost of document.querySelectorAll(".card--ghost")) {
+    ghost.remove();
+  }
+}
+
 // showGameScreen swaps whichever screen is up for the game screen,
 // then starts a game — a brand new one, or, given resume, one picked
-// back up per specs/state.md.
+// back up per specs/state.md (including a game just Resumed from the
+// Game Menu screen, which uses this same path).
 function showGameScreen(resume?: GameState): void {
+  abortCurrentGame();
+  const controller = new AbortController();
+  currentGameAbort = controller;
   hideAllScreens();
   gameScreenEl.hidden = false;
-  main(resume).catch(showErrorScreen);
+  main(resume, controller.signal).catch(showErrorScreen);
+}
+
+// openGameMenu swaps whichever screen is up for the Game Menu screen
+// (per specs/gui.md's Game Screen section's Menu button/Escape key),
+// stopping the in-progress game outright rather than pausing it in
+// place -- see currentGameAbort's own comment. The game it shows is
+// exactly the last checkpoint main() saved (kept fresh after every
+// deal/turn), re-tagged under the "menu" screen rather than "game".
+function openGameMenu(): void {
+  abortCurrentGame();
+  const state = loadState(localStorage);
+  if (state?.screen !== "game") {
+    return;
+  }
+  showGameMenuScreen(state.game);
+}
+
+// showGameMenuScreen swaps whichever screen is up for the Game Menu
+// screen, for game -- either a live game just paused via openGameMenu,
+// or one restored from saved state (specs/state.md) or synthesized for
+// specs/params.md's screen=menu debug param.
+function showGameMenuScreen(game: GameState): void {
+  currentMenuGame = game;
+  hideAllScreens();
+  menuScreenEl.hidden = false;
+  saveState({ screen: "menu", game }, localStorage);
 }
 
 // showMainScreen swaps whichever screen is up for the main screen (per
@@ -829,14 +981,24 @@ function syncBotToggleBtns(): void {
 }
 
 // showSettingsScreen swaps whichever screen is up for the settings
-// screen (per specs/gui.md's Main Screen section's "Settings" button),
-// and persists it as the screen to resume (specs/state.md).
-function showSettingsScreen(): void {
+// screen (per specs/gui.md's Main Screen and Game Menu Screen
+// sections' "Settings" buttons), and persists it -- together with
+// origin -- as the screen to resume (specs/state.md). Entered from the
+// Game Menu, the bot-difficulty toggles are disabled (a game is in
+// progress) and the back button reads "Game Menu" instead of "Main
+// Menu" (wired below, alongside the other menu/settings listeners).
+function showSettingsScreen(origin: SettingsOrigin): void {
+  currentSettingsOrigin = origin;
   syncSoundsToggleBtn();
   syncBotToggleBtns();
+  const fromMenu = origin.from === "menu";
+  bot1ToggleBtn.disabled = fromMenu;
+  bot2ToggleBtn.disabled = fromMenu;
+  bot3ToggleBtn.disabled = fromMenu;
+  settingsBackBtn.textContent = fromMenu ? "Game Menu" : "Main Menu";
   hideAllScreens();
   settingsScreenEl.hidden = false;
-  saveState({ screen: "settings" }, localStorage);
+  saveState({ screen: "settings", ...origin }, localStorage);
 }
 
 // showAboutScreen swaps whichever screen is up for the about screen
@@ -934,9 +1096,46 @@ function downloadTextFile(filename: string, text: string): void {
 playAgainBtn.addEventListener("click", () => showGameScreen());
 mainMenuBtn.addEventListener("click", showMainScreen);
 aboutMainMenuBtn.addEventListener("click", showMainScreen);
-settingsMainMenuBtn.addEventListener("click", showMainScreen);
 licensesMainMenuBtn.addEventListener("click", showMainScreen);
 licensesBtn.addEventListener("click", showLicensesScreen);
+
+// settingsBackBtn returns to wherever Settings was entered from
+// (specs/gui.md's Settings Screen section): the Main screen, or --
+// entered via the Game Menu -- that same Game Menu screen, with the
+// game it was showing carried back along with it.
+settingsBackBtn.addEventListener("click", () => {
+  if (currentSettingsOrigin.from === "menu") {
+    showGameMenuScreen(currentSettingsOrigin.game);
+  } else {
+    showMainScreen();
+  }
+});
+
+// menuBtn/Escape open the Game Menu screen (specs/gui.md's Game Screen
+// section); Escape only does so while the Game screen is actually
+// showing, so it's a no-op everywhere else (including while the
+// Abandon confirmation dialog, only reachable from the Game Menu, is
+// open -- the game screen is already hidden by then).
+menuBtn.addEventListener("click", openGameMenu);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !gameScreenEl.hidden) {
+    openGameMenu();
+  }
+});
+
+menuResumeBtn.addEventListener("click", () => showGameScreen(currentMenuGame));
+menuSettingsBtn.addEventListener("click", () => showSettingsScreen({ from: "menu", game: currentMenuGame as GameState }));
+menuAbandonBtn.addEventListener("click", () => abandonDialogEl.showModal());
+
+// A native <dialog>'s own Escape-to-cancel behavior already dismisses
+// it like "No" with no extra wiring needed here.
+abandonNoBtn.addEventListener("click", () => abandonDialogEl.close());
+abandonYesBtn.addEventListener("click", () => {
+  abortCurrentGame();
+  clearState(localStorage);
+  abandonDialogEl.close();
+  showMainScreen();
+});
 licensesListEl.addEventListener("change", syncLicenseText);
 saveLogBtn.addEventListener("click", () => downloadTextFile("rumble-31-log.txt", logText(logEl)));
 soundsToggleBtn.addEventListener("click", () => {
@@ -968,7 +1167,7 @@ bot3ToggleBtn.addEventListener("click", () => {
 });
 
 newGameBtn.addEventListener("click", () => showGameScreen());
-settingsBtn.addEventListener("click", showSettingsScreen);
+settingsBtn.addEventListener("click", () => showSettingsScreen({ from: "main" }));
 aboutBtn.addEventListener("click", showAboutScreen);
 
 // specs/params.md's screen debug param picks the initial screen
@@ -983,7 +1182,7 @@ switch (initialScreen) {
     showMainScreen();
     break;
   case "settings":
-    showSettingsScreen();
+    showSettingsScreen(savedState?.screen === "settings" ? savedState : { from: "main" });
     break;
   case "about":
     showAboutScreen();
@@ -1008,5 +1207,8 @@ switch (initialScreen) {
     } else {
       showGameScreen();
     }
+    break;
+  case "menu":
+    showGameMenuScreen(savedState?.screen === "menu" ? savedState.game : buildDebugMenuGameState(debugParams, settings));
     break;
 }

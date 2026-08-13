@@ -87,25 +87,39 @@ test("loadState", () => {
     { name: "malformed JSON: no saved state", stored: { "rumble31.state": "not json" }, want: undefined },
     { name: "JSON missing version: no saved state", stored: { "rumble31.state": '{"state":{"screen":"main"}}' }, want: undefined },
     { name: "wrong schema version: no saved state", stored: { "rumble31.state": '{"version":99,"state":{"screen":"main"}}' }, want: undefined },
-    { name: "unrecognized screen: no saved state", stored: { "rumble31.state": '{"version":4,"state":{"screen":"bogus"}}' }, want: undefined },
-    { name: "screen missing entirely: no saved state", stored: { "rumble31.state": '{"version":4,"state":{}}' }, want: undefined },
-    { name: "valid main screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"main"}}' }, want: { screen: "main" } },
-    { name: "valid settings screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"settings"}}' }, want: { screen: "settings" } },
-    { name: "valid about screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"about"}}' }, want: { screen: "about" } },
-    { name: "valid licenses screen", stored: { "rumble31.state": '{"version":4,"state":{"screen":"licenses"}}' }, want: { screen: "licenses" } },
+    { name: "unrecognized screen: no saved state", stored: { "rumble31.state": '{"version":5,"state":{"screen":"bogus"}}' }, want: undefined },
+    { name: "screen missing entirely: no saved state", stored: { "rumble31.state": '{"version":5,"state":{}}' }, want: undefined },
+    { name: "valid main screen", stored: { "rumble31.state": '{"version":5,"state":{"screen":"main"}}' }, want: { screen: "main" } },
+    {
+      name: "valid settings screen, from main",
+      stored: { "rumble31.state": '{"version":5,"state":{"screen":"settings","from":"main"}}' },
+      want: { screen: "settings", from: "main" },
+    },
+    {
+      name: "valid settings screen, from the game menu",
+      stored: { "rumble31.state": JSON.stringify({ version: 5, state: { screen: "settings", from: "menu", game: sampleGame } }) },
+      want: { screen: "settings", from: "menu", game: sampleGame },
+    },
+    { name: "valid about screen", stored: { "rumble31.state": '{"version":5,"state":{"screen":"about"}}' }, want: { screen: "about" } },
+    { name: "valid licenses screen", stored: { "rumble31.state": '{"version":5,"state":{"screen":"licenses"}}' }, want: { screen: "licenses" } },
     {
       name: "valid game screen",
-      stored: { "rumble31.state": JSON.stringify({ version: 4, state: { screen: "game", game: sampleGame } }) },
+      stored: { "rumble31.state": JSON.stringify({ version: 5, state: { screen: "game", game: sampleGame } }) },
       want: { screen: "game", game: sampleGame },
     },
     {
       name: "valid over screen",
-      stored: { "rumble31.state": JSON.stringify({ version: 4, state: { screen: "over", game: sampleOver } }) },
+      stored: { "rumble31.state": JSON.stringify({ version: 5, state: { screen: "over", game: sampleOver } }) },
       want: { screen: "over", game: sampleOver },
     },
     {
-      name: "old schema version (pre-botMemory): no saved state",
-      stored: { "rumble31.state": JSON.stringify({ version: 3, state: { screen: "game", game: sampleGame } }) },
+      name: "valid menu screen",
+      stored: { "rumble31.state": JSON.stringify({ version: 5, state: { screen: "menu", game: sampleGame } }) },
+      want: { screen: "menu", game: sampleGame },
+    },
+    {
+      name: "old schema version (pre-menu screen): no saved state",
+      stored: { "rumble31.state": JSON.stringify({ version: 4, state: { screen: "game", game: sampleGame } }) },
       want: undefined,
     },
   ];
@@ -125,11 +139,20 @@ test("saveState round-trips through loadState", () => {
   saveState({ screen: "licenses" }, storage);
   assert.deepEqual(loadState(storage), { screen: "licenses" });
 
+  saveState({ screen: "settings", from: "main" }, storage);
+  assert.deepEqual(loadState(storage), { screen: "settings", from: "main" });
+
+  saveState({ screen: "settings", from: "menu", game: sampleGame }, storage);
+  assert.deepEqual(loadState(storage), { screen: "settings", from: "menu", game: sampleGame });
+
   saveState({ screen: "game", game: sampleGame }, storage);
   assert.deepEqual(loadState(storage), { screen: "game", game: sampleGame });
 
   saveState({ screen: "over", game: sampleOver }, storage);
   assert.deepEqual(loadState(storage), { screen: "over", game: sampleOver });
+
+  saveState({ screen: "menu", game: sampleGame }, storage);
+  assert.deepEqual(loadState(storage), { screen: "menu", game: sampleGame });
 });
 
 test("clearState removes saved state", () => {

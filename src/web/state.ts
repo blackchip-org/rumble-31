@@ -9,15 +9,15 @@ import type { BotMemory } from "../bot/factory.ts";
 import type { Hand, Pot } from "../game/types.ts";
 
 const STORAGE_KEY = "rumble31.state";
-// Bumped to 4 when botMemory was added to RoundCheckpoint — an old
-// save is simply treated as absent (see loadState), no migration
-// needed.
-const SCHEMA_VERSION = 4;
+// Bumped to 5 when the menu screen and settings' origin were added —
+// an old save is simply treated as absent (see loadState), no
+// migration needed.
+const SCHEMA_VERSION = 5;
 
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
 // persisted (specs/state.md's "Error screen" section).
-const STATE_SCREEN_IDS = ["main", "settings", "about", "licenses", "game", "over"] as const;
+const STATE_SCREEN_IDS = ["main", "settings", "about", "licenses", "game", "over", "menu"] as const;
 export type StateScreenId = (typeof STATE_SCREEN_IDS)[number];
 
 // RoundCheckpoint captures a round already in progress, enough to
@@ -63,13 +63,24 @@ export interface OverState extends GameState {
   southWon: boolean;
 }
 
+// SettingsOrigin is which screen the Settings screen was entered from
+// (specs/gui.md): "main" shows the "Main Menu" back button with the
+// bot-difficulty toggles enabled; "menu" shows the "Game Menu" back
+// button (carrying the in-progress game to return to) with those
+// toggles disabled, since a game is in progress.
+export type SettingsOrigin = { from: "main" } | { from: "menu"; game: GameState };
+
 export type PersistedState =
   | { screen: "main" }
-  | { screen: "settings" }
+  | ({ screen: "settings" } & SettingsOrigin)
   | { screen: "about" }
   | { screen: "licenses" }
   | { screen: "game"; game: GameState }
-  | { screen: "over"; game: OverState };
+  | { screen: "over"; game: OverState }
+  // Entering the Game Menu re-saves the most recently persisted `game`
+  // state under this tag rather than creating new game state — see
+  // specs/state.md.
+  | { screen: "menu"; game: GameState };
 
 // loadState reads PersistedState from storage, returning undefined if
 // nothing is stored, what's stored isn't valid JSON, its schema
