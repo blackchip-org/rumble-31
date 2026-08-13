@@ -85,10 +85,11 @@ command as non-root does not imply approval to run that command as root. If
 you get a permission denied error, ask before running sudo.
 
 When asked to commit, first generate a commit message for review. Do the
-actual commit once that message is approved. 
+actual commit once that message is approved.
 
-Use nvm to install use and install node. 
+Use nvm to install use and install node.
 
-When using a web server for testing, first check to see if there is 
-an existing instance on port 5173. If so, use that before trying to start
-a web server yourself. 
+When using a web server for testing, keep 5173 reserved for the human
+developer. Use ports starting with 6173. Check to see if a server is running
+on the port you need first before trying to start a new web server.
+

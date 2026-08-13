@@ -22,6 +22,7 @@ test("parseDebugParams: valid combinations", () => {
     wantAssignedHands?: Array<[number, Hand]>;
     wantAssignedPot?: Pot;
     wantFirstSeat?: number;
+    wantTurnIndex?: number;
     wantSkipDealAnimation: boolean;
     wantNoInitialDeal?: boolean;
     wantScreen?: ScreenId;
@@ -59,6 +60,7 @@ test("parseDebugParams: valid combinations", () => {
       search: "turn=east",
       wantInitialStrikes: [0, 0, 0, 0],
       wantFirstSeat: 3,
+      wantTurnIndex: 1,
       wantSkipDealAnimation: false,
     },
     {
@@ -66,6 +68,23 @@ test("parseDebugParams: valid combinations", () => {
       search: "turn=EAST",
       wantInitialStrikes: [0, 0, 0, 0],
       wantFirstSeat: 3,
+      wantTurnIndex: 1,
+      wantSkipDealAnimation: false,
+    },
+    {
+      name: "turn with first=true is the round's actual first turn",
+      search: "turn=east&first=true",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantFirstSeat: 3,
+      wantTurnIndex: 0,
+      wantSkipDealAnimation: false,
+    },
+    {
+      name: "turn with first=false is not the round's first turn",
+      search: "turn=east&first=false",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantFirstSeat: 3,
+      wantTurnIndex: 1,
       wantSkipDealAnimation: false,
     },
     {
@@ -75,6 +94,7 @@ test("parseDebugParams: valid combinations", () => {
       wantAssignedHands: [[2, hand7s8h9c]],
       wantAssignedPot: potTcJdQh,
       wantFirstSeat: 2,
+      wantTurnIndex: 1,
       wantSkipDealAnimation: true,
     },
     {
@@ -153,6 +173,7 @@ test("parseDebugParams: valid combinations", () => {
       assert.deepEqual(got.initialDeal?.assignedPot, c.wantAssignedPot, `${c.name}: assignedPot`);
     }
     assert.equal(got.initialDeal?.firstSeat, c.wantFirstSeat, `${c.name}: firstSeat`);
+    assert.equal(got.initialDeal?.turnIndex, c.wantTurnIndex, `${c.name}: turnIndex`);
   }
 });
 
@@ -168,6 +189,8 @@ test("parseDebugParams: invalid input throws", () => {
     { name: "hand assigned to a seat eliminated by strikes", search: "strikes=3000&south=7s8h9c" },
     { name: "turn names a seat eliminated by strikes", search: "strikes=0300&turn=west" },
     { name: "turn names an unknown seat", search: "turn=northwest" },
+    { name: "first given without turn", search: "first=true" },
+    { name: "first is not true or false", search: "turn=east&first=yes" },
     { name: "screen names an unknown screen", search: "screen=bogus" },
   ];
 

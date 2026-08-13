@@ -40,6 +40,16 @@ south, etc). This overrides the normal random choice of dealer
 the active seat immediately counter-clockwise of the forced seat, so
 later rounds still rotate the dealer sensibly from there.
 
+By default, the forced seat's turn is not treated as the round's first
+turn (so, for example, Take Pot as a trade is legal, and the seat isn't
+tagged "First" in the GUI). Add first=true to instead treat it as the
+round's actual first turn. first is only valid alongside turn.
+
+## first
+
+Only valid alongside turn. Value should be "true" or "false". See turn
+above.
+
 # screen
 
 Start at this screen immediately. The value is a screen identifier as

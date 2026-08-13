@@ -68,10 +68,28 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
     firstSeat = seat;
   }
 
+  // first only makes sense alongside turn: it decides whether turn's
+  // seat is taken to be acting on the round's actual first turn
+  // (turnIndex 0, per RoundDealOverride) or, by default, on some
+  // later turn instead (turnIndex 1) — see specs/params.md.
+  const firstRaw = q.get("first");
+  if (firstRaw !== null && turnRaw === null) {
+    throw new Error(`params: first=${firstRaw} given without turn`);
+  }
+  if (firstRaw !== null && firstRaw !== "true" && firstRaw !== "false") {
+    throw new Error(`params: first=${firstRaw} must be "true" or "false"`);
+  }
+  const isFirstTurn = firstRaw === "true";
+
   const skipDealAnimation = assignedHands.size > 0 || assignedPot !== undefined;
   const initialDeal: RoundDealOverride | undefined =
     skipDealAnimation || firstSeat !== undefined
-      ? { assignedHands: assignedHands.size > 0 ? assignedHands : undefined, assignedPot, firstSeat }
+      ? {
+          assignedHands: assignedHands.size > 0 ? assignedHands : undefined,
+          assignedPot,
+          firstSeat,
+          turnIndex: firstSeat !== undefined ? (isFirstTurn ? 0 : 1) : undefined,
+        }
       : undefined;
 
   const screenRaw = q.get("screen");
