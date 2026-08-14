@@ -432,6 +432,7 @@ body {
   /* Geometry driven by --card-w/--card-h and this card's own
      --tile-row/--tile-col (set inline per element by render.ts's
      tileEl()) — see :root's --card-w for the native-resolution cap. */
+  position: relative;
   width: var(--card-w);
   height: var(--card-h);
   background-size: calc(var(--sheet-cols) * var(--card-w)) calc(var(--sheet-rows) * var(--card-h));
@@ -470,9 +471,20 @@ body {
 
 .card.is-selected {
   transform: translateY(-6px);
-  box-shadow:
-    0 0 0 2px var(--accent),
-    0 6px 14px -4px rgba(217, 164, 65, 0.55);
+}
+
+/* Tint overlay for .is-selected, rather than a border/box-shadow ring,
+   so the selection reads as a color wash across the card face. Sits on
+   an ::after (not the card's own background) since .card already uses
+   background-image/-position for its sprite-sheet tile. */
+.card.is-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: rgba(217, 164, 65, 0.4);
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
 /* South's whole hand, on South's first turn (domActionPrompt.ts) --
