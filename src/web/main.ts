@@ -14,6 +14,7 @@ import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnSta
 import { Rng } from "../rng.ts";
 import { version } from "../version.ts";
 import { buildTime } from "../buildstamp.ts";
+import githubMarkUrl from "../../assets/github-mark.svg";
 import score31SoundUrl from "../../assets/31.wav";
 import score32SoundUrl from "../../assets/32.wav";
 import dealSoundUrl from "../../assets/deal.wav";
@@ -274,6 +275,8 @@ const aboutVersionEl = must<HTMLElement>("about-version");
 const aboutBuildEl = must<HTMLElement>("about-build");
 const aboutMainMenuBtn = must<HTMLButtonElement>("about-main-menu-btn");
 const licensesBtn = must<HTMLButtonElement>("licenses-btn");
+
+must<HTMLImageElement>("about-github-icon").src = githubMarkUrl;
 
 const licensesScreenEl = must<HTMLElement>("licenses-screen");
 const licensesListEl = must<HTMLSelectElement>("licenses-list");

@@ -5,6 +5,11 @@
     "text": "assets/ComicNeue.OFL.txt"
   },
   {
+    "name": "GitHub Icon (Simple Icons)",
+    "license": "CC0-1.0",
+    "text": "assets/GithubMark.md"
+  },
+  {
     "name": "Inconsolata Font",
     "license": "OFL-1.1",
     "text": "assets/Inconsolata.OFL.txt"

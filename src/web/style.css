@@ -858,6 +858,33 @@ body {
   margin-top: 0.8rem;
 }
 
+.about-links {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.about-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--about-text-color);
+  text-decoration: none;
+  font-weight: var(--font-weight-bold);
+}
+
+.about-link:hover {
+  text-decoration: underline;
+}
+
+.about-github-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  /* github-mark.svg is drawn black; invert it to read against the
+     about screen's dark background. */
+  filter: invert(1);
+}
+
 .about-body-wrap {
   display: flex;
   justify-content: center;
