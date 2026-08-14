@@ -1,0 +1,13 @@
+<!-- Reference only. Maskable variant for Android adaptive icons: the
+     background bleeds to the full 512x512 canvas, and the border/wordmark
+     are kept inside the safe zone (an 80%-diameter circle centered on the
+     icon) so Android's mask never clips them. The "31" glyphs are New
+     Rocker (assets/NewRocker-Regular.ttf), rendered with ImageMagick's
+     -font pointed at the ttf file directly, since rsvg-convert has no way
+     to pick up an unregistered font. -->
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#1b5e3a"/>
+  <rect x="130" y="130" width="252" height="252" rx="38" fill="none" stroke="#d9a441" stroke-width="6"/>
+  <text x="256" y="299" font-family="'New Rocker', serif" font-weight="400"
+        font-size="118" fill="#ffffff" text-anchor="middle">31</text>
+</svg>
