@@ -8,6 +8,8 @@
   and suit.
 - [config.md](config.md) — Developer-tunable constants in
   config.ts, such as animation timings.
+- [controller.md](controller.md) — Game controller and keyboard
+  navigation.
 - [gui.md](gui.md) — Layout and behavior of the browser GUI's
   screens.
 - [log.md](log.md) — What gets written to the game log and when.

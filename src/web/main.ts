@@ -39,6 +39,9 @@ import { defaultLicense, sortedLicenses } from "./licensesScreen.ts";
 import { howToPlayText } from "./howToPlayData.ts";
 import { buildDebugMenuGameState } from "./gameMenu.ts";
 import { detectPlatform, INSTALL_INSTRUCTIONS } from "./installPrompt.ts";
+import { startGamepadInput } from "./gamepadInput.ts";
+import { startKeyboardNav } from "./keyboardNav.ts";
+import { handleAction, registerCancelFallback } from "./focusNav.ts";
 
 // sleep resolves after ms.
 function sleep(ms: number): Promise<void> {
@@ -311,6 +314,7 @@ const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
 const bot1ToggleBtn = must<HTMLButtonElement>("bot1-toggle-btn");
 const bot2ToggleBtn = must<HTMLButtonElement>("bot2-toggle-btn");
 const bot3ToggleBtn = must<HTMLButtonElement>("bot3-toggle-btn");
+const confirmCancelToggleBtn = must<HTMLButtonElement>("confirm-cancel-toggle-btn");
 const settingsBackBtn = must<HTMLButtonElement>("settings-back-btn");
 
 const gameOverScreenEl = must<HTMLElement>("game-over-screen");
@@ -1117,6 +1121,13 @@ function syncSoundsToggleBtn(): void {
   soundsToggleBtn.textContent = settings.soundsEnabled ? "Enabled" : "Disabled";
 }
 
+// syncConfirmCancelToggleBtn sets the confirm/cancel toggle button's
+// label to match settings.swapConfirmCancel (specs/controller.md's
+// Settings toggle).
+function syncConfirmCancelToggleBtn(): void {
+  confirmCancelToggleBtn.textContent = settings.swapConfirmCancel ? "Swapped" : "Standard";
+}
+
 // BOT_LABELS maps a BotName to its Settings Screen button label
 // (specs/gui.md's Settings Screen section: "Easy", "Regular",
 // "Difficult").
@@ -1141,6 +1152,7 @@ function showSettingsScreen(origin: SettingsOrigin): void {
   currentSettingsOrigin = origin;
   syncSoundsToggleBtn();
   syncBotToggleBtns();
+  syncConfirmCancelToggleBtn();
   const fromMenu = origin.from === "menu";
   bot1ToggleBtn.disabled = fromMenu;
   bot2ToggleBtn.disabled = fromMenu;
@@ -1277,17 +1289,28 @@ settingsBackBtn.addEventListener("click", () => {
   }
 });
 
-// menuBtn/Escape open the Game Menu screen (specs/gui.md's Game Screen
-// section); Escape only does so while the Game screen is actually
-// showing, so it's a no-op everywhere else (including while the
-// Abandon confirmation dialog, only reachable from the Game Menu, is
-// open -- the game screen is already hidden by then).
+// menuBtn opens the Game Menu screen (specs/gui.md's Game Screen
+// section); Escape and a gamepad's cancel button do the same, routed
+// through focusNav.ts's cancel fallback below, which only opens it
+// while the Game screen is actually showing, so it's a no-op
+// everywhere else (including while the Abandon confirmation dialog,
+// only reachable from the Game Menu, is open -- the game screen is
+// already hidden by then, and a dialog open takes cancel priority
+// over this fallback regardless -- see focusNav.ts's cancel()).
 menuBtn.addEventListener("click", openGameMenu);
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !gameScreenEl.hidden) {
+
+// registerCancelFallback/startKeyboardNav/startGamepadInput wire up
+// specs/controller.md's keyboard/gamepad navigation: both input
+// sources report the same NavAction vocabulary to focusNav.ts, which
+// moves/activates focus and, on cancel with no dialog open, calls this
+// fallback -- the Escape-opens-Game-Menu behavior described above.
+registerCancelFallback(() => {
+  if (!gameScreenEl.hidden) {
     openGameMenu();
   }
 });
+startKeyboardNav(handleAction);
+startGamepadInput(handleAction, () => settings.swapConfirmCancel);
 
 menuResumeBtn.addEventListener("click", () => showGameScreen(currentMenuGame));
 menuSettingsBtn.addEventListener("click", () => showSettingsScreen({ from: "menu", game: currentMenuGame as GameState }));
@@ -1308,6 +1331,11 @@ soundsToggleBtn.addEventListener("click", () => {
   settings = { ...settings, soundsEnabled: !settings.soundsEnabled };
   saveSettings(settings, localStorage);
   syncSoundsToggleBtn();
+});
+confirmCancelToggleBtn.addEventListener("click", () => {
+  settings = { ...settings, swapConfirmCancel: !settings.swapConfirmCancel };
+  saveSettings(settings, localStorage);
+  syncConfirmCancelToggleBtn();
 });
 
 // nextBotName cycles a BotName through BOT_NAMES's order (specs/gui.md's

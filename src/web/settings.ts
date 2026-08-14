@@ -10,9 +10,14 @@ export interface Settings {
   bot1: BotName;
   bot2: BotName;
   bot3: BotName;
+  // swapConfirmCancel swaps which button confirms vs. cancels for
+  // controller/keyboard navigation (specs/controller.md), for players
+  // used to a Nintendo-style layout instead of the default W3C
+  // Standard Gamepad one.
+  swapConfirmCancel: boolean;
 }
 
-export const defaultSettings: Settings = { soundsEnabled: true, bot1: "regular", bot2: "regular", bot3: "difficult" };
+export const defaultSettings: Settings = { soundsEnabled: true, bot1: "regular", bot2: "regular", bot3: "difficult", swapConfirmCancel: false };
 
 function isBotName(value: unknown): value is BotName {
   return typeof value === "string" && (BOT_NAMES as readonly string[]).includes(value);
@@ -33,7 +38,11 @@ export function loadSettings(storage: Storage): Settings {
     }
     const p = parsed as Record<string, unknown>;
     if (typeof p.soundsEnabled === "boolean" && isBotName(p.bot1) && isBotName(p.bot2) && isBotName(p.bot3)) {
-      return { soundsEnabled: p.soundsEnabled, bot1: p.bot1, bot2: p.bot2, bot3: p.bot3 };
+      // swapConfirmCancel postdates the other fields -- a value saved
+      // before it existed falls back to its default instead of
+      // invalidating the rest of an otherwise-valid settings blob.
+      const swapConfirmCancel = typeof p.swapConfirmCancel === "boolean" ? p.swapConfirmCancel : defaultSettings.swapConfirmCancel;
+      return { soundsEnabled: p.soundsEnabled, bot1: p.bot1, bot2: p.bot2, bot3: p.bot3, swapConfirmCancel };
     }
   } catch {
     // Falls through to the default below.

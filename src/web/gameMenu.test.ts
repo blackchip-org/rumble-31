@@ -15,7 +15,7 @@ function params(initialStrikes: [number, number, number, number]): DebugParams {
   };
 }
 
-const settings: Settings = { soundsEnabled: true, bot1: "regular", bot2: "difficult", bot3: "easy" };
+const settings: Settings = { soundsEnabled: true, bot1: "regular", bot2: "difficult", bot3: "easy", swapConfirmCancel: false };
 
 const cases = [
   {

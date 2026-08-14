@@ -484,6 +484,16 @@ body {
     0 6px 14px -4px var(--first-glow);
 }
 
+/* Controller/keyboard focus ring (specs/controller.md, focusNav.ts):
+   applies to any currently navigable element -- buttons, selects, and
+   (in a later phase) cards alike. Uses outline rather than box-shadow
+   so it never fights with .is-selected/.is-first-turn's own ring for
+   the same property; a card can show both at once. */
+.is-focused {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
 .pot-cards .card,
 #pot.cards .card {
   cursor: pointer;

@@ -2,8 +2,9 @@
 
 There is a bar at the very top of the screen. On the left hand side, it
 has the title of the game "Rumble 31". On the right hand side is a
-button labeled "Menu". Clicking on Menu, or pressing the Escape key,
-navigates to the Game Menu screen.
+button labeled "Menu". Clicking on Menu, pressing the Escape key, or
+pressing a controller's cancel button (specs/controller.md), navigates
+to the Game Menu screen.
 
 The game screen has four panels -- one for each player.
 

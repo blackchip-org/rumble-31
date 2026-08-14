@@ -28,8 +28,13 @@ test("loadSettings", () => {
     { name: "nothing stored: falls back to defaults", stored: {}, want: defaultSettings },
     {
       name: "valid stored value",
+      stored: { "rumble31.settings": '{"soundsEnabled":false,"bot1":"regular","bot2":"difficult","bot3":"easy","swapConfirmCancel":true}' },
+      want: { soundsEnabled: false, bot1: "regular", bot2: "difficult", bot3: "easy", swapConfirmCancel: true },
+    },
+    {
+      name: "value saved before swapConfirmCancel existed: falls back to its default, keeps the rest",
       stored: { "rumble31.settings": '{"soundsEnabled":false,"bot1":"regular","bot2":"difficult","bot3":"easy"}' },
-      want: { soundsEnabled: false, bot1: "regular", bot2: "difficult", bot3: "easy" },
+      want: { soundsEnabled: false, bot1: "regular", bot2: "difficult", bot3: "easy", swapConfirmCancel: false },
     },
     { name: "malformed JSON: falls back to defaults", stored: { "rumble31.settings": "not json" }, want: defaultSettings },
     { name: "JSON missing soundsEnabled: falls back to defaults", stored: { "rumble31.settings": '{"bot1":"easy","bot2":"easy","bot3":"easy"}' }, want: defaultSettings },
@@ -46,7 +51,7 @@ test("loadSettings", () => {
 
 test("saveSettings round-trips through loadSettings", () => {
   const storage = memoryStorage();
-  const settings: Settings = { soundsEnabled: false, bot1: "difficult", bot2: "regular", bot3: "easy" };
+  const settings: Settings = { soundsEnabled: false, bot1: "difficult", bot2: "regular", bot3: "easy", swapConfirmCancel: true };
   saveSettings(settings, storage);
   assert.deepEqual(loadSettings(storage), settings);
 

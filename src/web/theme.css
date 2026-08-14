@@ -54,6 +54,10 @@
                         South's all-hand-cards highlight */
   --first-glow: rgba(166, 127, 217, 0.35); /* glow behind the first-turn
                                                 panel border */
+  --focus-ring: #4fc3f7; /* controller/keyboard focus outline
+                             (specs/controller.md), distinct from
+                             --accent/--first so it's visible layered
+                             alongside .is-selected/.is-first-turn */
 
   /* ---------- main screen (independently restylable) ---------- */
   --main-bg: #1b5e3a; /* felt-green main screen background */
