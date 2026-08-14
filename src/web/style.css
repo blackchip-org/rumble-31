@@ -135,6 +135,17 @@ body {
 
 /* ---------- table (the cross layout) ---------- */
 
+/* Keeps .seat-west/.seat-north/.seat-east/.pot-panel/.actions/.seat-south
+   direct participants in #table's own grid (named grid-template-areas
+   placement only looks at direct children) while index.html groups the
+   first three and last three into two wrapper <div>s purely so the
+   mobile-landscape breakpoint below can lay each group out as its own
+   independent-height flex column -- see that breakpoint's #table rule. */
+.table-col-left,
+.table-col-right {
+  display: contents;
+}
+
 #table {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -1249,5 +1260,211 @@ body {
     width: auto;
     max-height: none;
     margin: 1rem 1.5rem;
+  }
+}
+
+/* ---------- mobile landscape ---------- */
+
+/* Real phones in landscape are short (roughly 375-430px tall) but many
+   are wider than 900px (e.g. a Pixel 7 at 915x412), so this can't just
+   extend the max-width: 900px breakpoint above -- it's keyed on height
+   and orientation instead, and repeats what it needs from that
+   breakpoint rather than relying on it having already applied.
+   Landscape tablets (iPad mini and up start around 744px tall) clear
+   the max-height threshold here and keep the ordinary desktop cross
+   layout instead. Portrait phones aren't landscape, so they fall
+   through to the max-width: 900px stack/scroll behavior unchanged. */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* The title bar is gone (specs/screens/game.md's Mobile section) --
+     only the menu button remains, floated over the table instead of
+     taking its own row. */
+  #header {
+    position: fixed;
+    top: 0.4rem;
+    right: 0.4rem;
+    padding: 0;
+    border-bottom: none;
+    background: transparent;
+    z-index: 10;
+  }
+
+  #header h1 {
+    display: none;
+  }
+
+  #log-panel {
+    display: none;
+  }
+
+  /* West/North/East never need to read as clearly as the pot or
+     South's own hand -- they're mostly card backs, and even once
+     revealed at round end they're secondary information, not
+     something the player is actively reading turn to turn. So unlike
+     every other breakpoint, bot seats get their own much smaller,
+     fixed --card-w here, scoped to just those three panels via custom
+     property cascade (every width in .panel/.cards/.card already
+     derives from var(--card-w), so this one override is all three
+     panels need). A fixed pixel value, rather than a clamp() tied to
+     the viewport like every other --card-w in this file, keeps the
+     two-row budget below solvable in closed form -- see that rule.
+     --card-h must be redeclared alongside it, not left to inherit
+     from :root -- a custom property's computed value resolves its own
+     var() references at the element that declares it, so :root's
+     --card-h (calc(var(--card-w) * ratio)) would freeze in :root's
+     --card-w and ignore this override otherwise. Chosen small enough
+     that these panels' own row (paired with Take Pot/Knock, the
+     shortest thing in the other column) stays comfortably under the
+     pot/South rows' height below, even though a bot panel keeps the
+     same fixed ~4.5rem chrome (padding, label, score/strikes rows) as
+     any other panel and only the card shrinks. */
+  .seat-west,
+  .seat-north,
+  .seat-east {
+    --card-w: 24px;
+    --card-h: calc(var(--card-w) * var(--tile-aspect));
+  }
+
+  /* Budget for the two rows still sized off the full --card-w (Pot and
+     South, now stacked in their own column -- see #table below): each
+     needs --card-h plus that row's own fixed chrome -- 4.5rem for
+     South (full panel: padding, label, score/strikes rows -- see the
+     desktop clamp()'s comment near the top of this file), ~2.5rem for
+     the pot panel (lighter chrome: no score/strikes/dealer/state-tag
+     row, just padding + label), plus Actions' own ~2.2rem and the
+     column's two 0.3rem gaps -- 9.8rem combined, plus #table's own
+     0.3rem top/bottom padding, rounded up to 10.5rem for slack. West/
+     North/East no longer share a row with this column (see below), so
+     their own height doesn't factor in here at all. Below the 64px
+     floor, the layout accepts the same scrolling fallback as
+     everywhere else in this file rather than shrinking Pot/South's
+     cards past legibility -- the shortest common phones still land
+     just past that floor and scroll a little, same as any viewport
+     below this file's documented minimums. */
+  :root {
+    --card-w: clamp(64px, min(7vw, calc((100vh - 10.5rem) / 2 / var(--tile-aspect))), var(--tile-w));
+  }
+
+  /* West/North/East and Pot/Actions/South become two independent flex
+     columns (.table-col-left/.table-col-right, grouped in index.html)
+     instead of staying in #table's shared CSS Grid. A shared grid
+     forces every row to the height of its tallest cell in *either*
+     column -- that both wasted space around Actions (its row forced
+     as tall as North's full panel) and made West/North/East's own
+     spacing uneven (each bot panel centered inside a row sized by its
+     much taller Pot/South partner, so the gap around it varied row to
+     row depending on how much taller that partner was). Two ordinary
+     flex columns instead just stack their own three items with one
+     uniform gap, each column sized to its own content -- neither has
+     to match the other's height row by row, only #table's own width
+     has to fit both. */
+  #table {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    /* Flex's default justify-content leaves leftover space after the
+       last item rather than stretching items to fill it (unlike
+       grid's "auto" columns above), so #table naturally shrinks to
+       fit its two columns -- margin: 0 auto (set unconditionally
+       above) then centers that pair, with real empty space left in
+       the corners for the fixed #header/menu button. */
+    width: fit-content;
+    padding: 0.3rem;
+  }
+
+  .table-col-left,
+  .table-col-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .seat-west,
+  .seat-east {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* The bot --card-w above is small enough that the card row is no
+     longer the widest thing in the panel -- the dealer button/score
+     box/strikes row (.row-bottom) doesn't shrink with the card, and at
+     this size it's wider than they are. .panel's width is normally a
+     fixed calc() sized off the card row alone (see that rule's
+     comment), so without this it clips .row-bottom against the
+     panel's padding instead of growing to fit it. */
+  .seat-west .panel,
+  .seat-north .panel,
+  .seat-east .panel {
+    width: max-content;
+  }
+
+  /* Main and Game Over are the only two screens whose title scales
+     with the viewport (every other screen's title is a fixed 2.25rem
+     -- see theme.css) -- so they're the only two that overflow a
+     short mobile-landscape viewport. overflow-y: auto is a safety net
+     matching this file's general "shrink, then scroll" fallback
+     (see the top of this file) for whatever's still too tall once the
+     title's shrunk. */
+  .main-screen,
+  .game-over-screen {
+    overflow-y: auto;
+  }
+
+  .main-panel,
+  .game-over-panel {
+    gap: 1rem;
+  }
+
+  .main-buttons,
+  .game-over-buttons {
+    gap: 0.5rem;
+  }
+
+  .main-buttons button,
+  .game-over-buttons button {
+    padding: 0.5rem 1rem;
+  }
+
+  :root {
+    --font-size-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
+    --font-size-game-over-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
+  }
+
+  /* Unlike Main/Game Over above, About's body text doesn't have its
+     own viewport-scaled font size that a shorter clamp() could shrink
+     -- it also doesn't have the licenses/htp screens' flex: 1 1 auto;
+     min-height: 0 shrink-to-scroll treatment on its body, so it just
+     overflows a short mobile viewport outright instead of scrolling.
+     .about-panel normally sizes to its content; height: 100% instead
+     stretches it to .about-screen's own height (a definite height,
+     since that's position: fixed; inset: 0), so the leftover space
+     goes to .about-body-wrap below (which can now shrink and scroll)
+     rather than pushing the screen's total height past the viewport. */
+  .about-screen {
+    padding: 0.5rem 1rem;
+  }
+
+  .about-panel {
+    height: 100%;
+    min-height: 0;
+    gap: 0.5rem;
+  }
+
+  .about-header {
+    flex-shrink: 0;
+  }
+
+  .about-body-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  /* Buttons read better side by side than stacked when height, not
+     width, is the scarce dimension. */
+  .about-buttons {
+    flex-direction: row;
+    width: auto;
+    flex-shrink: 0;
   }
 }

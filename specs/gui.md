@@ -9,6 +9,11 @@ down to a minimum legible size. Below that minimum, on a viewport too
 small to fit the whole screen, the page falls back to scrolling so
 every panel stays reachable.
 
+## Mobile
+
+For mobile devices, the GUI should expect that normal operation is with
+the phone in landscape mode.
+
 ## Screens
 
 - [Game Screen](screens/game.md) (game) — Player panels, the pot,

@@ -184,3 +184,18 @@ on the screen skips the remainder of the wait.
 
 The game ends immediately the moment South is eliminated — the rest of
 the bots' contest is never played out.
+
+## Mobile
+
+For mobile devices, the layout of the game screen needs to be adjusted
+to fit the screen. The top bar should be removed as this takes up much
+needed space. The main board is arranged into two columns. The left column
+has player seats in the following top-down order: West, North, East.
+The right column has the pot at the top, the Take Pot / Knock buttons, and
+then the South player panel. Fit in the menu button wherever there is
+space. The log panel is hidden in this layout.
+
+This layout applies in landscape orientation. In portrait orientation
+on a mobile device, this layout does not apply -- the screen falls
+back to the normal narrow-viewport behavior described in gui.md
+(shrinking, then scrolling if that isn't enough).
