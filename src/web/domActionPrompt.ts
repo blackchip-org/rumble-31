@@ -1,6 +1,7 @@
 import { score } from "../card/score.ts";
 import type { Action, PlayerView, Strategy } from "../game/types.ts";
 import { exchange, knock } from "../game/types.ts";
+import { focusHandCenter, focusKnockButton, focusPotCenter } from "./focusNav.ts";
 import { setScore } from "./panels.ts";
 import { renderCards } from "./render.ts";
 import { TradeSelection } from "./tradeSelection.ts";
@@ -105,17 +106,23 @@ export class DomActionPrompt implements Strategy {
       // is what Keep Pot/Keep Hand consider.
       if (isFirstTurn) {
         handCards.forEach((el) => el.classList.add("is-first-turn"));
+        focusKnockButton();
       } else {
         // is-tradeable marks these containers' cards as clickable --
         // focusNav.ts reads it to decide whether the hand/pot rows
         // belong in the controller/keyboard focus grid.
         this.handEl.classList.add("is-tradeable");
         this.potEl.classList.add("is-tradeable");
+        focusHandCenter();
 
         handCards.forEach((el, i) => {
           el.addEventListener("click", () => {
+            const picking = selection.handIndex() !== i;
             selection.clickHand(i);
             syncSelection();
+            if (picking) {
+              focusPotCenter();
+            }
             if (selection.ready()) {
               finish(selection.action());
             }
@@ -124,8 +131,12 @@ export class DomActionPrompt implements Strategy {
 
         potCards.forEach((el, i) => {
           el.addEventListener("click", () => {
+            const picking = selection.potIndex() !== i;
             selection.clickPot(i);
             syncSelection();
+            if (picking) {
+              focusHandCenter();
+            }
             if (selection.ready()) {
               finish(selection.action());
             }

@@ -52,6 +52,13 @@ type FocusGrid = readonly (readonly HTMLElement[])[];
 let focusedEl: HTMLElement | null = null;
 let cancelFallback: () => void = () => {};
 
+// navUsed marks whether the player has issued a real NavAction at
+// least once this session -- set unconditionally at the top of
+// handleAction and never reset. focusPotCenter/focusHandCenter below
+// gate on it so a mouse-only player never sees an unrequested focus
+// ring appear (specs/controller.md's "Selection Focus" section).
+let navUsed = false;
+
 // registerCancelFallback sets what a "cancel" action does when no
 // dialog is open to close -- main.ts registers a callback mirroring
 // its own screen-specific cancel behavior (opening the Game Menu
@@ -182,6 +189,27 @@ function focusOn(grid: FocusGrid, row: number, col: number): void {
   focusedEl = el;
 }
 
+// A focused button that becomes disabled (e.g. Take Pot/Knock once
+// domActionPrompt.ts's finish() locks them in) must not go on showing
+// a focus ring nothing can activate anymore. Rather than have every
+// call site that disables a button remember to clear focus too, watch
+// for it here: any element's "disabled" attribute flipping on clears
+// focus if that element is the one currently focused. Guarded since
+// this module is also imported directly by focusNav.test.ts under
+// plain Node, where neither document nor MutationObserver exist.
+if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
+  new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      const el = mutation.target as HTMLButtonElement;
+      if (el === focusedEl && el.disabled) {
+        el.classList.remove(FOCUSED_CLASS);
+        focusedEl = null;
+        return;
+      }
+    }
+  }).observe(document.body, { attributes: true, attributeFilter: ["disabled"], subtree: true });
+}
+
 // moveFocus recomputes the grid fresh (the DOM changes outside of nav
 // input too -- bot turns rendering, screen transitions) and moves
 // focus one step in dir.
@@ -225,9 +253,77 @@ function cancel(): void {
   cancelFallback();
 }
 
+// focusContainerCenter finds containerId's ("pot" or "hand") row in a
+// freshly computed grid -- by matching the row's first element against
+// the container's first .card child, the same elements
+// buildGameScreenGrid put there -- and focuses its middle card. No-ops
+// if the player has never used a controller/keyboard (navUsed), the
+// container has no cards, or (e.g. the round's first turn) its row
+// isn't in the grid at all.
+function focusContainerCenter(containerId: string): void {
+  if (!navUsed) {
+    return;
+  }
+  const container = document.getElementById(containerId);
+  const cards = container ? Array.from(container.querySelectorAll<HTMLElement>(".card")) : [];
+  if (cards.length === 0) {
+    return;
+  }
+  const grid = computeGrid();
+  const row = grid.findIndex((r) => r[0] === cards[0]);
+  if (row === -1) {
+    return;
+  }
+  focusOn(grid, row, Math.floor((grid[row]?.length ?? 1) / 2));
+}
+
+// focusPotCenter/focusHandCenter move focus to the pot's/hand's middle
+// card, per specs/controller.md's "Selection Focus" rules --
+// domActionPrompt.ts calls these directly at the moments those rules
+// apply (a turn starting, or a pick landing in the other zone), since
+// unlike moveFocus/activate they aren't driven by a NavAction and so
+// can't go through handleAction.
+export function focusPotCenter(): void {
+  focusContainerCenter("pot");
+}
+
+export function focusHandCenter(): void {
+  focusContainerCenter("hand");
+}
+
+// focusElementById focuses el (by id) if it's part of the current grid
+// -- used for targets that aren't a container's cards (see
+// focusContainerCenter above), such as a specific button.
+function focusElementById(id: string): void {
+  if (!navUsed) {
+    return;
+  }
+  const el = document.getElementById(id) as HTMLElement | null;
+  if (!el) {
+    return;
+  }
+  const grid = computeGrid();
+  for (let row = 0; row < grid.length; row++) {
+    const col = grid[row]?.indexOf(el) ?? -1;
+    if (col !== -1) {
+      focusOn(grid, row, col);
+      return;
+    }
+  }
+}
+
+// focusKnockButton focuses the Take Pot/Knock row's Knock button
+// (labeled "Keep Hand" on the round's first turn) -- domActionPrompt.ts
+// calls this at the start of a first-turn decide(), since cards aren't
+// part of the focus order at all that turn (specs/controller.md).
+export function focusKnockButton(): void {
+  focusElementById("knock-btn");
+}
+
 // handleAction is the single entry point gamepadInput.ts/keyboardNav.ts
 // both report NavActions to.
 export function handleAction(action: NavAction): void {
+  navUsed = true;
   switch (action) {
     case "up":
     case "down":

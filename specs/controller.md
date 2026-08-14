@@ -21,6 +21,10 @@ Opening a dialog (the Abandon or Install confirmation) moves focus
 into that dialog only, for as long as it's open; the screen behind it
 cannot be focused until the dialog closes.
 
+If the focused button becomes disabled, it immediately loses focus.
+Nothing else gains focus automatically -- the next navigation input
+recomputes focus the normal way, falling back to the first item.
+
 ## Controller Mapping
 
 By default, a controller's D-pad or left stick moves focus, its
@@ -56,3 +60,21 @@ Cancel never undoes a half-made pick (a card chosen in only one row so
 far) -- it always does what it does everywhere else, opening the Game
 Menu. Un-picking a card is done the same way as with a mouse:
 activating that same card again.
+
+## Selection Focus
+
+Once a card in a pot's or hand's row is picked, focus jumps to the
+other row's center card, so a trade can be made with left/right and
+confirm alone: focus starts on the hand's center card as soon as
+trading becomes available each turn; picking a hand card moves focus
+to the pot's center card, and picking a pot card (whether picked first
+or after the hand) moves focus to the hand's center card. Un-picking a
+card (activating an already-picked card again) does not move focus.
+
+On the round's first turn, when cards aren't part of the focus order
+at all (see Card Navigation above), focus instead starts on the Keep
+Hand button, rather than any card.
+
+This only takes effect once the player has used a controller or
+keyboard at least once in the current session -- a player who has only
+ever used the mouse never sees a focus ring appear on its own.
