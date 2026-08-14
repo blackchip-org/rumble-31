@@ -65,6 +65,8 @@ export class DomActionPrompt implements Strategy {
         this.knockBtn.removeEventListener("click", onKnock);
         handCards.forEach((el) => el.classList.remove("is-selected", "is-first-turn"));
         potCards.forEach((el) => el.classList.remove("is-selected"));
+        this.handEl.classList.remove("is-tradeable");
+        this.potEl.classList.remove("is-tradeable");
         this.signal.removeEventListener("abort", onAbort);
       };
 
@@ -104,6 +106,12 @@ export class DomActionPrompt implements Strategy {
       if (isFirstTurn) {
         handCards.forEach((el) => el.classList.add("is-first-turn"));
       } else {
+        // is-tradeable marks these containers' cards as clickable --
+        // focusNav.ts reads it to decide whether the hand/pot rows
+        // belong in the controller/keyboard focus grid.
+        this.handEl.classList.add("is-tradeable");
+        this.potEl.classList.add("is-tradeable");
+
         handCards.forEach((el, i) => {
           el.addEventListener("click", () => {
             selection.clickHand(i);
