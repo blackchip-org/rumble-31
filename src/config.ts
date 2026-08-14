@@ -23,3 +23,9 @@ export const STRIKE_HIGHLIGHT_BLINK_INTERVAL = 400;
 // whole hand plays this animation three times in sequence (once per
 // card), not once for all three.
 export const TRADE_ANIMATION_DURATION = 500;
+
+// KNOCK_SOUND_WAIT is how long, in milliseconds, the turn pauses after
+// a knock before advancing to the next seat: knock.wav's own ~256ms
+// runtime plus a short pause after, so the knock sound is never cut
+// off or overlapped by the next seat's turn sound.
+export const KNOCK_SOUND_WAIT = 256 + 200;

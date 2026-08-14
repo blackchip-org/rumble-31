@@ -5,7 +5,7 @@
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { BOT_NAMES, createBot, snapshotBot, type BotMemory, type BotName } from "../bot/factory.ts";
-import { DEAL_ANIMATION_DELAY, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
+import { DEAL_ANIMATION_DELAY, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
@@ -423,6 +423,11 @@ async function animateTurnCards(rec: TurnRecord): Promise<void> {
       break;
     }
     case "knock":
+      // No card movement to animate, but the turn must not advance --
+      // and so the next seat's turn sound must not play -- until
+      // knock.wav has finished, or it overlaps the turn sound. See
+      // KNOCK_SOUND_WAIT.
+      await sleep(KNOCK_SOUND_WAIT);
       break;
   }
 }
