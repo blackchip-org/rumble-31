@@ -29,7 +29,7 @@ and the nine of clubs. When this happens, the rules are as follows:
 - Deck is then shuffled with the remaining cards
 - Dealing happens like normal, but those who already have cards are skipped
 
-Note that is this specific case, the dealing is not animated. The game
+Note that in this specific case, the dealing is not animated. The game
 should immediately start.
 
 ## turn
@@ -53,13 +53,13 @@ above.
 # screen
 
 Start at this screen immediately. The value is a screen identifier as
-listed in gui.md. Identifers are at the end of the screen headings in 
-parenthesis. 
+listed in gui.md. Identifiers are at the end of the screen headings in
+parentheses.
 
 Each screen should work without throwing an error when started through this
-paramenter. Screens should make reasonable defaults to accomodate. The
-exception, of course, is the error screen itself. That should show a 
-mock error in that case. 
+parameter. Screens should make reasonable defaults to accommodate. The
+exception, of course, is the error screen itself. That should show a
+mock error in that case.
 
 For the game over screen (over), the "You Won!" / "Game Over" message
 is derived from the strikes parameter: if seat 0 already starts

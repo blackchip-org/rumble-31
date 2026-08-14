@@ -2,7 +2,7 @@ Sound effects were generated using:
 
 https://sfbgames.itch.io/chiptone
 
-Which includes the folliwng license:
+Which includes the following license:
 
 Creative Commons Legal Code
 

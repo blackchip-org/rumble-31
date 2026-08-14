@@ -63,7 +63,7 @@ skipped for it -- except on the round's first turn (Keep), which is
 the only way the pot's cards ever get logged for the first time when
 the first player to act doesn't take it.
 
-At the start of a players turn (and before bots start "thinking"), use:
+At the start of a player's turn (and before bots start "thinking"), use:
 
     Seat's turn
 
@@ -71,7 +71,7 @@ If that seat is the first to act that round, instead use:
 
     Seat goes first
 
-At the end of the round, announce the hands first for each playing using
+At the end of the round, announce the hands first for each player using
 this format:
 
     South has [7h 8c 9d]

@@ -2,7 +2,7 @@
 
 A player in Rumble 31 can be assigned to a bot.
 
-There are three different bot strategies depending on a difficulty level
+There are three different bot strategies depending on a difficulty level;
 these are:
 
 - Easy
@@ -28,7 +28,7 @@ To "improve the hand" is to increase the score value of the hand.
 The "upstream" is the seat that acts before the bot. The "downstream"
 is the seat that acts after the bot.
 
-An "unnecessary" card is a card in a players hand that is not contributing
+An "unnecessary" card is a card in a player's hand that is not contributing
 to the score value.
 
 When computing the score of an incomplete hand (fewer than 3 known

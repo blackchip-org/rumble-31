@@ -15,7 +15,7 @@ their column number (1-based):
 - 2: Joker filled, light
 - 3: Joker outlined, light
 - 4: Joker filled, dark
-- 5: Joker outlined, light
+- 5: Joker outlined, dark
 - 6: Card back - light blue
 - 7: Card back - dark blue
 - 8: Card back - light red
