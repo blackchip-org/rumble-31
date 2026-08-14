@@ -30,6 +30,18 @@ Play in the browser (starts a Vite dev server):
 npm run web:dev
 ```
 
+Build the browser app for production (outputs to `dist/`):
+
+```bash
+npm run web:build
+```
+
+Preview the production build locally:
+
+```bash
+npm run web:preview
+```
+
 Run headless bot-vs-bot games to compare strategies:
 
 ```bash
