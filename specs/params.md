@@ -88,4 +88,15 @@ starting a game, since there is nothing left to resume. Combined
 with a game-seeding parameter, that parameter's normal behavior
 takes over as usual.
 
+## platform
+
+Value should be "ios", "android", or "other". Overrides the Main
+Screen's own User-Agent-based detection of whether to show the
+"Install as App" button and which platform's instructions its dialog
+displays (specs/screens/main.md), so that behavior can be exercised
+without a real iOS or Android device. Combine with screen=main to
+land on the Main Screen and see the button, for example
+"?platform=ios&screen=main". platform=other hides the button, same
+as a desktop browser.
+
 

@@ -10,6 +10,7 @@ import { seatByName, seatName } from "../game/seat.ts";
 import { parseStrikesDigits } from "../game/strikes.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import type { Hand, Pot } from "../game/types.ts";
+import { PLATFORMS, type Platform } from "./installPrompt.ts";
 
 const HAND_PARAM_NAMES = ["north", "south", "east", "west"] as const;
 
@@ -27,6 +28,11 @@ export interface DebugParams {
   skipDealAnimation: boolean;
   screen: ScreenId | undefined;
   clear: boolean;
+  // platform overrides installPrompt.ts's own User-Agent-based
+  // detection, for exercising the Main Screen's "Install as App"
+  // button/dialog (specs/screens/main.md) without a real iOS/Android
+  // device.
+  platform: Platform | undefined;
 }
 
 // parseDebugParams reads search (e.g. window.location.search) for the
@@ -108,7 +114,16 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
   }
   const clear = clearRaw === "true";
 
-  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear };
+  const platformRaw = q.get("platform");
+  let platform: Platform | undefined;
+  if (platformRaw !== null) {
+    if (!(PLATFORMS as readonly string[]).includes(platformRaw)) {
+      throw new Error(`params: platform=${platformRaw} is not a valid platform`);
+    }
+    platform = platformRaw as Platform;
+  }
+
+  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform };
 }
 
 // parseCardGroup parses paramName's raw value as exactly three

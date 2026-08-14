@@ -271,7 +271,10 @@ const installDialogCloseBtn = must<HTMLButtonElement>("install-dialog-close-btn"
 // (already installed/launched from the home screen) is checked via
 // both the standard display-mode media query and Safari's older
 // navigator.standalone, since iOS Safari doesn't support the former.
-const installPlatform = detectPlatform(navigator.userAgent, navigator.maxTouchPoints);
+// specs/params.md's platform debug parameter overrides the detected
+// platform, for exercising the iOS/Android instructions without a
+// real device.
+const installPlatform = debugParams.platform ?? detectPlatform(navigator.userAgent, navigator.maxTouchPoints);
 const isStandaloneApp =
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as unknown as { standalone?: boolean }).standalone === true;

@@ -5,7 +5,14 @@ import type { DebugParams } from "./params.ts";
 import type { Settings } from "./settings.ts";
 
 function params(initialStrikes: [number, number, number, number]): DebugParams {
-  return { initialStrikes, initialDeal: undefined, skipDealAnimation: false, screen: "menu", clear: false };
+  return {
+    initialStrikes,
+    initialDeal: undefined,
+    skipDealAnimation: false,
+    screen: "menu",
+    clear: false,
+    platform: undefined,
+  };
 }
 
 const settings: Settings = { soundsEnabled: true, bot1: "regular", bot2: "difficult", bot3: "easy" };

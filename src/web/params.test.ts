@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseDebugParams, type ScreenId } from "./params.ts";
 import type { Hand, Pot } from "../game/types.ts";
+import type { Platform } from "./installPrompt.ts";
 
 const hand7s8h9c: Hand = [
   { rank: "7", suit: "s" },
@@ -27,6 +28,7 @@ test("parseDebugParams: valid combinations", () => {
     wantNoInitialDeal?: boolean;
     wantScreen?: ScreenId;
     wantClear?: boolean;
+    wantPlatform?: Platform;
   }> = [
     {
       name: "no params at all",
@@ -194,6 +196,39 @@ test("parseDebugParams: valid combinations", () => {
       wantSkipDealAnimation: true,
       wantClear: true,
     },
+    {
+      name: "platform=ios",
+      search: "platform=ios",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantPlatform: "ios",
+    },
+    {
+      name: "platform=android",
+      search: "platform=android",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantPlatform: "android",
+    },
+    {
+      name: "platform=other",
+      search: "platform=other",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantPlatform: "other",
+    },
+    {
+      name: "platform doesn't interfere with unrelated params",
+      search: "platform=ios&screen=main",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "main",
+      wantPlatform: "ios",
+    },
   ];
 
   for (const c of cases) {
@@ -202,6 +237,7 @@ test("parseDebugParams: valid combinations", () => {
     assert.equal(got.skipDealAnimation, c.wantSkipDealAnimation, `${c.name}: skipDealAnimation`);
     assert.equal(got.screen, c.wantScreen, `${c.name}: screen`);
     assert.equal(got.clear, c.wantClear ?? false, `${c.name}: clear`);
+    assert.equal(got.platform, c.wantPlatform, `${c.name}: platform`);
 
     if (c.wantNoInitialDeal) {
       assert.equal(got.initialDeal, undefined, `${c.name}: initialDeal`);
@@ -235,6 +271,7 @@ test("parseDebugParams: invalid input throws", () => {
     { name: "first is not true or false", search: "turn=east&first=yes" },
     { name: "screen names an unknown screen", search: "screen=bogus" },
     { name: "clear is not true or false", search: "clear=yes" },
+    { name: "platform names an unknown platform", search: "platform=bogus" },
   ];
 
   for (const { name, search } of cases) {
