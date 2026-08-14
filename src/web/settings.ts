@@ -12,7 +12,7 @@ export interface Settings {
   bot3: BotName;
 }
 
-export const defaultSettings: Settings = { soundsEnabled: true, bot1: "easy", bot2: "easy", bot3: "easy" };
+export const defaultSettings: Settings = { soundsEnabled: true, bot1: "regular", bot2: "regular", bot3: "difficult" };
 
 function isBotName(value: unknown): value is BotName {
   return typeof value === "string" && (BOT_NAMES as readonly string[]).includes(value);
