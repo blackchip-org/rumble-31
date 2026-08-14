@@ -1319,8 +1319,14 @@ aboutBtn.addEventListener("click", showAboutScreen);
 // the player left off. Absent both, any other URL parameter bypasses
 // the main screen and starts the game immediately, as it always has —
 // the main screen is only shown on a bare visit with no query string
-// and no saved state at all.
-const initialScreen: ScreenId = debugParams.screen ?? savedState?.screen ?? (window.location.search === "" ? "main" : "game");
+// and no saved state at all. clear=true is the exception: on its own
+// it's just asking to wipe saved state (already done above) and land
+// back on the main screen, not to start a game — unless it's paired
+// with a game-seeding param, in which case that takes over as usual.
+const initialScreen: ScreenId =
+  debugParams.screen ??
+  savedState?.screen ??
+  (window.location.search === "" || (debugParams.clear && debugParams.initialDeal === undefined) ? "main" : "game");
 switch (initialScreen) {
   case "main":
     showMainScreen();

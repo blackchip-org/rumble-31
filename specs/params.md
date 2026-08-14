@@ -78,4 +78,14 @@ parameter always shows the "Main Menu" back button with the bot
 difficulty toggles enabled, same as reaching it from the Main
 screen -- see specs/screens/settings.md.
 
+## clear
+
+Value should be "true" or "false" (default "false" if omitted).
+clear=true clears saved state (specs/state.md), same as every other
+debug parameter, but on its own -- with no north/south/east/west/pot
+seeding a game -- it also lands on the Main Screen instead of
+starting a game, since there is nothing left to resume. Combined
+with a game-seeding parameter, that parameter's normal behavior
+takes over as usual.
+
 

@@ -1,8 +1,8 @@
 // Parses and validates the web GUI's debugging URL parameters, per
-// specs/params.md: strikes, north/south/east/west, pot, turn, and
-// screen. Every validation failure throws a descriptive Error — there
-// is no silent fallback for malformed or self-contradictory debug
-// input.
+// specs/params.md: strikes, north/south/east/west, pot, turn, screen,
+// and clear. Every validation failure throws a descriptive Error —
+// there is no silent fallback for malformed or self-contradictory
+// debug input.
 
 import { parseCard, cardToString } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
@@ -26,6 +26,7 @@ export interface DebugParams {
   // immediately with an unanimated deal.
   skipDealAnimation: boolean;
   screen: ScreenId | undefined;
+  clear: boolean;
 }
 
 // parseDebugParams reads search (e.g. window.location.search) for the
@@ -101,7 +102,13 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
     screen = screenRaw as ScreenId;
   }
 
-  return { initialStrikes, initialDeal, skipDealAnimation, screen };
+  const clearRaw = q.get("clear");
+  if (clearRaw !== null && clearRaw !== "true" && clearRaw !== "false") {
+    throw new Error(`params: clear=${clearRaw} must be "true" or "false"`);
+  }
+  const clear = clearRaw === "true";
+
+  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear };
 }
 
 // parseCardGroup parses paramName's raw value as exactly three

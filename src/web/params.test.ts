@@ -26,6 +26,7 @@ test("parseDebugParams: valid combinations", () => {
     wantSkipDealAnimation: boolean;
     wantNoInitialDeal?: boolean;
     wantScreen?: ScreenId;
+    wantClear?: boolean;
   }> = [
     {
       name: "no params at all",
@@ -169,6 +170,30 @@ test("parseDebugParams: valid combinations", () => {
       wantNoInitialDeal: true,
       wantScreen: "main",
     },
+    {
+      name: "clear=true alone",
+      search: "clear=true",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantClear: true,
+    },
+    {
+      name: "clear=false alone",
+      search: "clear=false",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantClear: false,
+    },
+    {
+      name: "clear doesn't interfere with unrelated params",
+      search: "clear=true&north=7s8h9c",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantAssignedHands: [[2, hand7s8h9c]],
+      wantSkipDealAnimation: true,
+      wantClear: true,
+    },
   ];
 
   for (const c of cases) {
@@ -176,6 +201,7 @@ test("parseDebugParams: valid combinations", () => {
     assert.deepEqual(got.initialStrikes, c.wantInitialStrikes, `${c.name}: initialStrikes`);
     assert.equal(got.skipDealAnimation, c.wantSkipDealAnimation, `${c.name}: skipDealAnimation`);
     assert.equal(got.screen, c.wantScreen, `${c.name}: screen`);
+    assert.equal(got.clear, c.wantClear ?? false, `${c.name}: clear`);
 
     if (c.wantNoInitialDeal) {
       assert.equal(got.initialDeal, undefined, `${c.name}: initialDeal`);
@@ -208,6 +234,7 @@ test("parseDebugParams: invalid input throws", () => {
     { name: "first given without turn", search: "first=true" },
     { name: "first is not true or false", search: "turn=east&first=yes" },
     { name: "screen names an unknown screen", search: "screen=bogus" },
+    { name: "clear is not true or false", search: "clear=yes" },
   ];
 
   for (const { name, search } of cases) {
