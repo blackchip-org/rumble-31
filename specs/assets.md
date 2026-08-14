@@ -14,9 +14,11 @@ describes the layout of the tile sheet.
 - deal.wav: Card dealt
 - end-of-round.wav: Round ends with a player winning with a score that is 
 not 31 or 32
+- lose.wav: Over screen show with the human losing
 - knock.wav: Player knocks
 - slide.wav: When a card slide animation starts
 - turn.wav: Human player's turn 
+- win.wav: Over screen shown with the human winning
 
 ## Fonts
 

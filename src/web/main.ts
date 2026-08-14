@@ -19,8 +19,10 @@ import score32SoundUrl from "../../assets/32.wav";
 import dealSoundUrl from "../../assets/deal.wav";
 import endOfRoundSoundUrl from "../../assets/end-of-round.wav";
 import knockSoundUrl from "../../assets/knock.wav";
+import loseSoundUrl from "../../assets/lose.wav";
 import slideSoundUrl from "../../assets/slide.wav";
 import turnSoundUrl from "../../assets/turn.wav";
+import winSoundUrl from "../../assets/win.wav";
 import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
 import { installGlobalErrorHandlers, mockError, showErrorScreen } from "./errorScreen.ts";
@@ -69,6 +71,19 @@ const endOfRoundAudio = new Audio(endOfRoundSoundUrl);
 // slideAudio is the single Audio instance shared by every card-slide
 // animation leg, reused for the same reason as dealAudio above.
 const slideAudio = new Audio(slideSoundUrl);
+
+// winAudio/loseAudio play whenever the Game Over screen is shown, per
+// specs/assets.md, reused for the same reason as dealAudio above.
+const winAudio = new Audio(winSoundUrl);
+const loseAudio = new Audio(loseSoundUrl);
+
+// Registered at module load, unconditionally, rather than only inside
+// main() — the Game Over screen can be reached directly (a saved
+// "over" state on reload, or specs/params.md's screen=over debug
+// param) without main() ever running, and its win/lose sound still
+// needs a prior gesture to unlock per unlockSoundsOnFirstGesture's own
+// comment.
+unlockSoundsOnFirstGesture([dealAudio, turnAudio, knockAudio, score31Audio, score32Audio, endOfRoundAudio, slideAudio, winAudio, loseAudio]);
 
 // settings holds the user's persisted preferences (specs/gui.md's
 // Settings Screen), loaded once at startup and kept in sync with
@@ -141,6 +156,18 @@ function playRoundEndSound(winningScore: number): void {
   const audio = winningScore === 31 ? score31Audio : winningScore === 32 ? score32Audio : endOfRoundAudio;
   audio.currentTime = 0;
   audio.play().catch((err: unknown) => console.warn("round-end sound: play() failed", err));
+}
+
+// playGameOverSound plays win.wav or lose.wav when the Game Over
+// screen is shown, per southWon -- unless the player has disabled
+// sounds. Mirrors playDealSound above.
+function playGameOverSound(southWon: boolean): void {
+  if (!settings.soundsEnabled) {
+    return;
+  }
+  const audio = southWon ? winAudio : loseAudio;
+  audio.currentTime = 0;
+  audio.play().catch((err: unknown) => console.warn("game-over sound: play() failed", err));
 }
 
 // playSlideSound plays slide.wav when a card-slide animation leg
@@ -665,7 +692,6 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
 
   initCardSheetVars();
   initStrikeBlinkVar();
-  unlockSoundsOnFirstGesture([dealAudio, turnAudio, knockAudio, score31Audio, score32Audio, endOfRoundAudio, slideAudio]);
 
   const seed = Date.now();
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn, signal);
@@ -993,11 +1019,11 @@ function hideAllScreens(): void {
 // abortCurrentGame stops whichever game main() is currently running
 // (if any, per currentGameAbort's own comment) and cleans up anything
 // that could otherwise keep running or lingering visibly after the
-// player has navigated away: a deal, turn, knock, round-end, or slide
-// sound already mid-playback, and any in-flight card-trade "ghost"
-// element (tradeAnim.ts), which animates as a position: fixed element
-// appended straight to document.body rather than under the (now
-// hidden) game screen.
+// player has navigated away: a deal, turn, knock, round-end, slide,
+// or game-over sound already mid-playback, and any in-flight
+// card-trade "ghost" element (tradeAnim.ts), which animates as a
+// position: fixed element appended straight to document.body rather
+// than under the (now hidden) game screen.
 function abortCurrentGame(): void {
   currentGameAbort?.abort();
   dealAudio.pause();
@@ -1007,6 +1033,8 @@ function abortCurrentGame(): void {
   score32Audio.pause();
   endOfRoundAudio.pause();
   slideAudio.pause();
+  winAudio.pause();
+  loseAudio.pause();
   for (const ghost of document.querySelectorAll(".card--ghost")) {
     ghost.remove();
   }
@@ -1156,16 +1184,18 @@ function showHtpScreen(): void {
 
 // showGameOverScreen swaps whichever screen is up for the game-over
 // screen, announcing South's win or loss per specs/gui.md's Game Over
-// Screen section: "You Won!"/"Game Over", one word per line. Callers
-// with an OverState to persist (specs/state.md) save it themselves
-// before calling this — it's pure UI, so restoring a saved Game Over
-// screen doesn't re-save the state it was just loaded from.
+// Screen section: "You Won!"/"Game Over", one word per line, and
+// playing win.wav/lose.wav per specs/assets.md -- every time this
+// screen is shown, including a reload landing on a saved "over" state
+// or specs/params.md's screen=over debug param, not just a live game
+// actually finishing.
 function showGameOverScreen(southWon: boolean): void {
   const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
   gameOverLine1El.textContent = line1;
   gameOverLine2El.textContent = line2;
   hideAllScreens();
   gameOverScreenEl.hidden = false;
+  playGameOverSound(southWon);
 }
 
 // showDebugGameOverScreen reaches the game-over screen directly via
