@@ -1,68 +1,32 @@
-# Rumble-31
+# Rumble 31
 
-A card game engine, playable in a browser.
+- [Play The Game Here!](https://blackchip.org/rumble31)
+- [How To Play](how-to-play.md)
 
-## Setup
+A card game based on [Thirty-One](https://en.wikipedia.org/wiki/Thirty-one_(card_game)).
+This variation comes from the game with a similar name on the MegaTouch
+machines. The closest ruleset I could find is on the Dutch Wikipedia page
+for [Eenendertigen](https://nl.wikipedia.org/wiki/Eenendertigen). This game
+implements a combination of the Dutch rules and what I can remember from
+playing the game. If you find any inaccuracies in the rules, be sure to let
+me know!
 
-This project runs `.ts` files directly via Node's native TypeScript
-support, with no build step. That requires an official Node.js build —
-distro-packaged builds (e.g. Ubuntu's `nodejs` apt package) are compiled
-without the bundled TypeScript parser and will fail with
-`ERR_NO_TYPESCRIPT` or `ERR_UNKNOWN_FILE_EXTENSION`. Use
-[nvm](https://github.com/nvm-sh/nvm) to install an official build instead
-of relying on the system Node.
+I've always wanted to create a remake of this game but I could just never
+find the time. I decided to give it a try with Claude Code and the results
+were better than I expected. Its still rough around the edges but it is
+fun to play.
 
-Install nvm (skip if already installed):
+See [setup.md](setup.md) for setup instructions and
+[toolchain.md](toolchain.md) for the full toolchain (tests, type
+checking, playing in the browser, and simulations).
 
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-```
+# Contact
 
-Restart your terminal (or `source ~/.bashrc`) so `nvm` is on your `PATH`,
-then install and switch to the latest LTS release:
+Send mail an to games@blackchip.org
 
-```bash
-nvm install --lts
-nvm use --lts
-```
+# License
 
-Verify `node` now resolves to the nvm-managed build, not
-`/usr/bin/node`:
+This code uses the [MIT license](LICENSE). Open-source assets are used in
+this project and their licenses are documented in [licenses.txt](licenses.txt)
 
-```bash
-which node
-```
 
-Then install dependencies:
-
-```bash
-npm install
-```
-
-Each new terminal session needs `nvm use --lts` (or `nvm use default`
-after running `nvm alias default lts/*` once) before running `npm`
-commands, since the system Node is still first on `PATH` by default.
-
-## Playing in the browser
-
-```bash
-npm run web:dev
-```
-
-This starts a dev server (Vite) and prints a local URL — open it in your
-browser to play. You are seat 0, playing against three bots.
-
-To build a static, deployable copy instead:
-
-```bash
-npm run web:build
-```
-
-The output goes to `dist/web`, which you can preview locally with:
-
-```bash
-npm run web:preview
-```
-
-See [CLAUDE.md](CLAUDE.md) for the full toolchain (tests and type
-checking).

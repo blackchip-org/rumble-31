@@ -98,19 +98,24 @@ three fields, in this order:
 Overwrite any existing `licenses.json` — this is a full regeneration, not
 an incremental update.
 
-## Step 5: Regenerate the in-app license data
+## Step 5: Regenerate the in-app license data and licenses.txt
 
 `licenses.json` is a source file, not what the app actually reads —
 `src/web/licensesData.ts` is generated from it (embedding each license
-file's text) and is what the About screen renders. Run this from the
-repository root to bring it back in sync:
+file's text) and is what the About screen renders. The same script also
+regenerates `licenses.txt` at the repository root: every entry's full,
+unmodified license text, each preceded by its name, license type, and
+source path, sorted alphabetically by name and separated by a horizontal
+rule of dashes. Run this from the repository root to bring both back in
+sync:
 
 ```bash
 node scripts/gen-licenses.mjs
 ```
 
 Run this every time, even if `licenses.json` didn't change — it's cheap,
-and it keeps `src/web/licensesData.ts` from silently drifting.
+and it keeps `src/web/licensesData.ts` and `licenses.txt` from silently
+drifting.
 
 Don't run `npm run prepare` for this — it also regenerates
 `buildstamp.json` and the how-to-play data, which are unrelated to

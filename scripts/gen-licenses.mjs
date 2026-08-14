@@ -43,3 +43,26 @@ const body = `export interface LicenseEntry {
 export const licenses: LicenseEntry[] = ${JSON.stringify(entries, null, 2)};
 `;
 writeFileSync(outPath, body);
+
+const SEPARATOR = "-".repeat(80);
+
+const txtEntries = manifest
+  .map((entry) => ({
+    name: entry.name,
+    license: entry.license,
+    source: entry.text,
+    fullText: readFileSync(join(repoRoot, entry.text), "utf8")
+      .replace(/\r\n/g, "\n")
+      .trim(),
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const txtBody =
+  txtEntries
+    .map(
+      (entry) =>
+        `${entry.name}\nLicense: ${entry.license}\nSource: ${entry.source}\n\n${entry.fullText}`,
+    )
+    .join(`\n\n${SEPARATOR}\n\n`) + "\n";
+
+writeFileSync(join(repoRoot, "licenses.txt"), txtBody);
