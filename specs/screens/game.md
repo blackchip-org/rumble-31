@@ -1,7 +1,7 @@
 # Game Screen (game)
 
 There is a bar at the very top of the screen. On the left hand side, it
-has the title of the game "Rumble-31". On the right hand side is a
+has the title of the game "Rumble 31". On the right hand side is a
 button labeled "Menu". Clicking on Menu, or pressing the Escape key,
 navigates to the Game Menu screen.
 

@@ -2,7 +2,7 @@ import type { Card } from "./card.ts";
 import { RANKS, SUITS } from "./card.ts";
 import type { Rng } from "../rng.ts";
 
-// newDeck returns the 32-card Rumble-31 deck (ranks 7 through ace, all
+// newDeck returns the 32-card Rumble 31 deck (ranks 7 through ace, all
 // four suits) in a fixed, deterministic order.
 export function newDeck(): Card[] {
   const deck: Card[] = [];

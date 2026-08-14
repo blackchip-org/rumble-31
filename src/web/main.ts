@@ -1,4 +1,4 @@
-// Rumble-31 browser client: the human is seat 0, playing against three
+// Rumble 31 browser client: the human is seat 0, playing against three
 // bots, until the game ends. Mirrors src/main.ts's (the CLI's) flow,
 // rendering to the DOM instead of a Writer.
 
@@ -1174,7 +1174,7 @@ function syncLicenseText(): void {
 // showLicensesScreen swaps whichever screen is up for the licenses
 // screen (per specs/gui.md's About Screen section's "Licenses"
 // button), populating the list box alphabetically with the
-// "Rumble-31" entry selected by default (specs/gui.md's Licenses
+// "Rumble 31" entry selected by default (specs/gui.md's Licenses
 // section), and persists it as the screen to resume (specs/state.md).
 function showLicensesScreen(): void {
   licensesListEl.replaceChildren();

@@ -12,7 +12,7 @@ When the game starts, it should write out the following by substituting
 0.0 with the actual version number, and X with the random number generator
 seed being used.
 
-    Welcome to Rumble-31, v0.0
+    Welcome to Rumble 31, v0.0
     Starting game with seed X
 
 The log for the start of each round looks like the following. X is the round

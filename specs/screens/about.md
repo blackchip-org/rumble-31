@@ -4,7 +4,7 @@ Contents should be in a panel centered horizontally and vertically.
 
 The header for this panel is:
 
-    Rumble-31
+    Rumble 31
     Version <VERSION>
     Built on <BUILD DATE>
 
@@ -15,7 +15,7 @@ The header for this panel is:
     Featuring
     Claude Code
 
-The Rumble-31 text uses the New Rocker font. The remaining text is bold.
+The Rumble 31 text uses the New Rocker font. The remaining text is bold.
 <VERSION> is the version number of the game, and <BUILD DATE> is the
 build date for the game. This text is centered horizontally.
 

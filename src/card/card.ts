@@ -1,4 +1,4 @@
-// Card notation and construction for Rumble-31, per specs/cards.md and
+// Card notation and construction for Rumble 31, per specs/cards.md and
 // specs/rules.md.
 
 export type Rank = "7" | "8" | "9" | "T" | "J" | "Q" | "K" | "A";

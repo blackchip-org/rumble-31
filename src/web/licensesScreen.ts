@@ -7,7 +7,7 @@ import type { LicenseEntry } from "./licensesData.ts";
 
 // DEFAULT_LICENSE_NAME is the entry selected, with its text already
 // shown, when the Licenses screen is first opened.
-const DEFAULT_LICENSE_NAME = "Rumble-31";
+const DEFAULT_LICENSE_NAME = "Rumble 31";
 
 // sortedLicenses orders entries alphabetically by name, for the list
 // box display order.

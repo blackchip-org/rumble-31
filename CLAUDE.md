@@ -1,4 +1,4 @@
-# Rumble-31
+# Rumble 31
 
 Card game engine with a browser-based GUI. TypeScript, run directly by
 Node (no build step — `.ts` files execute via Node's native TypeScript
@@ -46,7 +46,4 @@ actual commit once that message is approved.
 
 Use nvm to install and use node.
 
-When using a web server for testing, keep 5173 reserved for the human
-developer. Use ports starting with 6173. Check to see if a server is running
-on the port you need first before trying to start a new web server.
 

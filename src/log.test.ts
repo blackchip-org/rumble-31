@@ -15,7 +15,7 @@ function mustPot(...notation: [string, string, string]): Pot {
 }
 
 test("gameStartLines", () => {
-  assert.deepEqual(gameStartLines(42, "0.0"), ["Welcome to Rumble-31, v0.0", "Starting game with seed 42"]);
+  assert.deepEqual(gameStartLines(42, "0.0"), ["Welcome to Rumble 31, v0.0", "Starting game with seed 42"]);
 });
 
 test("roundStartLines", () => {

@@ -107,9 +107,9 @@
 
   /* ---------- about screen (independently restylable) ---------- */
   --about-bg: var(--bg); /* about screen background */
-  --about-title-color: #fff; /* "Rumble-31" heading color */
+  --about-title-color: #fff; /* "Rumble 31" heading color */
   --about-text-color: var(--ink); /* version/build/credit/body text color */
-  --font-size-about-title: 2.25rem; /* about screen "Rumble-31" heading */
+  --font-size-about-title: 2.25rem; /* about screen "Rumble 31" heading */
 
   /* ---------- settings screen (independently restylable) ---------- */
   --settings-bg: var(--bg); /* settings screen background */

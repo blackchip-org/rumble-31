@@ -1,4 +1,4 @@
-// Rumble-31 game engine types: dealing, turn order, the exchange/knock
+// Rumble 31 game engine types: dealing, turn order, the exchange/knock
 // actions, and end-of-round scoring, per specs/rules.md.
 
 import type { Card } from "../card/card.ts";

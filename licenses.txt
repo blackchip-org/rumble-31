@@ -435,7 +435,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 --------------------------------------------------------------------------------
 
-Rumble-31
+Rumble 31
 License: MIT
 Source: LICENSE
 

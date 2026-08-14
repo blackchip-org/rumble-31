@@ -42,7 +42,7 @@ export interface RoundDealOverride {
   knockerSeat?: number;
 }
 
-// Round holds the state of a single Rumble-31 round in progress, among
+// Round holds the state of a single Rumble 31 round in progress, among
 // whichever seats are taking part (2 to 4 — a seat eliminated from the
 // game doesn't appear here at all, so it's never dealt in, never
 // takes a turn, and never touches the pot).

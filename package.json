@@ -2,7 +2,7 @@
   "name": "rumble-31",
   "version": "0.1.0",
   "private": true,
-  "description": "Rumble-31 card game engine, playable in the browser.",
+  "description": "Rumble 31 card game engine, playable in the browser.",
   "type": "module",
   "scripts": {
     "prepare": "node scripts/gen-buildtime.mjs && node scripts/gen-licenses.mjs && node scripts/gen-how-to-play.mjs",

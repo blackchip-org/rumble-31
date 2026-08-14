@@ -6,7 +6,7 @@ import type { Hand, Pot, TurnRecord } from "./game/types.ts";
 
 // gameStartLines is written once, at program start, per specs/log.md.
 export function gameStartLines(seed: number, version: string): string[] {
-  return [`Welcome to Rumble-31, v${version}`, `Starting game with seed ${seed}`];
+  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`];
 }
 
 // roundStartLines is written once a round is dealt, before its first

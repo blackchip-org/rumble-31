@@ -16,7 +16,7 @@ export function sameSuit(cards: readonly Card[]): boolean {
   return cards.slice(1).every((c) => c.suit === first.suit);
 }
 
-// score computes the Rumble-31 score of a 3-card hand per specs/rules.md:
+// score computes the Rumble 31 score of a 3-card hand per specs/rules.md:
 // if all three cards are aces the score is 32; if all three cards share a
 // (non-ace) rank the score is 30.5; otherwise the score is the highest
 // sum of point values among cards sharing a suit.
