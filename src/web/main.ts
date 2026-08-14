@@ -38,6 +38,7 @@ import { licenses } from "./licensesData.ts";
 import { defaultLicense, sortedLicenses } from "./licensesScreen.ts";
 import { howToPlayText } from "./howToPlayData.ts";
 import { buildDebugMenuGameState } from "./gameMenu.ts";
+import { detectPlatform, INSTALL_INSTRUCTIONS } from "./installPrompt.ts";
 
 // sleep resolves after ms.
 function sleep(ms: number): Promise<void> {
@@ -256,10 +257,25 @@ interface SeatEls {
 const mainScreenEl = must<HTMLElement>("main-screen");
 const gameScreenEl = must<HTMLElement>("game-screen");
 const menuBtn = must<HTMLButtonElement>("menu-btn");
+const installAppBtn = must<HTMLButtonElement>("install-app-btn");
 const newGameBtn = must<HTMLButtonElement>("new-game-btn");
 const htpBtn = must<HTMLButtonElement>("htp-btn");
 const settingsBtn = must<HTMLButtonElement>("settings-btn");
 const aboutBtn = must<HTMLButtonElement>("about-btn");
+
+const installDialogEl = must<HTMLDialogElement>("install-dialog");
+const installDialogTextEl = must<HTMLElement>("install-dialog-text");
+const installDialogCloseBtn = must<HTMLButtonElement>("install-dialog-close-btn");
+
+// installPlatform is fixed for the life of the page load; standalone
+// (already installed/launched from the home screen) is checked via
+// both the standard display-mode media query and Safari's older
+// navigator.standalone, since iOS Safari doesn't support the former.
+const installPlatform = detectPlatform(navigator.userAgent, navigator.maxTouchPoints);
+const isStandaloneApp =
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as unknown as { standalone?: boolean }).standalone === true;
+installAppBtn.hidden = installPlatform === "other" || isStandaloneApp;
 
 const menuScreenEl = must<HTMLElement>("menu-screen");
 const menuResumeBtn = must<HTMLButtonElement>("menu-resume-btn");
@@ -1316,6 +1332,12 @@ bot3ToggleBtn.addEventListener("click", () => {
 newGameBtn.addEventListener("click", () => showGameScreen());
 settingsBtn.addEventListener("click", () => showSettingsScreen({ from: "main" }));
 aboutBtn.addEventListener("click", showAboutScreen);
+
+installAppBtn.addEventListener("click", () => {
+  installDialogTextEl.textContent = INSTALL_INSTRUCTIONS[installPlatform as "ios" | "android"];
+  installDialogEl.showModal();
+});
+installDialogCloseBtn.addEventListener("click", () => installDialogEl.close());
 
 // specs/params.md's screen debug param picks the initial screen
 // directly. Without it, savedState (specs/state.md) picks up wherever
