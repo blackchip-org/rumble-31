@@ -39,7 +39,12 @@ function slide(el: HTMLElement, fromX: number, fromY: number, toX: number, toY: 
 // the hand and pot panels (separate DOM subtrees, one of them under an
 // ancestor with overflow: hidden) that would make animating the real,
 // in-flow elements fragile.
-export async function animateCardTrade(handSlotEl: HTMLElement, potSlotEl: HTMLElement, cardToPot: Card, cardToHand: Card, conceal: boolean, takenIsSecret = false): Promise<void> {
+//
+// onSlideStart, if given, is called once per leg, right as that leg's
+// slide begins (specs/assets.md's slide.wav) -- the caller owns
+// whether/how to play a sound for it, since settings.soundsEnabled
+// lives in main.ts, not here.
+export async function animateCardTrade(handSlotEl: HTMLElement, potSlotEl: HTMLElement, cardToPot: Card, cardToHand: Card, conceal: boolean, takenIsSecret = false, onSlideStart?: () => void): Promise<void> {
   const legMs = TRADE_ANIMATION_DURATION / 2;
 
   const handRect = handSlotEl.getBoundingClientRect();
@@ -58,6 +63,7 @@ export async function animateCardTrade(handSlotEl: HTMLElement, potSlotEl: HTMLE
   document.body.appendChild(ghost);
   handSlotEl.style.visibility = "hidden";
 
+  onSlideStart?.();
   await slide(ghost, 0, 0, dx, dy, legMs);
 
   // Midpoint handoff, done synchronously so there's no visible frame in
@@ -67,6 +73,7 @@ export async function animateCardTrade(handSlotEl: HTMLElement, potSlotEl: HTMLE
   setCardFace(potSlotEl, cardToPot);
   setCardFace(ghost, takenIsSecret ? null : cardToHand);
 
+  onSlideStart?.();
   await slide(ghost, dx, dy, 0, 0, legMs);
 
   setCardFace(handSlotEl, conceal ? null : cardToHand);

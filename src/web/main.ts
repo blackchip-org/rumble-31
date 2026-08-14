@@ -14,7 +14,13 @@ import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnSta
 import { Rng } from "../rng.ts";
 import { version } from "../version.ts";
 import { buildTime } from "../buildstamp.ts";
+import score31SoundUrl from "../../assets/31.wav";
+import score32SoundUrl from "../../assets/32.wav";
 import dealSoundUrl from "../../assets/deal.wav";
+import endOfRoundSoundUrl from "../../assets/end-of-round.wav";
+import knockSoundUrl from "../../assets/knock.wav";
+import slideSoundUrl from "../../assets/slide.wav";
+import turnSoundUrl from "../../assets/turn.wav";
 import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
 import { installGlobalErrorHandlers, mockError, showErrorScreen } from "./errorScreen.ts";
@@ -42,6 +48,27 @@ function sleep(ms: number): Promise<void> {
 // previous clip finishes, playDealSound rewinds and restarts it,
 // cutting the previous play off rather than letting instances overlap.
 const dealAudio = new Audio(dealSoundUrl);
+
+// turnAudio is the single Audio instance shared by every "it's your
+// turn" notification, reused for the same reason as dealAudio above.
+const turnAudio = new Audio(turnSoundUrl);
+
+// knockAudio is the single Audio instance shared by every knock,
+// reused for the same reason as dealAudio above.
+const knockAudio = new Audio(knockSoundUrl);
+
+// score31Audio/score32Audio/endOfRoundAudio are the round-end sounds
+// (specs/assets.md): score31Audio for a round won with 31, score32Audio
+// for a round won with 32 (three aces), endOfRoundAudio for any other
+// winning score. Reused across rounds for the same reason as dealAudio
+// above.
+const score31Audio = new Audio(score31SoundUrl);
+const score32Audio = new Audio(score32SoundUrl);
+const endOfRoundAudio = new Audio(endOfRoundSoundUrl);
+
+// slideAudio is the single Audio instance shared by every card-slide
+// animation leg, reused for the same reason as dealAudio above.
+const slideAudio = new Audio(slideSoundUrl);
 
 // settings holds the user's persisted preferences (specs/gui.md's
 // Settings Screen), loaded once at startup and kept in sync with
@@ -82,26 +109,73 @@ function playDealSound(): void {
   dealAudio.play().catch((err: unknown) => console.warn("deal.wav: play() failed", err));
 }
 
-// unlockDealSoundOnFirstGesture plays (silently, then immediately
-// pauses) dealAudio on the page's first click or keypress. Round 1's
-// deal starts automatically, before the player has done anything, and
-// browsers block unmuted audio until there's been a user gesture on
-// the page — without this, every dealt card would be silent until the
-// player happened to interact with something else first (or,
+// playTurnSound plays turn.wav when it becomes the human player's
+// (seat 0) turn, unless the player has disabled sounds. Mirrors
+// playDealSound above.
+function playTurnSound(): void {
+  if (!settings.soundsEnabled) {
+    return;
+  }
+  turnAudio.currentTime = 0;
+  turnAudio.play().catch((err: unknown) => console.warn("turn.wav: play() failed", err));
+}
+
+// playKnockSound plays knock.wav when a player knocks, unless the
+// player has disabled sounds. Mirrors playDealSound above.
+function playKnockSound(): void {
+  if (!settings.soundsEnabled) {
+    return;
+  }
+  knockAudio.currentTime = 0;
+  knockAudio.play().catch((err: unknown) => console.warn("knock.wav: play() failed", err));
+}
+
+// playRoundEndSound plays the round-end sound matching winningScore --
+// 31.wav for 31, 32.wav for 32 (three aces), end-of-round.wav for any
+// other winning score -- unless the player has disabled sounds. Mirrors
+// playDealSound above.
+function playRoundEndSound(winningScore: number): void {
+  if (!settings.soundsEnabled) {
+    return;
+  }
+  const audio = winningScore === 31 ? score31Audio : winningScore === 32 ? score32Audio : endOfRoundAudio;
+  audio.currentTime = 0;
+  audio.play().catch((err: unknown) => console.warn("round-end sound: play() failed", err));
+}
+
+// playSlideSound plays slide.wav when a card-slide animation leg
+// starts (tradeAnim.ts's animateCardTrade), unless the player has
+// disabled sounds. Mirrors playDealSound above.
+function playSlideSound(): void {
+  if (!settings.soundsEnabled) {
+    return;
+  }
+  slideAudio.currentTime = 0;
+  slideAudio.play().catch((err: unknown) => console.warn("slide.wav: play() failed", err));
+}
+
+// unlockSoundsOnFirstGesture plays (silently, then immediately pauses)
+// every clip in audios on the page's first click or keypress. Round
+// 1's deal starts automatically, before the player has done anything,
+// and browsers block unmuted audio until there's been a user gesture
+// on the page — without this, the first sounds would be silent until
+// the player happened to interact with something else first (or,
 // depending on the browser, indefinitely).
-function unlockDealSoundOnFirstGesture(): void {
+function unlockSoundsOnFirstGesture(audios: readonly HTMLAudioElement[]): void {
   const unlock = () => {
     document.removeEventListener("click", unlock);
     document.removeEventListener("keydown", unlock);
-    dealAudio.volume = 0;
-    dealAudio
-      .play()
-      .then(() => {
-        dealAudio.pause();
-        dealAudio.currentTime = 0;
-        dealAudio.volume = 1;
-      })
-      .catch((err: unknown) => console.warn("deal.wav: could not unlock audio", err));
+    for (const audio of audios) {
+      audio.volume = 0;
+      audio
+        .play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = 1;
+        })
+        .catch((err: unknown) => console.warn("could not unlock audio", err));
+    }
   };
   document.addEventListener("click", unlock, { once: true });
   document.addEventListener("keydown", unlock, { once: true });
@@ -268,7 +342,9 @@ function withTurnUi(seat: number, inner: Strategy, signal: AbortSignal): Strateg
       }
       setActiveSeat(seat, v.isFirstTurnOfRound);
       appendLogLine(logEl, turnStartLine(seat, v.isFirstTurnOfRound));
-      if (seat !== 0) {
+      if (seat === 0) {
+        playTurnSound();
+      } else {
         await sleep(MIN_BOT_THINK_TIME + Math.random() * (MAX_BOT_THINK_TIME - MIN_BOT_THINK_TIME));
         if (signal.aborted) {
           return pending();
@@ -336,13 +412,13 @@ async function animateTurnCards(rec: TurnRecord): Promise<void> {
   switch (rec.action.type) {
     case "trade": {
       const { handIndex, potIndex } = rec.action;
-      await animateCardTrade(hand.children[handIndex] as HTMLElement, potEl.children[potIndex] as HTMLElement, rec.handBefore[handIndex] as Card, rec.potBefore[potIndex] as Card, conceal);
+      await animateCardTrade(hand.children[handIndex] as HTMLElement, potEl.children[potIndex] as HTMLElement, rec.handBefore[handIndex] as Card, rec.potBefore[potIndex] as Card, conceal, false, playSlideSound);
       break;
     }
     case "exchange": {
       const takenIsSecret = rec.turnIndex === 0 && conceal;
       for (let i = 0; i < 3; i++) {
-        await animateCardTrade(hand.children[i] as HTMLElement, potEl.children[i] as HTMLElement, rec.handBefore[i] as Card, rec.potBefore[i] as Card, conceal, takenIsSecret);
+        await animateCardTrade(hand.children[i] as HTMLElement, potEl.children[i] as HTMLElement, rec.handBefore[i] as Card, rec.potBefore[i] as Card, conceal, takenIsSecret, playSlideSound);
       }
       break;
     }
@@ -376,6 +452,7 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
   // (see the roundNum loop in main()).
   if (rec.turnIndex !== 0 && (rec.action.type === "knock" || rec.action.type === "exchange")) {
     setPanelState(seatOf(rec.seat).panel, "knocked");
+    playKnockSound();
   }
 
   await animateTurnCards(rec);
@@ -583,7 +660,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
 
   initCardSheetVars();
   initStrikeBlinkVar();
-  unlockDealSoundOnFirstGesture();
+  unlockSoundsOnFirstGesture([dealAudio, turnAudio, knockAudio, score31Audio, score32Audio, endOfRoundAudio, slideAudio]);
 
   const seed = Date.now();
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn, signal);
@@ -804,6 +881,10 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     for (const seat of outcome.result.winners) {
       setWon(seatOf(seat).panel, true);
     }
+    const winningScore = outcome.result.players.find((pr) => outcome.result.winners.includes(pr.seat))?.score;
+    if (winningScore !== undefined) {
+      playRoundEndSound(winningScore);
+    }
     for (const seat of outcome.struck) {
       setStruck(seatOf(seat).panel, true);
       // A struck seat that this same strike eliminated already got the
@@ -907,13 +988,20 @@ function hideAllScreens(): void {
 // abortCurrentGame stops whichever game main() is currently running
 // (if any, per currentGameAbort's own comment) and cleans up anything
 // that could otherwise keep running or lingering visibly after the
-// player has navigated away: a deal sound already mid-playback, and
-// any in-flight card-trade "ghost" element (tradeAnim.ts), which
-// animates as a position: fixed element appended straight to
-// document.body rather than under the (now hidden) game screen.
+// player has navigated away: a deal, turn, knock, round-end, or slide
+// sound already mid-playback, and any in-flight card-trade "ghost"
+// element (tradeAnim.ts), which animates as a position: fixed element
+// appended straight to document.body rather than under the (now
+// hidden) game screen.
 function abortCurrentGame(): void {
   currentGameAbort?.abort();
   dealAudio.pause();
+  turnAudio.pause();
+  knockAudio.pause();
+  score31Audio.pause();
+  score32Audio.pause();
+  endOfRoundAudio.pause();
+  slideAudio.pause();
   for (const ghost of document.querySelectorAll(".card--ghost")) {
     ghost.remove();
   }
