@@ -1,6 +1,6 @@
 ---
 name: find-license-files
-description: Scan the repository for dedicated third-party license files (LICENSE, COPYING, NOTICE, *.OFL.txt, and similar) and regenerate the root-level licenses.json manifest that maps each licensed item (fonts, vendored assets, bundled third-party code, etc.) to its license type and license text path. Use this whenever the user asks to find, list, catalog, or inventory license files, wants to know what third-party assets need attribution, mentions licenses.json, or is preparing a repo for release/distribution and needs its licensing situation documented. Do not use this for auditing npm/package-manager dependency licenses (that's a different concern) — this skill is for license files that live in the repository itself.
+description: Scan the repository for dedicated third-party license files (LICENSE, COPYING, NOTICE, *.OFL.txt, and similar) and regenerate the root-level licenses.json manifest that maps each licensed item (fonts, vendored assets, bundled third-party code, etc.) to its license type and license text path, then regenerate the generated src/web/licensesData.ts the app actually reads. Use this whenever the user asks to find, list, catalog, or inventory license files, wants to know what third-party assets need attribution, mentions licenses.json, or is preparing a repo for release/distribution and needs its licensing situation documented. Do not use this for auditing npm/package-manager dependency licenses (that's a different concern) — this skill is for license files that live in the repository itself.
 ---
 
 # Find License Files
@@ -97,3 +97,21 @@ three fields, in this order:
 
 Overwrite any existing `licenses.json` — this is a full regeneration, not
 an incremental update.
+
+## Step 5: Regenerate the in-app license data
+
+`licenses.json` is a source file, not what the app actually reads —
+`src/web/licensesData.ts` is generated from it (embedding each license
+file's text) and is what the About screen renders. Run this from the
+repository root to bring it back in sync:
+
+```bash
+node scripts/gen-licenses.mjs
+```
+
+Run this every time, even if `licenses.json` didn't change — it's cheap,
+and it keeps `src/web/licensesData.ts` from silently drifting.
+
+Don't run `npm run prepare` for this — it also regenerates
+`buildstamp.json` and the how-to-play data, which are unrelated to
+licensing and would add noise to the diff.

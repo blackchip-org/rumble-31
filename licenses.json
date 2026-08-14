@@ -15,6 +15,11 @@
     "text": "assets/NewRocker.OFL.txt"
   },
   {
+    "name": "Sound Effects (ChipTone)",
+    "license": "CC0-1.0",
+    "text": "assets/SoundEffects.md"
+  },
+  {
     "name": "Rumble-31",
     "license": "MIT",
     "text": "LICENSE"
