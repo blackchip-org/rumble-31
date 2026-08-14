@@ -44,7 +44,7 @@ you get a permission denied error, ask before running sudo.
 When asked to commit, first generate a commit message for review. Do the
 actual commit once that message is approved.
 
-Use nvm to install use and install node.
+Use nvm to install and use node.
 
 When using a web server for testing, keep 5173 reserved for the human
 developer. Use ports starting with 6173. Check to see if a server is running

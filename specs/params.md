@@ -22,7 +22,7 @@ For example:
     north=7s8h9c
 
 Populates North's starting hand with a seven of spades, an eight of hearts,
-and the nine of clubs. When this happens, the rules are as follows:
+and a nine of clubs. When this happens, the rules are as follows:
 
 - An initial deck is constructed
 - Assigned cards are given out first to the specified players and/or pot

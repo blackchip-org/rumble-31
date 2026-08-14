@@ -38,14 +38,14 @@ or to keep the pot. The log messages for those are:
     Seat keeps their hand
     Seat exchanges their hand for the pot
 
-When a player trades a card with the pot use the following where 7h is the
+When a player trades a card with the pot, use the following where 7h is the
 card from the player's hand that is going to the pot and 8d is the card
 from the pot that is going to the player's hand.
 
     Seat trades [7h] for [8d]
 
 When a player exchanges all cards with the pot, use the following where
-7h 8s 9d are the cards from the player's hand that is going to the pot and
+7h 8s 9d are the cards from the player's hand that are going to the pot and
 Th Js Qd are the cards from the pot going to the player's hand.
 
     Seat exchanges [7h 8s 9d] for [Th Js Qd]

@@ -25,4 +25,4 @@ blue and the text is white:
 Clicking on the "New Game" button navigates to the Game Screen.
 Clicking on the "How to Play" button navigates to the How to Play screen.
 Clicking on the "Settings" button navigates to the Settings Screen.
-Clicking on the "About" button navigates to the About Screen.s
+Clicking on the "About" button navigates to the About Screen.

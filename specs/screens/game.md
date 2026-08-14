@@ -84,7 +84,7 @@ the pot arranged horizontally.
 
 Above South's player panel, is a panel of two buttons arranged horizontally:
 
-- "Take Pot": Clicking on this exchanges all of the players cards with the pot
+- "Take Pot": Clicking on this exchanges all of the player's cards with the pot
 - "Knock": Clicking on this knocks
 
 These buttons are always visible. They are disabled outside of the
@@ -105,13 +105,13 @@ that "all" of South's cards are being considered rather than one. The
 buttons revert to reading "Take Pot" and "Knock", and card-clicking to
 trade resumes working, from South's second turn on.
 
-To trade a card from a players hand with one from the pot, the player:
+To trade a card from a player's hand with one from the pot, the player:
 
 - Clicks on the card from the hand to trade; then
 - Clicks on the card from the pot to trade
 
 Once both cards are clicked, the trade happens. Cards should be highlighted
-when clicked. Cards can be clicked in either order--hand then pot, or
+when clicked. Cards can be clicked in either order -- hand then pot, or
 pot then hand. Clicking an already-highlighted card un-highlights it,
 cancelling that half of the trade. Clicking a different card in the same
 zone (hand or pot) before the trade completes moves the highlight to
@@ -150,7 +150,7 @@ added next to it. The same applies to the pot panel.
 
 When a player trades or exchanges cards with the pot, that action is animated.
 The card from the player's hand being traded should first be exposed if
-necessary (bots cards are normally hidden) and then it should slide over to
+necessary (bots' cards are normally hidden) and then it should slide over to
 the card it is trading for in the pot. Once there, the card being traded for
 in the pot slides over to its spot in the player's hand. The total duration
 of one card's animation is configurable.
@@ -182,7 +182,7 @@ Between rounds, play pauses for three seconds before the next round
 starts automatically. The log panel notes the pause. Clicking anywhere
 on the screen skips the remainder of the wait.
 
-The game ends immediately the moment South is eliminated — the rest of
+The game ends immediately the moment South is eliminated -- the rest of
 the bots' contest is never played out.
 
 ## Mobile

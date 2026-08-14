@@ -30,7 +30,7 @@ Play in the browser (starts a Vite dev server):
 npm run web:dev
 ```
 
-Build the browser app for production (outputs to `dist/`):
+Build the browser app for production (outputs to `dist/web`):
 
 ```bash
 npm run web:build

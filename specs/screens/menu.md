@@ -7,7 +7,7 @@ buttons:
 - Settings
 - Abandon
 
-The "Abandon" button should using a reddish fill color to distinguish it
+The "Abandon" button should use a reddish fill color to distinguish it
 from the other buttons.
 
 Clicking on Resume navigates to the Game Screen.

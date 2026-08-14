@@ -11,7 +11,7 @@ are as follows:
 The first row contains special cards. These are described below indexed by
 their column number (1-based):
 
-- 1: Unknown (used when there is unclear which card to display)
+- 1: Unknown (used when it is unclear which card to display)
 - 2: Joker filled, light
 - 3: Joker outlined, light
 - 4: Joker filled, dark
@@ -30,7 +30,7 @@ of the cards from left to right is:
 
     A 2 3 4 5 6 7 8 9 T J Q K
 
-The rows have the following suits (1 - based):
+The rows have the following suits (1-based):
 
 - 2: Spades, black
 - 3: Hearts, red

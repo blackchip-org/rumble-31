@@ -13,7 +13,7 @@ me know!
 
 I've always wanted to create a remake of this game but I could just never
 find the time. I decided to give it a try with Claude Code and the results
-were better than I expected. Its still rough around the edges but it is
+were better than I expected. It's still rough around the edges but it is
 fun to play.
 
 See [setup.md](setup.md) for setup instructions and
@@ -22,7 +22,7 @@ checking, playing in the browser, and simulations).
 
 # Contact
 
-Send mail an to games@blackchip.org
+Send an email to games@blackchip.org
 
 # License
 
