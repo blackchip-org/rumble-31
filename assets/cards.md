@@ -3,8 +3,8 @@
 This is a tile sheet containing images of playing cards. The dimensions
 are as follows:
 
-- Sheet size: 1911 x 1859
-- Tile size: 147 x 169
+- Sheet size: 1560 x 1859
+- Tile size: 120 x 169
 - Columns: 13
 - Rows: 11
 

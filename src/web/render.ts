@@ -42,7 +42,11 @@ export function initStrikeBlinkVar(): void {
 function tileEl(position: TilePosition, ariaLabel: string): HTMLElement {
   const el = document.createElement("div");
   el.className = "card";
-  el.style.backgroundImage = `url(${cardsUrl})`;
+  // Set via a custom property rather than background-image directly, so
+  // style.css's .is-selected rule (an ordinary stylesheet rule) can
+  // override it with cards-highlight.png -- an inline background-image
+  // here would always win over any stylesheet rule, selected or not.
+  el.style.setProperty("--card-img", `url(${cardsUrl})`);
   setTile(el, position, ariaLabel);
   return el;
 }

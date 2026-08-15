@@ -1,12 +1,17 @@
 import type { Card, Rank, Suit } from "../card/card.ts";
 
 // assets/cards.md describes the tile sheet's layout: an 11x13 grid of
-// 147x169px tiles. Row 1 holds special tiles (unused here); every
+// 120x169px tiles. Row 1 holds special tiles (unused here); every
 // other row is one suit's A,2..9,T,J,Q,K across all 13 columns.
-export const TILE_W = 147;
+export const TILE_W = 120;
 export const TILE_H = 169;
 export const SHEET_COLS = 13;
 export const SHEET_ROWS = 11;
+
+// assets/cards-highlight.png (see specs/assets.md) mirrors cards.png's
+// geometry exactly -- same row/column layout and same tile size -- so
+// SUIT_ROW/RANK_COL and every constant above apply to both sheets
+// unchanged.
 
 // SUIT_ROW picks the tile sheet's own "4-color deck" rows (2, 3, 6, 7):
 // spades black, hearts red, diamonds blue, clubs green.

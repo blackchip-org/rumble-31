@@ -233,11 +233,11 @@ body {
 /* ---------- player panel ---------- */
 
 .panel {
-  /* 3 cards + the .hand gap between them (2 * 0.5rem) + this panel's
+  /* 3 cards + the .hand gap between them (2 * 0.75rem) + this panel's
      own left/right padding (2 * 0.85rem) — kept in lockstep with
      --card-w so panels can't visually drift out of sync with the
      cards they hold at any viewport size. */
-  width: calc(var(--card-w) * 3 + 2.7rem);
+  width: calc(var(--card-w) * 3 + 3.2rem);
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 10px;
@@ -407,13 +407,13 @@ body {
 .cards,
 .hand {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   /* Fixed to a full 3-card hand's size (not min-height/shrink-to-fit),
      so the panel never resizes as cards are dealt, and already-placed
      cards don't shift as later ones are appended into the same
      fixed-size, left-aligned row (the parent panel centers this row,
      so a growing-width row would otherwise re-center on every card). */
-  width: calc(var(--card-w) * 3 + 1rem);
+  width: calc(var(--card-w) * 3 + 1.5rem);
   height: var(--card-h);
 }
 
@@ -435,6 +435,7 @@ body {
   position: relative;
   width: var(--card-w);
   height: var(--card-h);
+  background-image: var(--card-img);
   background-size: calc(var(--sheet-cols) * var(--card-w)) calc(var(--sheet-rows) * var(--card-h));
   background-position:
     calc(-1 * (var(--tile-col) - 1) * var(--card-w)) calc(-1 * (var(--tile-row) - 1) * var(--card-h));
@@ -473,18 +474,18 @@ body {
   transform: translateY(-6px);
 }
 
-/* Tint overlay for .is-selected, rather than a border/box-shadow ring,
-   so the selection reads as a color wash across the card face. Sits on
-   an ::after (not the card's own background) since .card already uses
-   background-image/-position for its sprite-sheet tile. */
-.card.is-selected::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 6px;
-  background: rgba(217, 164, 65, 0.4);
-  mix-blend-mode: multiply;
-  pointer-events: none;
+/* Swaps in cards-highlight.png's own pre-rendered highlighted art for
+   .is-selected, instead of washing cards.png's tile with a tint
+   overlay. Overrides the --card-img custom property .card's own rule
+   reads (see render.ts's tileEl()) with a plain background-image: a
+   stylesheet rule can out-specificity another stylesheet rule, but
+   never an inline style, which is why tileEl() sets --card-img rather
+   than background-image directly. background-size/-position are left
+   inherited from .card's own rule above -- cards-highlight.png shares
+   cards.png's exact tile geometry (cardSheet.ts), so no adjustment is
+   needed to line up. */
+.card.is-selected {
+  background-image: url("../../assets/cards-highlight.png");
 }
 
 /* South's whole hand, on South's first turn (domActionPrompt.ts) --

@@ -6,6 +6,9 @@ Assets are stored in the assets directory. It contains:
 
 - cards.png: A tile sheet containing card images. The file, cards.md,
 describes the layout of the tile sheet.
+- cards-highlight.png: A tile sheet of highlighted/selected-card
+variants of the same cards, sharing cards.png's exact layout and tile
+size (see cards.md).
 
 ## Sound Effects
 
