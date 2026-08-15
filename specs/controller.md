@@ -8,7 +8,8 @@ mouse/touch.
 
 Exactly one button, list box, or card on the current screen is
 "focused" at a time, shown with a colored outline distinct from any
-other highlight (such as a selected or first-turn-highlighted card).
+other highlight (such as a selected card, or the hand/pot's first-turn
+Keep highlight).
 Most screens are a single column, where any direction moves to the
 next or previous item, wrapping back around at either end. The Game
 Screen is arranged in rows instead (Menu; the pot's cards; Take

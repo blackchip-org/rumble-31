@@ -101,10 +101,13 @@ clicking either leaves South's hand untouched instead of knocking (see
 specs/rules.md: neither Take Pot nor Keep counts as a knock on this
 turn). Clicking a hand or pot card has no effect on this turn --
 trading a single card isn't available until the round's second turn.
-All of South's hand cards highlight on South's first turn, to signal
-that "all" of South's cards are being considered rather than one. The
-buttons revert to reading "Take Pot" and "Knock", and card-clicking to
-trade resumes working, from South's second turn on.
+On South's first turn, South's hand cards highlight as a group by
+default, signaling that "all" of South's cards are being considered
+rather than one; hovering or focusing "Keep Pot" switches the
+highlight to the pot's cards instead, and hovering or focusing "Keep
+Hand" switches it back to the hand. The buttons revert to reading
+"Take Pot" and "Knock", and card-clicking to trade resumes working,
+from South's second turn on.
 
 To trade a card from a player's hand with one from the pot, the player:
 

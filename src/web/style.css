@@ -475,33 +475,25 @@ body {
 }
 
 /* Swaps in cards-highlight.png's own pre-rendered highlighted art for
-   .is-selected, instead of washing cards.png's tile with a tint
-   overlay. Overrides the --card-img custom property .card's own rule
-   reads (see render.ts's tileEl()) with a plain background-image: a
-   stylesheet rule can out-specificity another stylesheet rule, but
-   never an inline style, which is why tileEl() sets --card-img rather
-   than background-image directly. background-size/-position are left
-   inherited from .card's own rule above -- cards-highlight.png shares
-   cards.png's exact tile geometry (cardSheet.ts), so no adjustment is
-   needed to line up. */
-.card.is-selected {
+   .is-selected and .is-keep-highlight, instead of washing cards.png's
+   tile with a tint overlay. Overrides the --card-img custom property
+   .card's own rule reads (see render.ts's tileEl()) with a plain
+   background-image: a stylesheet rule can out-specificity another
+   stylesheet rule, but never an inline style, which is why tileEl()
+   sets --card-img rather than background-image directly.
+   background-size/-position are left inherited from .card's own rule
+   above -- cards-highlight.png shares cards.png's exact tile geometry
+   (cardSheet.ts), so no adjustment is needed to line up. */
+.card.is-selected,
+.card.is-keep-highlight {
   background-image: url("../../assets/cards-highlight.png");
-}
-
-/* South's whole hand, on South's first turn (domActionPrompt.ts) --
-   signals that all of South's cards, not just one, are what Keep
-   Pot/Keep Hand consider. */
-.card.is-first-turn {
-  box-shadow:
-    0 0 0 2px var(--first),
-    0 6px 14px -4px var(--first-glow);
 }
 
 /* Controller/keyboard focus ring (specs/controller.md, focusNav.ts):
    applies to any currently navigable element -- buttons, selects, and
    (in a later phase) cards alike. Uses outline rather than box-shadow
-   so it never fights with .is-selected/.is-first-turn's own ring for
-   the same property; a card can show both at once. */
+   so it never fights with .is-selected's own ring for the same
+   property; a card can show both at once. */
 .is-focused {
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;

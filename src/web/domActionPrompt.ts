@@ -14,8 +14,9 @@ import { TradeSelection } from "./tradeSelection.ts";
 // or Keep are available: clicking a card does nothing, the buttons read
 // "Keep Pot"/"Keep Hand" instead of "Take Pot"/"Knock" (Keep Hand still
 // resolves to knock() — round.ts is what makes it not act as a real
-// knock that turn), and every hand card gets a highlight (is-first-turn)
-// signaling that all of the hand, not one card, is what's being kept.
+// knock that turn), and the group of cards Keep Pot/Keep Hand would act
+// on (all of the hand, or all of the pot) highlights as a group instead
+// of one card, tracking hover/focus on the two buttons.
 export class DomActionPrompt implements Strategy {
   private potEl: HTMLElement;
   private handEl: HTMLElement;
@@ -51,6 +52,23 @@ export class DomActionPrompt implements Strategy {
         potCards.forEach((el, i) => el.classList.toggle("is-selected", selection.potIndex() === i));
       };
 
+      // Tracks which group of cards Keep Pot/Keep Hand would act on --
+      // the pot while Take Pot/Keep Pot has mouse hover, real DOM
+      // focus, or focusNav.ts's own app-managed "is-focused" class
+      // (controller/keyboard nav never sets real DOM focus -- see
+      // focusNav.ts's top comment), the hand otherwise (including
+      // while Knock/Keep Hand has any of those, or neither button
+      // does). Only wired up to the buttons on the first turn (below);
+      // defined unconditionally so detach() can always call
+      // removeEventListener/disconnect with it.
+      const updateKeepHighlight = () => {
+        const potActive =
+          this.takePotBtn.matches(":hover") || document.activeElement === this.takePotBtn || this.takePotBtn.classList.contains("is-focused");
+        handCards.forEach((el) => el.classList.toggle("is-keep-highlight", !potActive));
+        potCards.forEach((el) => el.classList.toggle("is-keep-highlight", potActive));
+      };
+      const keepFocusObserver = new MutationObserver(updateKeepHighlight);
+
       // detach undoes everything decide() attached to the DOM, without
       // settling the promise -- shared by finish() (a real decision,
       // which also resolves) and onAbort below (the game was paused or
@@ -64,8 +82,13 @@ export class DomActionPrompt implements Strategy {
         this.knockBtn.textContent = "Knock";
         this.takePotBtn.removeEventListener("click", onTakePot);
         this.knockBtn.removeEventListener("click", onKnock);
-        handCards.forEach((el) => el.classList.remove("is-selected", "is-first-turn"));
-        potCards.forEach((el) => el.classList.remove("is-selected"));
+        this.takePotBtn.removeEventListener("mouseenter", updateKeepHighlight);
+        this.takePotBtn.removeEventListener("mouseleave", updateKeepHighlight);
+        this.takePotBtn.removeEventListener("focus", updateKeepHighlight);
+        this.takePotBtn.removeEventListener("blur", updateKeepHighlight);
+        keepFocusObserver.disconnect();
+        handCards.forEach((el) => el.classList.remove("is-selected", "is-keep-highlight"));
+        potCards.forEach((el) => el.classList.remove("is-selected", "is-keep-highlight"));
         this.handEl.classList.remove("is-tradeable");
         this.potEl.classList.remove("is-tradeable");
         this.signal.removeEventListener("abort", onAbort);
@@ -101,11 +124,17 @@ export class DomActionPrompt implements Strategy {
       this.knockBtn.addEventListener("click", onKnock);
 
       // Trading a single card isn't legal on the round's first turn —
-      // only Take Pot/Keep are, via the buttons above. All of South's
-      // hand cards highlight instead, to signal that "all" of the hand
-      // is what Keep Pot/Keep Hand consider.
+      // only Take Pot/Keep are, via the buttons above. Instead, the
+      // hand or pot cards highlight as a group, tracking which of Keep
+      // Pot/Keep Hand currently has hover or focus, to signal which
+      // cards that button would act on.
       if (isFirstTurn) {
-        handCards.forEach((el) => el.classList.add("is-first-turn"));
+        this.takePotBtn.addEventListener("mouseenter", updateKeepHighlight);
+        this.takePotBtn.addEventListener("mouseleave", updateKeepHighlight);
+        this.takePotBtn.addEventListener("focus", updateKeepHighlight);
+        this.takePotBtn.addEventListener("blur", updateKeepHighlight);
+        keepFocusObserver.observe(this.takePotBtn, { attributes: true, attributeFilter: ["class"] });
+        updateKeepHighlight();
         focusKnockButton();
       } else {
         // is-tradeable marks these containers' cards as clickable --
