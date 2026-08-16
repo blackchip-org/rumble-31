@@ -20,6 +20,8 @@ See [setup.md](setup.md) for setup instructions and
 [toolchain.md](toolchain.md) for the full toolchain (tests, type
 checking, playing in the browser, and simulations).
 
+![Megatouch](megatouch.jpg)
+
 # Contact
 
 Send an email to games@blackchip.org
