@@ -1026,7 +1026,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     }
   }
 
-  showGameOverScreen(g.winners().includes(0));
+  showGameOverScreen(g.winners().includes(0), true);
 }
 
 // hideAllScreens hides every top-level screen. Each show*Screen
@@ -1240,18 +1240,20 @@ function showHtpScreen(): void {
 
 // showGameOverScreen swaps whichever screen is up for the game-over
 // screen, announcing South's win or loss per specs/gui.md's Game Over
-// Screen section: "You Won!"/"Game Over", one word per line, and
-// playing win.wav/lose.wav per specs/assets.md -- every time this
-// screen is shown, including a reload landing on a saved "over" state
-// or specs/params.md's screen=over debug param, not just a live game
-// actually finishing.
-function showGameOverScreen(southWon: boolean): void {
+// Screen section: "You Won!"/"Game Over", one word per line. Plays
+// win.wav/lose.wav per specs/assets.md only when playSound is true --
+// callers pass true for a live game finishing or specs/params.md's
+// screen=over debug param, and false when restoring a saved "over"
+// state on reload (specs/state.md), so a restore stays silent.
+function showGameOverScreen(southWon: boolean, playSound: boolean): void {
   const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
   gameOverLine1El.textContent = line1;
   gameOverLine2El.textContent = line2;
   hideAllScreens();
   gameOverScreenEl.hidden = false;
-  playGameOverSound(southWon);
+  if (playSound) {
+    playGameOverSound(southWon);
+  }
   focusScreenDefault();
 }
 
@@ -1277,14 +1279,15 @@ function showDebugGameOverScreen(params: DebugParams): void {
     },
     localStorage,
   );
-  showGameOverScreen(southWon);
+  showGameOverScreen(southWon, true);
 }
 
 // restoreGameOverScreen redraws the Game Over screen directly from
-// saved state (specs/state.md), with no game replayed.
+// saved state (specs/state.md), with no game replayed and no
+// win/lose sound (that only plays on arrival, not on restore).
 function restoreGameOverScreen(game: OverState): void {
   restoreLogLines(game.log);
-  showGameOverScreen(game.southWon);
+  showGameOverScreen(game.southWon, false);
 }
 
 // downloadTextFile saves text as a local file named filename, via a

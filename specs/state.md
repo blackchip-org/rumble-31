@@ -96,7 +96,7 @@ specs/params.md:
   than starting that round over blank. If no round-in-progress
   checkpoint was saved, the next round deals normally.
 - If that screen is `over`, the saved outcome is redrawn directly,
-  with no game replayed.
+  with no game replayed and no win/lose sound (see assets.md).
 - If that screen is `menu`, the Game Menu screen is shown directly
   with the saved `game` state, restored the same way as the `game`
   screen above but without resuming play (see "The Game Menu screen"

@@ -17,11 +17,13 @@ size (see cards.md).
 - deal.wav: Card dealt
 - end-of-round.wav: Round ends with a player winning with a score that is 
 not 31 or 32
-- lose.wav: Over screen shown with the human losing
+- lose.wav: Over screen reached (a game ending, or the screen=over
+debug param) with the human losing. Not played when a saved Over
+screen is restored from state on load (see state.md).
 - knock.wav: Player knocks
 - slide.wav: When a card slide animation starts
 - turn.wav: Human player's turn 
-- win.wav: Over screen shown with the human winning
+- win.wav: Same as lose.wav, but with the human winning
 
 ## Fonts
 
