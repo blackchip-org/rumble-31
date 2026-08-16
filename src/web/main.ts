@@ -31,7 +31,7 @@ import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
 import { renderStrikes, setDealer, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
-import { clearState, loadState, saveState, type GameState, type OverState, type PersistedState, type RoundCheckpoint, type SettingsOrigin } from "./state.ts";
+import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 import { licenses } from "./licensesData.ts";
@@ -228,19 +228,43 @@ installGlobalErrorHandlers();
 // above) still routes to the error screen.
 const debugParams = parseDebugParams(window.location.search);
 
+// age (specs/params.md) exists to test the stale-Over-screen behavior
+// below against real saved state, which every other debug parameter
+// would otherwise wipe out — so it's the one exception to "any debug
+// parameter clears saved state": it's treated like a bare visit below,
+// but only when it's the only parameter present. Combined with any
+// other parameter, it's inert and normal clearing behavior applies.
+const searchWithoutAge = new URLSearchParams(window.location.search);
+searchWithoutAge.delete("age");
+const isBareVisitOrOnlyAge = searchWithoutAge.toString() === "";
+
 // specs/state.md: a URL supplying any valid debug parameter clears
 // whatever was saved from a previous session first, so debugging never
 // resumes a leftover game — including a bare `screen=`, which carries
 // no game-seeding data of its own. An invalid parameter throws above,
 // before this line, leaving saved state untouched.
-if (window.location.search !== "") {
+if (!isBareVisitOrOnlyAge) {
   clearState(localStorage);
 }
 
-// savedState is only consulted on a bare visit — any debug parameter
-// takes precedence, and saved state was just cleared above in that
-// case anyway.
-const savedState: PersistedState | undefined = window.location.search === "" ? loadState(localStorage) : undefined;
+// savedState is only consulted on a bare visit (or one with just age=
+// — see above) — any other debug parameter takes precedence, and
+// saved state was just cleared above in that case anyway.
+const savedState: SavedState | undefined = isBareVisitOrOnlyAge ? loadState(localStorage) : undefined;
+
+// specs/state.md: a saved Over screen older than this is treated as
+// though there were no saved state at all, so returning after a long
+// absence lands on the Main Screen instead of an already-stale result.
+// age (specs/params.md) overrides how old savedState is taken to be,
+// for testing this without waiting five real minutes.
+const OVER_SCREEN_STALE_AFTER_MS = 5 * 60 * 1000;
+const overScreenAgeMs =
+  savedState === undefined
+    ? undefined
+    : debugParams.ageMinutes !== undefined
+      ? debugParams.ageMinutes * 60 * 1000
+      : Date.now() - savedState.savedAt;
+const overScreenStale = savedState?.screen === "over" && overScreenAgeMs !== undefined && overScreenAgeMs > OVER_SCREEN_STALE_AFTER_MS;
 
 function must<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -1415,8 +1439,8 @@ appinfoProceedBtn.addEventListener("click", showMainScreen);
 const initialScreen: ScreenId =
   debugParams.screen ??
   (showAppInfo ? "appinfo" : undefined) ??
-  savedState?.screen ??
-  (window.location.search === "" || (debugParams.clear && debugParams.initialDeal === undefined) ? "main" : "game");
+  (overScreenStale ? "main" : savedState?.screen) ??
+  (isBareVisitOrOnlyAge || (debugParams.clear && debugParams.initialDeal === undefined) ? "main" : "game");
 switch (initialScreen) {
   case "main":
     showMainScreen();

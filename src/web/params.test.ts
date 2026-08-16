@@ -30,6 +30,7 @@ test("parseDebugParams: valid combinations", () => {
     wantScreen?: ScreenId;
     wantClear?: boolean;
     wantPlatform?: Platform;
+    wantAgeMinutes?: number;
   }> = [
     {
       name: "no params at all",
@@ -238,6 +239,31 @@ test("parseDebugParams: valid combinations", () => {
       wantScreen: "main",
       wantPlatform: "ios",
     },
+    {
+      name: "age=10",
+      search: "age=10",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantAgeMinutes: 10,
+    },
+    {
+      name: "age=0",
+      search: "age=0",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantAgeMinutes: 0,
+    },
+    {
+      name: "age doesn't interfere with unrelated params",
+      search: "age=10&screen=main",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "main",
+      wantAgeMinutes: 10,
+    },
   ];
 
   for (const c of cases) {
@@ -248,6 +274,7 @@ test("parseDebugParams: valid combinations", () => {
     assert.equal(got.screen, c.wantScreen, `${c.name}: screen`);
     assert.equal(got.clear, c.wantClear ?? false, `${c.name}: clear`);
     assert.equal(got.platform, c.wantPlatform, `${c.name}: platform`);
+    assert.equal(got.ageMinutes, c.wantAgeMinutes, `${c.name}: ageMinutes`);
 
     if (c.wantNoInitialDeal) {
       assert.equal(got.initialDeal, undefined, `${c.name}: initialDeal`);
@@ -282,6 +309,8 @@ test("parseDebugParams: invalid input throws", () => {
     { name: "screen names an unknown screen", search: "screen=bogus" },
     { name: "clear is not true or false", search: "clear=yes" },
     { name: "platform names an unknown platform", search: "platform=bogus" },
+    { name: "age is negative", search: "age=-1" },
+    { name: "age is not a number", search: "age=soon" },
   ];
 
   for (const { name, search } of cases) {

@@ -111,4 +111,20 @@ for example "?platform=ios&screen=appinfo". platform=other never
 shows the screen through normal navigation, same as a desktop
 browser.
 
+## age
+
+Value should be a non-negative number of minutes. Pretends that saved
+state (specs/state.md) was written this many minutes ago, for testing
+specs/state.md's stale Over screen behavior without waiting five real
+minutes or hand-editing local storage.
+
+Unlike every other debug parameter, age does not clear saved state,
+and saved state is still loaded and restored as it would be on a bare
+visit -- but only when age is the only parameter present. Combined
+with any other parameter, age is inert and every parameter's normal
+behavior (including clearing saved state) applies as usual.
+
+If there is no saved state, or its screen is not `over`, age has no
+effect.
+
 

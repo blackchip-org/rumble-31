@@ -9,10 +9,10 @@ import type { BotMemory } from "../bot/factory.ts";
 import type { Hand, Pot } from "../game/types.ts";
 
 const STORAGE_KEY = "rumble31.state";
-// Bumped to 6 when GameState gained secondChance (specs/rules.md's
-// second-chance rule) — an old save is simply treated as absent (see
-// loadState), no migration needed.
-const SCHEMA_VERSION = 6;
+// Bumped to 7 when every saved state gained savedAt (specs/state.md's
+// stale Over screen behavior) — an old save is simply treated as
+// absent (see loadState), no migration needed.
+const SCHEMA_VERSION = 7;
 
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
@@ -86,10 +86,17 @@ export type PersistedState =
   // specs/state.md.
   | { screen: "menu"; game: GameState };
 
-// loadState reads PersistedState from storage, returning undefined if
+// SavedState is PersistedState as it comes back out of loadState: with
+// savedAt, the epoch-millisecond time it was written, stamped on by
+// saveState itself rather than supplied by callers. Used by main.ts to
+// decide whether a saved Over screen is too stale to restore (see
+// specs/state.md).
+export type SavedState = PersistedState & { savedAt: number };
+
+// loadState reads SavedState from storage, returning undefined if
 // nothing is stored, what's stored isn't valid JSON, its schema
 // version doesn't match, or its screen isn't recognized.
-export function loadState(storage: Storage): PersistedState | undefined {
+export function loadState(storage: Storage): SavedState | undefined {
   const raw = storage.getItem(STORAGE_KEY);
   if (raw === null) {
     return undefined;
@@ -107,16 +114,18 @@ export function loadState(storage: Storage): PersistedState | undefined {
     if (typeof screen !== "string" || !(STATE_SCREEN_IDS as readonly string[]).includes(screen)) {
       return undefined;
     }
-    return state as PersistedState;
+    return state as SavedState;
   } catch {
     return undefined;
   }
 }
 
 // saveState writes state to storage as JSON, tagged with the current
-// schema version.
-export function saveState(state: PersistedState, storage: Storage): void {
-  storage.setItem(STORAGE_KEY, JSON.stringify({ version: SCHEMA_VERSION, state }));
+// schema version and the current time (overridable via now, mirroring
+// src/sim/cliParams.ts's own clock injection, for tests).
+export function saveState(state: PersistedState, storage: Storage, now: () => number = Date.now): void {
+  const savedState: SavedState = { ...state, savedAt: now() };
+  storage.setItem(STORAGE_KEY, JSON.stringify({ version: SCHEMA_VERSION, state: savedState }));
 }
 
 // clearState removes any saved state — per specs/state.md, called

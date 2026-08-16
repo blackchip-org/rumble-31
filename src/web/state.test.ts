@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clearState, loadState, saveState, type GameState, type OverState, type PersistedState } from "./state.ts";
+import { clearState, loadState, saveState, type GameState, type OverState, type SavedState } from "./state.ts";
 
 // memoryStorage returns a minimal in-memory Storage — Node's test
 // runner has no browser localStorage, and state.ts only needs
@@ -84,44 +84,50 @@ const sampleOver: OverState = {
 };
 
 test("loadState", () => {
-  const cases: Array<{ name: string; stored: Record<string, string>; want: PersistedState | undefined }> = [
+  const cases: Array<{ name: string; stored: Record<string, string>; want: SavedState | undefined }> = [
     { name: "nothing stored: no saved state", stored: {}, want: undefined },
     { name: "malformed JSON: no saved state", stored: { "rumble31.state": "not json" }, want: undefined },
-    { name: "JSON missing version: no saved state", stored: { "rumble31.state": '{"state":{"screen":"main"}}' }, want: undefined },
-    { name: "wrong schema version: no saved state", stored: { "rumble31.state": '{"version":99,"state":{"screen":"main"}}' }, want: undefined },
-    { name: "unrecognized screen: no saved state", stored: { "rumble31.state": '{"version":6,"state":{"screen":"bogus"}}' }, want: undefined },
-    { name: "screen missing entirely: no saved state", stored: { "rumble31.state": '{"version":6,"state":{}}' }, want: undefined },
-    { name: "valid main screen", stored: { "rumble31.state": '{"version":6,"state":{"screen":"main"}}' }, want: { screen: "main" } },
+    { name: "JSON missing version: no saved state", stored: { "rumble31.state": '{"state":{"screen":"main","savedAt":100}}' }, want: undefined },
+    { name: "wrong schema version: no saved state", stored: { "rumble31.state": '{"version":99,"state":{"screen":"main","savedAt":100}}' }, want: undefined },
+    { name: "unrecognized screen: no saved state", stored: { "rumble31.state": '{"version":7,"state":{"screen":"bogus","savedAt":100}}' }, want: undefined },
+    { name: "screen missing entirely: no saved state", stored: { "rumble31.state": '{"version":7,"state":{"savedAt":100}}' }, want: undefined },
+    { name: "valid main screen", stored: { "rumble31.state": '{"version":7,"state":{"screen":"main","savedAt":100}}' }, want: { screen: "main", savedAt: 100 } },
     {
       name: "valid settings screen, from main",
-      stored: { "rumble31.state": '{"version":6,"state":{"screen":"settings","from":"main"}}' },
-      want: { screen: "settings", from: "main" },
+      stored: { "rumble31.state": '{"version":7,"state":{"screen":"settings","from":"main","savedAt":100}}' },
+      want: { screen: "settings", from: "main", savedAt: 100 },
     },
     {
       name: "valid settings screen, from the game menu",
-      stored: { "rumble31.state": JSON.stringify({ version: 6, state: { screen: "settings", from: "menu", game: sampleGame } }) },
-      want: { screen: "settings", from: "menu", game: sampleGame },
+      stored: {
+        "rumble31.state": JSON.stringify({ version: 7, state: { screen: "settings", from: "menu", game: sampleGame, savedAt: 100 } }),
+      },
+      want: { screen: "settings", from: "menu", game: sampleGame, savedAt: 100 },
     },
-    { name: "valid about screen", stored: { "rumble31.state": '{"version":6,"state":{"screen":"about"}}' }, want: { screen: "about" } },
-    { name: "valid licenses screen", stored: { "rumble31.state": '{"version":6,"state":{"screen":"licenses"}}' }, want: { screen: "licenses" } },
+    { name: "valid about screen", stored: { "rumble31.state": '{"version":7,"state":{"screen":"about","savedAt":100}}' }, want: { screen: "about", savedAt: 100 } },
+    {
+      name: "valid licenses screen",
+      stored: { "rumble31.state": '{"version":7,"state":{"screen":"licenses","savedAt":100}}' },
+      want: { screen: "licenses", savedAt: 100 },
+    },
     {
       name: "valid game screen",
-      stored: { "rumble31.state": JSON.stringify({ version: 6, state: { screen: "game", game: sampleGame } }) },
-      want: { screen: "game", game: sampleGame },
+      stored: { "rumble31.state": JSON.stringify({ version: 7, state: { screen: "game", game: sampleGame, savedAt: 100 } }) },
+      want: { screen: "game", game: sampleGame, savedAt: 100 },
     },
     {
       name: "valid over screen",
-      stored: { "rumble31.state": JSON.stringify({ version: 6, state: { screen: "over", game: sampleOver } }) },
-      want: { screen: "over", game: sampleOver },
+      stored: { "rumble31.state": JSON.stringify({ version: 7, state: { screen: "over", game: sampleOver, savedAt: 100 } }) },
+      want: { screen: "over", game: sampleOver, savedAt: 100 },
     },
     {
       name: "valid menu screen",
-      stored: { "rumble31.state": JSON.stringify({ version: 6, state: { screen: "menu", game: sampleGame } }) },
-      want: { screen: "menu", game: sampleGame },
+      stored: { "rumble31.state": JSON.stringify({ version: 7, state: { screen: "menu", game: sampleGame, savedAt: 100 } }) },
+      want: { screen: "menu", game: sampleGame, savedAt: 100 },
     },
     {
-      name: "old schema version (pre-menu screen): no saved state",
-      stored: { "rumble31.state": JSON.stringify({ version: 4, state: { screen: "game", game: sampleGame } }) },
+      name: "old schema version (pre-savedAt): no saved state",
+      stored: { "rumble31.state": JSON.stringify({ version: 6, state: { screen: "game", game: sampleGame } }) },
       want: undefined,
     },
   ];
@@ -132,29 +138,33 @@ test("loadState", () => {
   }
 });
 
-test("saveState round-trips through loadState", () => {
+test("saveState round-trips through loadState, stamping savedAt from now", () => {
   const storage = memoryStorage();
+  let clock = 1000;
+  const now = () => clock;
 
-  saveState({ screen: "main" }, storage);
-  assert.deepEqual(loadState(storage), { screen: "main" });
+  saveState({ screen: "main" }, storage, now);
+  assert.deepEqual(loadState(storage), { screen: "main", savedAt: 1000 });
 
-  saveState({ screen: "licenses" }, storage);
-  assert.deepEqual(loadState(storage), { screen: "licenses" });
+  clock = 2000;
+  saveState({ screen: "licenses" }, storage, now);
+  assert.deepEqual(loadState(storage), { screen: "licenses", savedAt: 2000 });
 
-  saveState({ screen: "settings", from: "main" }, storage);
-  assert.deepEqual(loadState(storage), { screen: "settings", from: "main" });
+  saveState({ screen: "settings", from: "main" }, storage, now);
+  assert.deepEqual(loadState(storage), { screen: "settings", from: "main", savedAt: 2000 });
 
-  saveState({ screen: "settings", from: "menu", game: sampleGame }, storage);
-  assert.deepEqual(loadState(storage), { screen: "settings", from: "menu", game: sampleGame });
+  saveState({ screen: "settings", from: "menu", game: sampleGame }, storage, now);
+  assert.deepEqual(loadState(storage), { screen: "settings", from: "menu", game: sampleGame, savedAt: 2000 });
 
-  saveState({ screen: "game", game: sampleGame }, storage);
-  assert.deepEqual(loadState(storage), { screen: "game", game: sampleGame });
+  saveState({ screen: "game", game: sampleGame }, storage, now);
+  assert.deepEqual(loadState(storage), { screen: "game", game: sampleGame, savedAt: 2000 });
 
-  saveState({ screen: "over", game: sampleOver }, storage);
-  assert.deepEqual(loadState(storage), { screen: "over", game: sampleOver });
+  clock = 3000;
+  saveState({ screen: "over", game: sampleOver }, storage, now);
+  assert.deepEqual(loadState(storage), { screen: "over", game: sampleOver, savedAt: 3000 });
 
-  saveState({ screen: "menu", game: sampleGame }, storage);
-  assert.deepEqual(loadState(storage), { screen: "menu", game: sampleGame });
+  saveState({ screen: "menu", game: sampleGame }, storage, now);
+  assert.deepEqual(loadState(storage), { screen: "menu", game: sampleGame, savedAt: 3000 });
 });
 
 test("clearState removes saved state", () => {

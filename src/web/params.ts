@@ -1,8 +1,8 @@
 // Parses and validates the web GUI's debugging URL parameters, per
 // specs/params.md: strikes, north/south/east/west, pot, turn, screen,
-// and clear. Every validation failure throws a descriptive Error —
-// there is no silent fallback for malformed or self-contradictory
-// debug input.
+// clear, platform, and age. Every validation failure throws a
+// descriptive Error — there is no silent fallback for malformed or
+// self-contradictory debug input.
 
 import { parseCard, cardToString } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
@@ -34,6 +34,13 @@ export interface DebugParams {
   // (specs/screens/appinfo.md) iOS/Android instructions without a
   // real iOS/Android device.
   platform: Platform | undefined;
+  // ageMinutes pretends that saved state was written this many
+  // minutes ago, for exercising specs/state.md's stale Over screen
+  // behavior without waiting or hand-editing local storage. Unlike
+  // every other debug parameter, main.ts only honors this (and only
+  // skips clearing saved state for it) when it's the only parameter
+  // present — see main.ts's own comment.
+  ageMinutes: number | undefined;
 }
 
 // parseDebugParams reads search (e.g. window.location.search) for the
@@ -127,7 +134,17 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
     platform = platformRaw as Platform;
   }
 
-  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform };
+  const ageRaw = q.get("age");
+  let ageMinutes: number | undefined;
+  if (ageRaw !== null) {
+    const parsed = Number(ageRaw);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new Error(`params: age=${ageRaw} must be a non-negative number`);
+    }
+    ageMinutes = parsed;
+  }
+
+  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, ageMinutes };
 }
 
 // parseCardGroup parses paramName's raw value as exactly three

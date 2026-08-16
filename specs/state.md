@@ -20,6 +20,10 @@ is missing, unreadable, or written by an old schema version, it is
 treated exactly like no saved state at all -- the application starts
 fresh, the same as a first-ever visit.
 
+Alongside the screen and its data, the stored object also records the
+time it was written, so a stale saved `over` screen can be detected
+(see "When state is restored" below).
+
 The stored object records:
 
 - Which screen is showing: `main`, `settings`, `about`, `licenses`,
@@ -95,8 +99,17 @@ specs/params.md:
   with exactly what it had already learned before the reload rather
   than starting that round over blank. If no round-in-progress
   checkpoint was saved, the next round deals normally.
-- If that screen is `over`, the saved outcome is redrawn directly,
-  with no game replayed and no win/lose sound (see assets.md).
+- If that screen is `over`, and no more than 5 minutes have passed
+  since it was saved, the saved outcome is redrawn directly, with no
+  game replayed and no win/lose sound (see assets.md). If more than 5
+  minutes have passed, the Over screen is not shown at all -- the
+  application starts on the Main Screen instead, as though there were
+  no saved state, though the saved outcome itself is left alone (a
+  reload within the next 5 minutes still restores it). This gives
+  returning after a short interruption the expected "pick up where I
+  left off" result, while returning after a longer absence lands on
+  the Main Screen rather than an already-stale result. specs/params.md's
+  age parameter can simulate this elapsed time for testing.
 - If that screen is `menu`, the Game Menu screen is shown directly
   with the saved `game` state, restored the same way as the `game`
   screen above but without resuming play (see "The Game Menu screen"

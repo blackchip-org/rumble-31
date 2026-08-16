@@ -13,6 +13,7 @@ function params(strikesRaw: string): DebugParams {
     screen: "menu",
     clear: false,
     platform: undefined,
+    ageMinutes: undefined,
   };
 }
 
