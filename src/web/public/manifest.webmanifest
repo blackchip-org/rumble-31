@@ -1,6 +1,6 @@
 {
-  "name": "Rumble-31",
-  "short_name": "Rumble-31",
+  "name": "Rumble 31",
+  "short_name": "Rumble 31",
   "description": "A classic card game of 31.",
   "start_url": "./",
   "scope": "./",
