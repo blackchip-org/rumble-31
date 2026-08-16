@@ -12,6 +12,8 @@
   navigation.
 - [gui.md](gui.md) — Layout and behavior of the browser GUI's
   screens.
+- [icons.md](icons.md) — How the app's home-screen/PWA icons are
+  designed and regenerated from their source SVGs.
 - [log.md](log.md) — What gets written to the game log and when.
 - [params.md](params.md) — URL parameters the web GUI accepts for
   debugging.
