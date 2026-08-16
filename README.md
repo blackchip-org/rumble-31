@@ -8,8 +8,8 @@ This variation comes from the game with a similar name on the MegaTouch
 machines. The closest ruleset I could find is on the Dutch Wikipedia page
 for [Eenendertigen](https://nl.wikipedia.org/wiki/Eenendertigen). This game
 implements a combination of the Dutch rules and what I learned playing a
-MegaTouch at the System Source Computer Museum. If you find any
-inaccuracies in the rules, be sure to let me know!
+MegaTouch at the [System Source Computer Museum](https://museum.syssrc.com/).
+ If you find any inaccuracies in the rules, be sure to let me know!
 
 I've always wanted to create a remake of this game but I could just never
 find the time. I decided to give it a try with Claude Code and the results
