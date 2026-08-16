@@ -41,7 +41,7 @@ import { buildDebugMenuGameState } from "./gameMenu.ts";
 import { detectPlatform, INSTALL_INSTRUCTIONS } from "./installPrompt.ts";
 import { startGamepadInput } from "./gamepadInput.ts";
 import { startKeyboardNav } from "./keyboardNav.ts";
-import { handleAction, registerCancelFallback } from "./focusNav.ts";
+import { focusScreenDefault, handleAction, registerCancelFallback } from "./focusNav.ts";
 import { handleScrollEvent } from "./scrollNav.ts";
 
 // sleep resolves after ms.
@@ -1107,6 +1107,7 @@ function showMainScreen(): void {
   hideAllScreens();
   mainScreenEl.hidden = false;
   saveState({ screen: "main" }, localStorage);
+  focusScreenDefault();
 }
 
 // syncSoundsToggleBtn sets the sounds toggle button's label to match
@@ -1155,6 +1156,7 @@ function showSettingsScreen(origin: SettingsOrigin): void {
   hideAllScreens();
   settingsScreenEl.hidden = false;
   saveState({ screen: "settings", ...origin }, localStorage);
+  focusScreenDefault();
 }
 
 // showAboutScreen swaps whichever screen is up for the about screen
@@ -1167,6 +1169,7 @@ function showAboutScreen(): void {
   hideAllScreens();
   aboutScreenEl.hidden = false;
   saveState({ screen: "about" }, localStorage);
+  focusScreenDefault();
 }
 
 // syncLicenseText sets the text area to the currently selected list
@@ -1196,6 +1199,7 @@ function showLicensesScreen(): void {
   hideAllScreens();
   licensesScreenEl.hidden = false;
   saveState({ screen: "licenses" }, localStorage);
+  focusScreenDefault();
 }
 
 // showHtpScreen swaps whichever screen is up for the How to Play
@@ -1208,6 +1212,7 @@ function showHtpScreen(): void {
   hideAllScreens();
   htpScreenEl.hidden = false;
   saveState({ screen: "htp" }, localStorage);
+  focusScreenDefault();
 }
 
 // showGameOverScreen swaps whichever screen is up for the game-over
@@ -1224,6 +1229,7 @@ function showGameOverScreen(southWon: boolean): void {
   hideAllScreens();
   gameOverScreenEl.hidden = false;
   playGameOverSound(southWon);
+  focusScreenDefault();
 }
 
 // showDebugGameOverScreen reaches the game-over screen directly via

@@ -39,6 +39,30 @@ const GAME_SCREEN_ID = "game-screen";
 // domActionPrompt.ts itself.
 const TRADEABLE_CLASS = "is-tradeable";
 
+// SCREEN_DEFAULTS says which element each screen focuses first when
+// visited, per specs/controller.md's "Default Focus" rules: the id of
+// the button/select to fall back to once navUsed is true and the
+// previously focused element isn't part of the new screen's grid
+// (i.e. on every fresh visit). sticky screens (currently just the
+// main menu) update their default to whichever button was last
+// clicked on them (see the click listener below); the rest always
+// reset to this same fixed id.
+const SCREEN_DEFAULTS: Readonly<Record<string, { id: string; sticky: boolean }>> = {
+  "main-screen": { id: "new-game-btn", sticky: true },
+  "htp-screen": { id: "htp-main-menu-btn", sticky: false },
+  "settings-screen": { id: "settings-back-btn", sticky: false },
+  "about-screen": { id: "about-main-menu-btn", sticky: false },
+  "licenses-screen": { id: "licenses-main-menu-btn", sticky: false },
+  "game-over-screen": { id: "play-again-btn", sticky: false },
+};
+
+// stickyDefaults holds the current default id for each sticky screen
+// in SCREEN_DEFAULTS, overwritten by the click listener below
+// whenever a button on that screen is clicked -- by mouse/touch or by
+// activate()'s el.click(), both of which dispatch the same "click"
+// event this listens for.
+const stickyDefaults = new Map<string, string>();
+
 const FOCUSED_CLASS = "is-focused";
 
 // LIST_ACTIVE_CLASS marks a <select> currently "activated" for D-pad
@@ -122,6 +146,46 @@ function buildGameScreenGrid(screen: HTMLElement): FocusGrid {
   return rows.filter((row) => row.length > 0);
 }
 
+// currentScreenId returns whichever top-level screen (SCREEN_IDS) is
+// currently visible, or null if none is (e.g. mid-transition). Used
+// by defaultPositionIn below and the sticky-default click listener --
+// computeGrid can't be reused directly for either, since it returns
+// dialog rows in preference to the screen behind them, and callers
+// here specifically want the screen itself.
+function currentScreenId(): string | null {
+  for (const id of SCREEN_IDS) {
+    const screen = document.getElementById(id);
+    if (screen && !(screen as HTMLElement).hidden) {
+      return id;
+    }
+  }
+  return null;
+}
+
+// defaultPositionIn finds the current screen's default element (its
+// sticky override if SCREEN_DEFAULTS marks it sticky and one has been
+// recorded, otherwise SCREEN_DEFAULTS' own id) within grid, or null if
+// the current screen has no configured default or that element isn't
+// part of grid.
+function defaultPositionIn(grid: FocusGrid): [number, number] | null {
+  const screenId = currentScreenId();
+  if (!screenId) {
+    return null;
+  }
+  const config = SCREEN_DEFAULTS[screenId];
+  if (!config) {
+    return null;
+  }
+  const id = stickyDefaults.get(screenId) ?? config.id;
+  for (let row = 0; row < grid.length; row++) {
+    const col = grid[row]?.findIndex((el) => el.id === id) ?? -1;
+    if (col !== -1) {
+      return [row, col];
+    }
+  }
+  return null;
+}
+
 // computeGrid returns the currently navigable layout: an open
 // dialog's own buttons (one per row) if one is open, otherwise
 // whichever top-level screen is visible -- the game screen via
@@ -190,9 +254,10 @@ export function moveGridPosition(row: number, col: number, rowLengths: readonly 
 }
 
 // currentPositionIn finds focusedEl's [row, col] within grid, falling
-// back to [0, 0] if it's not there (the DOM changed outside of nav
-// input too -- bot turns rendering, screen transitions, a completed
-// trade re-rendering the hand/pot).
+// back to the current screen's default (defaultPositionIn) and then
+// [0, 0] if it's not there (the DOM changed outside of nav input too
+// -- bot turns rendering, screen transitions, a completed trade
+// re-rendering the hand/pot).
 function currentPositionIn(grid: FocusGrid): [number, number] {
   if (focusedEl) {
     for (let row = 0; row < grid.length; row++) {
@@ -202,7 +267,7 @@ function currentPositionIn(grid: FocusGrid): [number, number] {
       }
     }
   }
-  return [0, 0];
+  return defaultPositionIn(grid) ?? [0, 0];
 }
 
 function focusOn(grid: FocusGrid, row: number, col: number): void {
@@ -237,6 +302,32 @@ if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") 
       }
     }
   }).observe(document.body, { attributes: true, attributeFilter: ["disabled"], subtree: true });
+}
+
+// A sticky screen's default (SCREEN_DEFAULTS) follows whichever button
+// was last clicked on it -- e.g. the main menu, per specs/controller.md,
+// remembers About was clicked so it's focused again on return. Listens
+// for the click itself (bubbling up from the button) rather than going
+// through activate(), so this tracks mouse/touch clicks too, not just
+// controller/keyboard activation. Uses the clicked button's own
+// ancestor screen rather than currentScreenId() -- by the time this
+// bubbles up, the click's own listener (e.g. showAboutScreen) may
+// already have swapped which screen is visible.
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (event) => {
+    const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("button, select");
+    if (!target?.id) {
+      return;
+    }
+    const screenSelector = SCREEN_IDS.map((id) => `#${id}`).join(",");
+    const screenId = target.closest<HTMLElement>(screenSelector)?.id;
+    if (!screenId) {
+      return;
+    }
+    if (SCREEN_DEFAULTS[screenId]?.sticky) {
+      stickyDefaults.set(screenId, target.id);
+    }
+  });
 }
 
 // moveFocus recomputes the grid fresh (the DOM changes outside of nav
@@ -383,6 +474,25 @@ function focusElementById(id: string): void {
 // part of the focus order at all that turn (specs/controller.md).
 export function focusKnockButton(): void {
   focusElementById("knock-btn");
+}
+
+// focusScreenDefault focuses the current screen's default element
+// (SCREEN_DEFAULTS), if it has one -- main.ts calls this from each
+// show*Screen function so the default is already focused the moment a
+// controller/keyboard player lands on the screen, rather than only
+// after their first nav input. A no-op if the player has never used a
+// controller/keyboard (navUsed, matching focusPotCenter/focusHandCenter
+// above) or the current screen has no configured default.
+export function focusScreenDefault(): void {
+  if (!navUsed) {
+    return;
+  }
+  const grid = computeGrid();
+  const position = defaultPositionIn(grid);
+  if (!position) {
+    return;
+  }
+  focusOn(grid, position[0], position[1]);
 }
 
 // handleAction is the single entry point gamepadInput.ts/keyboardNav.ts

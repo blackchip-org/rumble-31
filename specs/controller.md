@@ -24,7 +24,27 @@ cannot be focused until the dialog closes.
 
 If the focused button becomes disabled, it immediately loses focus.
 Nothing else gains focus automatically -- the next navigation input
-recomputes focus the normal way, falling back to the first item.
+recomputes focus the normal way, falling back to the screen's default
+control (see Default Focus below).
+
+## Default Focus
+
+Once the player has used a controller or keyboard at least once in the
+current session, each screen focuses a default control the moment it's
+visited, without waiting for a navigation input:
+
+- Main Menu defaults to "New Game", but remembers whichever button was
+  last clicked on it and defaults to that instead the next time it's
+  visited (e.g. clicking "About" and returning to the Main Menu later
+  focuses "About").
+- How to Play, Settings, About, and Licenses always default to their
+  "Main Menu" (or, on Settings entered from the Game Menu, "Game
+  Menu") button.
+- The Game Over screen defaults to "Play Again".
+
+Screens not listed above (the Game Screen, the Game Menu screen) fall
+back to the first item in their focus order, per Focus above; the Game
+Screen's own turn-based defaults are covered by Selection Focus below.
 
 ## Controller Mapping
 
