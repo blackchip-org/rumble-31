@@ -1401,6 +1401,26 @@ body {
    layout instead. Portrait phones aren't landscape, so they fall
    through to the max-width: 900px stack/scroll behavior unchanged. */
 @media (orientation: landscape) and (max-height: 500px) {
+  /* #table is normally the first thing in body's flow (#header is
+     position: fixed below, so it doesn't take flow space; #log-panel
+     is display: none) and stops growing once its content fits --
+     leaving leftover viewport height stranded below it on any phone
+     taller than the shortest one this breakpoint was budgeted for.
+     Centering body's flow vertically splits that leftover space above
+     and below #table instead. Every other screen (.main-screen,
+     .settings-screen, etc.) is position: fixed; inset: 0 and centers
+     itself already, so it's unaffected by body's own layout here. */
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
   /* The title bar is gone (specs/screens/game.md's Mobile section) --
      only the menu button remains, floated over the table instead of
      taking its own row. */
@@ -1456,9 +1476,10 @@ body {
      South (full panel: padding, label, score/strikes rows -- see the
      desktop clamp()'s comment near the top of this file), ~2.5rem for
      the pot panel (lighter chrome: no score/strikes/dealer/state-tag
-     row, just padding + label), plus Actions' own ~2.2rem and the
-     column's two 0.3rem gaps -- 9.8rem combined, plus #table's own
-     0.3rem top/bottom padding, rounded up to 10.5rem for slack. West/
+     row, just padding + label), plus Actions' own ~2.2rem (plus its
+     own 0.4rem margin, see .actions below) and the column's two
+     0.3rem gaps -- 10.2rem combined, plus #table's own 0.3rem top/
+     bottom padding, rounded up to 10.5rem for slack. West/
      North/East no longer share a row with this column (see below), so
      their own height doesn't factor in here at all. Below the 64px
      floor, the layout accepts the same scrolling fallback as
@@ -1485,7 +1506,11 @@ body {
      has to fit both. */
   #table {
     display: flex;
-    align-items: flex-start;
+    /* stretch (rather than flex-start) makes both columns the height
+       of the taller one, which .table-col-left/.table-col-right's own
+       justify-content: space-between below relies on to flush West/
+       East against Pot/South's top and bottom. */
+    align-items: stretch;
     gap: 1rem;
     /* Flex's default justify-content leaves leftover space after the
        last item rather than stretching items to fill it (unlike
@@ -1497,12 +1522,37 @@ body {
     padding: 0.3rem;
   }
 
+  /* West and Pot are each their column's first item, and Pot/Actions/
+     South (with South's viewport-scaled --card-w) is almost always
+     the taller column, so without help West/North/East would pack
+     tight at the top of their shorter column, well above East's
+     eventual level with South. Given align-items: stretch on #table
+     above, both columns are exactly as tall as that taller column;
+     justify-content: space-between then pins each column's first item
+     to its top and last item to its bottom (matching Pot/South, with
+     zero effect on whichever column is already the taller one, since
+     it has no leftover space to distribute), and splits any leftover
+     height evenly between both gaps instead of dumping it all into
+     one -- so North sits equidistant between West and East rather
+     than clinging to whichever side happened to pack first. gap still
+     sets the floor those two gaps can't shrink below. */
   .table-col-left,
   .table-col-right {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: space-between;
     gap: 0.3rem;
+  }
+
+  /* The column's plain 0.3rem gap above put Pot/South's is-turn glow
+     (.panel.is-turn's box-shadow, 2px solid ring plus a soft outer
+     blur) right up against the action buttons. This adds to that gap
+     on both sides of Actions specifically, without touching West/
+     North/East's own spacing in the other column. Counted in the
+     --card-w budget comment above as part of Actions' ~2.2rem. */
+  .actions {
+    margin: 0.2rem 0;
   }
 
   .seat-west,
