@@ -441,7 +441,9 @@ body {
 .panel.is-first .state-tag,
 .panel.is-eliminated .state-tag,
 .panel.is-knocked .state-tag,
-.panel.is-strike .state-tag {
+.panel.is-strike .state-tag,
+.panel.is-second-chance .state-tag,
+.panel.is-winner .state-tag {
   visibility: visible;
 }
 
@@ -473,6 +475,21 @@ body {
   color: var(--bg);
   background: var(--knock);
   border-color: var(--knock);
+}
+
+/* Same red as .is-strike/.is-eliminated -- a second-chance seat has
+   just taken its third strike, same as a plain strike, and is only
+   distinguished by not being eliminated for it. */
+.panel.is-second-chance .state-tag {
+  color: var(--bg);
+  background: var(--bad);
+  border-color: var(--bad);
+}
+
+.panel.is-winner .state-tag {
+  color: var(--bg);
+  background: var(--win);
+  border-color: var(--win);
 }
 
 .row-bottom {

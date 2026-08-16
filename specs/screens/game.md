@@ -68,7 +68,18 @@ than showing the highlight over a static dimmed panel.
 
 A player struck this round, but not eliminated by that strike, has
 their panel tagged "strike" for as long as the win/strike highlights
-are shown, clearing at the same time those highlights do.
+are shown, clearing at the same time those highlights do. If that
+strike is their third and grants them a second chance (specs/rules.md)
+rather than eliminating them, the panel is tagged "second chance"
+instead of "strike", using the same red as the strike highlight.
+
+A player who wins the round has their panel tagged "winner", using the
+same white as the win highlight, for as long as the win/strike
+highlights are shown, clearing at the same time those highlights do.
+In the rare case where every remaining player ties (so all are struck
+and all win at once), the strike/second-chance/eliminated tag takes
+priority and is shown instead of "winner", since only one tag can be
+shown at a time -- the white win highlight is still shown regardless.
 
 A player eliminated from the game (three strikes) keeps their panel in
 its usual place in the layout, but the panel is dimmed and tagged

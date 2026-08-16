@@ -66,7 +66,7 @@
                        disabled action buttons */
   --ink-faint: #666; /* reserved for a third, even-dimmer text tier
                          (currently unused) */
-  --accent: #d9a441; /* highlight color: active-turn state tag, action
+  --accent: #f2c45a; /* highlight color: active-turn state tag, action
                          buttons */
   --accent-dim: #6b5628; /* dimmer accent: active-turn panel border/glow,
                              active-turn state tag border, action button
