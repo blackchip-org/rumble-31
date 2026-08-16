@@ -72,10 +72,10 @@
                              active-turn state tag border, action button
                              border */
   --good: #4caf7d; /* "strike avoided" indicator color */
-  --bad: #e0596b; /* "strike hit"/eliminated indicator, struck-panel
+  --bad: #e5484d; /* "strike hit"/eliminated indicator, struck-panel
                       border and eliminated state tag */
-  --bad-glow: rgba(224, 89, 107, 0.4); /* glow behind a struck panel's
-                                           border */
+  --bad-glow: rgba(229, 72, 77, 0.4); /* glow behind a struck panel's
+                                          border */
   --second-chance: #e0c040; /* "second chance" (XX/) strike indicator
                                 color */
   --win: #ffffff; /* winning panel's border color */
@@ -123,7 +123,16 @@
   --font-size-label: 0.68rem; /* seat label, pot label */
   --font-size-tag: 0.62rem; /* turn/eliminated/knocked/strike state tag */
   --font-size-score: 0.95rem; /* score box and action buttons */
-  --font-size-strike: 0.6rem; /* strike indicator dots */
+  --font-size-strike: 0.6rem; /* dealer-button letter ('D') */
+  --font-size-strike-mark: 1.1rem; /* strike indicator X -- larger than
+                                        the dealer button's letter so it
+                                        reads clearly at a glance */
+  --font-size-strike-slash: 0.52rem; /* second-chance strike indicator's
+                                          "/" -- smaller than the X
+                                          (--font-size-strike-mark) so it
+                                          reads as the same size missing
+                                          one stroke, while still fitting
+                                          inside the circle */
   --font-size-title: clamp(3rem, 8vw + 1rem, 6.5rem); /* main screen
                                                             title */
 

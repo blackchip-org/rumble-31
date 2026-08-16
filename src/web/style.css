@@ -616,6 +616,7 @@ body {
 }
 
 .pot-label {
+  font-family: var(--font-label);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-label);
@@ -653,7 +654,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-strike);
+  font-size: var(--font-size-strike-mark);
+  font-weight: var(--font-weight-bold);
   line-height: 1;
 }
 
@@ -681,21 +683,22 @@ body {
 }
 
 .strike.ok {
-  background: rgba(76, 175, 125, 0.14);
+  background: rgba(76, 175, 125, 0.22);
   color: var(--good);
-  border: 1px solid rgba(76, 175, 125, 0.4);
+  border: 1px solid rgba(76, 175, 125, 0.65);
 }
 
 .strike.hit {
-  background: rgba(224, 89, 107, 0.14);
+  background: rgba(229, 72, 77, 0.22);
   color: var(--bad);
-  border: 1px solid rgba(224, 89, 107, 0.45);
+  border: 1px solid rgba(229, 72, 77, 0.75);
 }
 
 .strike.second-chance {
-  background: rgba(224, 192, 64, 0.14);
+  background: rgba(224, 192, 64, 0.22);
   color: var(--second-chance);
-  border: 1px solid rgba(224, 192, 64, 0.45);
+  border: 1px solid rgba(224, 192, 64, 0.75);
+  font-size: var(--font-size-strike-slash);
 }
 
 /* ---------- actions ---------- */
