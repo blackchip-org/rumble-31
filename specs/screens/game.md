@@ -203,13 +203,20 @@ the bots' contest is never played out.
 
 For mobile devices, the layout of the game screen needs to be adjusted
 to fit the screen. The top bar should be removed as this takes up much
-needed space. The main board is arranged into two columns. The left column
-has player seats in the following top-down order: West, North, East.
-The right column has the pot at the top, the Take Pot / Knock buttons, and
-then the South player panel. Fit in the menu button wherever there is
-space. The log panel is hidden in this layout.
+needed space. The log panel is hidden in this layout. Fit in the menu
+button wherever there is space. Bot hands (West, North, East) are
+shown smaller than South's, since they're mostly card backs and
+secondary information even once revealed.
 
-This layout applies in landscape orientation. In portrait orientation
-on a mobile device, this layout does not apply -- the screen falls
-back to the normal narrow-viewport behavior described in gui.md
-(shrinking, then scrolling if that isn't enough).
+In landscape orientation, the main board is arranged into two columns.
+The left column has player seats in the following top-down order:
+West, North, East. The right column has the pot at the top, the Take
+Pot / Knock buttons, and then the South player panel.
+
+In portrait orientation, on a narrow enough (phone-sized) viewport,
+the main board is a single column, top-down: West, North, East, the
+pot, the Take Pot / Knock buttons, then the South player panel. A
+portrait viewport wide enough to be a tablet rather than a phone does
+not get this treatment -- it falls back to the normal narrow-viewport
+behavior described in gui.md (shrinking, then scrolling if that isn't
+enough), same as any other screen size this section doesn't cover.

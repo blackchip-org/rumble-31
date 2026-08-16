@@ -1558,3 +1558,139 @@ body {
     flex-shrink: 0;
   }
 }
+
+/* ---------- mobile portrait ---------- */
+
+/* Real phones in portrait are narrow but tall (roughly 320-430px wide),
+   while a portrait tablet has plenty of room (iPad mini portrait starts
+   at 768px) and is fine on the plain max-width: 900px stack above
+   unchanged -- so this is keyed on width, mirroring how the mobile-
+   landscape breakpoint above is keyed on height, with the same 500px
+   phone-vs-tablet cutoff mirrored onto the other axis. */
+@media (orientation: portrait) and (max-width: 500px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* The title bar is gone (specs/screens/game.md's Mobile section) --
+     only the menu button remains, floated over the table instead of
+     taking its own row, same treatment as mobile landscape above.
+     Unlike landscape's two-column layout, a single stacked column
+     leaves no naturally empty corner for it to float over, so #table
+     below reserves top clearance sized to the button's own box. */
+  #header {
+    position: fixed;
+    top: 0.4rem;
+    right: 0.4rem;
+    padding: 0;
+    border-bottom: none;
+    background: transparent;
+    z-index: 10;
+  }
+
+  #header h1 {
+    display: none;
+  }
+
+  #log-panel {
+    display: none;
+  }
+
+  /* West/North/East never need to read as clearly as the pot or
+     South's own hand -- see the matching comment on the mobile-
+     landscape breakpoint above for the full reasoning. Same mechanism:
+     a small fixed --card-w scoped to just the three bot panels. */
+  .seat-west,
+  .seat-north,
+  .seat-east {
+    --card-w: 26px;
+    --card-h: calc(var(--card-w) * var(--tile-aspect));
+  }
+
+  /* Budget for the two rows still sized off the full --card-w (Pot and
+     South): each needs --card-h plus that row's own fixed chrome --
+     4.5rem for South (full panel: padding, label, score/strikes rows
+     -- see the desktop clamp()'s comment near the top of this file),
+     ~2.5rem for the pot panel (lighter chrome: no score/strikes/
+     dealer/state-tag row, just padding + label), plus Actions' own
+     ~2.2rem. Unlike the landscape breakpoint, West/North/East share
+     this same column (all six panels stack in one), so their own
+     chrome and shrunk card height count too: 4.5rem each x3 (13.5rem)
+     plus 3 x the fixed bot --card-h above. Add five 0.3rem row-gaps
+     between the six stacked rows (1.5rem), #table's own top clearance
+     for the floating menu button (2rem) plus a little bottom padding
+     (0.3rem): 24.5rem of fixed chrome, plus the three bot card
+     heights. Solving 2 * card-h + 24.5rem + 3 * bot-card-h <= 100vh
+     for card-w (card-h = card-w * --tile-aspect) gives the term below.
+     Below the 64px floor, the layout accepts the same scrolling
+     fallback as everywhere else in this file. */
+  :root {
+    --card-w: clamp(
+      64px,
+      min(7vw, calc((100vh - 24.5rem - 3 * 26px * var(--tile-aspect)) / 2 / var(--tile-aspect))),
+      var(--tile-w)
+    );
+  }
+
+  #table {
+    display: grid;
+    grid-template-columns: 1fr;
+    /* Six equal-content rows, overriding the desktop cross layout's own
+       "auto 1fr auto auto" (four tracks, sized for its four grid rows)
+       -- left as-is, that 1fr would land on this breakpoint's second
+       row (north) instead of the desktop middle row it was meant for,
+       stretching north's row to fill any leftover viewport height. */
+    grid-template-rows: repeat(6, auto);
+    grid-template-areas:
+      "west"
+      "north"
+      "east"
+      "pot"
+      "actions"
+      "south";
+    row-gap: 0.3rem;
+    padding: 2rem 0 0.3rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .seat-west,
+  .seat-north,
+  .seat-east {
+    justify-self: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Same fix as mobile landscape's matching rule: the bot --card-w
+     above is small enough that the dealer/score/strikes row is wider
+     than the card row, so .panel's normally-fixed card-row-based width
+     needs to grow to fit it instead of clipping it. */
+  .seat-west .panel,
+  .seat-north .panel,
+  .seat-east .panel {
+    width: max-content;
+  }
+
+  /* Side-by-side (specs/screens/licenses.md) leaves the fixed-width
+     list column eating most of a narrow phone's width, and the
+     license text -- the thing actually being read -- squeezed into
+     whatever's left. Stacking list-above-text instead gives each its
+     own full-width row; .licenses-list's flex-basis (240px, set for
+     the row layout's width) becomes a height once the flex direction
+     is column, and .licenses-textarea's flex: 1 1 auto already fills
+     whatever's left below it either way, so only the direction needs
+     to change here. */
+  .licenses-body {
+    flex-direction: column;
+  }
+}
