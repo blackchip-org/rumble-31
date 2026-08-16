@@ -78,20 +78,28 @@ export class Round {
   // run plays the round to completion: each seat is asked to decide an
   // action via its Strategy until a player knocks, or exchanges their
   // entire hand with the pot on any turn but the round's first (which
-  // ends the round the same way a knock does), or any player reaches
-  // three aces (which ends the round immediately, including at deal
-  // time). Once the round has ended, every other player gets exactly one
-  // more turn and the round ends before the player who ended it would
-  // act again.
+  // ends the round the same way a knock does). Once the round has
+  // ended, every other player gets exactly one more turn and the round
+  // ends before the player who ended it would act again.
   //
-  // A player's hand scoring 31 also ends the round immediately, per
-  // specs/rules.md, except on that player's own first turn: an action
-  // that brings their hand to 31 ends the round right after (mirroring
-  // the three-aces check), and if their hand was already at 31 going
-  // into their second turn — reached during their first turn, which
-  // isn't checked — the round ends there instead, before they act.
-  // Checking a third time or later would never trigger, since the
-  // second-turn check would already have ended the round by then.
+  // A player's hand scoring 31 ends the round immediately and
+  // unconditionally, per specs/rules.md, with no final lap for anyone:
+  // checked before every decide() call (so a hand already at 31 when a
+  // turn starts ends the round right there, before that player acts —
+  // even the round's very first actor, on turn 0), and again after
+  // every action (so an action that brings a hand to 31 ends the round
+  // immediately, on any turn, including a player's own first turn).
+  //
+  // A hand scoring 32 (three aces) does not end the round on its own,
+  // at the deal or otherwise. It only ends the round when the player
+  // holding it chooses to knock on one of their own turns, under the
+  // ordinary knock rules above (including that knock isn't available
+  // on the round's very first turn) — at which point it behaves
+  // exactly like any other knock. A 32 still always outranks a 31 (or
+  // anything else) at final scoring, even if the round ended via a
+  // different player's 31 before the 32-holder ever got a turn to
+  // knock, since computeResult scores every player's hand as it stands
+  // when the round ends, regardless of what ended it.
   //
   // Returns the final result and a log of every turn taken.
   async run(): Promise<{ result: Result; log: TurnRecord[] }> {
@@ -103,10 +111,6 @@ export class Round {
       for (const p of this.players) {
         p.strategy.onRoundStart?.();
       }
-    }
-
-    if (hasThreeAces(this.players)) {
-      return { result: this.computeResult(), log: [] };
     }
 
     const log: TurnRecord[] = [];
@@ -127,12 +131,13 @@ export class Round {
         break;
       }
 
-      // A hand already at 31 going into this seat's second turn — the
-      // one case a post-action check on this same seat's first turn
-      // couldn't have caught, since that check is suppressed there —
-      // ends the round now, before decide() is called.
+      // A hand already at 31 going into this turn — whether dealt in
+      // outright or reached during a prior turn — ends the round now,
+      // before decide() is called. Unconditional: no exception for a
+      // player's own first turn, including the round's very first
+      // actor on turn 0.
       const priorOwnTurns = ownTurnNum.get(seat) ?? 0;
-      if (priorOwnTurns === 1 && score(player.hand) === 31) {
+      if (score(player.hand) === 31) {
         return { result: this.computeResult(), log };
       }
 
@@ -165,10 +170,9 @@ export class Round {
 
       await this.onTurn?.(record);
 
-      if (hasThreeAces(this.players)) {
-        break;
-      }
-      if ((ownTurnNum.get(seat) as number) >= 2 && score(player.hand) === 31) {
+      // An action that brings this hand to 31 ends the round
+      // immediately, on any turn, including a player's own first turn.
+      if (score(player.hand) === 31) {
         break;
       }
       if (!knocked && !isFirstTurn && (action.type === "knock" || action.type === "exchange")) {
@@ -391,11 +395,6 @@ function toPublicTurn(record: TurnRecord): PublicTurn {
     case "knock":
       return { seat: record.seat, type: "knock", given: [], taken: [] };
   }
-}
-
-// hasThreeAces reports whether any player currently holds three aces.
-function hasThreeAces(players: readonly Player[]): boolean {
-  return players.some((p) => p.hand.every((c) => c.rank === "A"));
 }
 
 // validateAction rejects actions that carry out-of-range indices, and

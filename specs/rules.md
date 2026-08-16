@@ -52,18 +52,20 @@ When the turn is over, play continues to the next player in clockwise order.
 The round ends when:
 
 - The next time it would be a player's turn if they knocked
-- Immediately when a player has three aces in their hand (a score of
-  32), including at the deal
-- Immediately when a player's action leaves their hand scoring 31,
-  unless it was that player's own first turn of the round
-- Immediately at the start of a player's second turn, before they
-  act, if their hand already scores 31 (having reached it during
-  their first turn, which is not checked until now)
+- Immediately when a player's hand scores 31: checked before every
+  player's turn (so a hand already at 31 when a turn starts ends the
+  round before that player acts, even on the round's first turn), and
+  again after every action (so an action that brings a hand to 31 ends
+  the round immediately, on any turn, including a player's own first
+  turn)
 
-A hand can only reach a score of 31 or 32 through the scoring rules
-below; checking a player's hand for either of these scores a third
-time or later is never triggered, since the checks above would
-already have ended the round by then.
+A hand scoring 32 (three aces) does not end the round on its own,
+whether reached at the deal or during play. It only ends the round
+when the player holding it chooses to knock on one of their own
+turns, following the ordinary knock rules above (including that knock
+is not available on the round's very first turn) -- at that point it
+ends the round exactly like any other knock, giving every other
+player one more turn before the round ends.
 
 Scores are then tallied for each player using the following rules:
 
@@ -83,6 +85,12 @@ Examples:
 - 7h Ad Kc: The total is 11 (A) 
 - 7h 7d 7c: The total is 30.5
 - Ah Ad Ac: The total is 32
+
+A score of 32 always outranks every other score, including a 31 --
+even if the round ended because a different player's action brought
+their own hand to 31 before the 32-holder had a turn to knock. Scores
+are tallied from every player's hand as it stands when the round
+ends, regardless of what ended it.
 
 A game is played over a series of rounds. When a round ends, the player
 with the lowest score receives a strike. If more than one player is tied

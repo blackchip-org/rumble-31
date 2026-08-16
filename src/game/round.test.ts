@@ -265,113 +265,93 @@ test("run: awaits an async onTurn before the next seat acts", async () => {
   assert.equal(sawTurnResolved, true);
 });
 
-test("run: three aces mid-round ends the round immediately", async () => {
-  // Seat 0 keeps its hand on the round's first turn (harmless); seat 1
-  // then trades its 7h for the pot's third ace, completing three aces
-  // mid-round, and the round must stop right there.
-  const keepOnFirstTurn = strategyFunc(() => knock());
-  const drawAce = strategyFunc(() => trade(2, 0));
+test("run: a hand already at 31 for the round's very first actor ends the round before any turn", async () => {
   const neverCalled = strategyFunc((): Action => {
-    throw new Error("strategy invoked after three-aces should have ended the round");
+    throw new Error("strategy invoked when a 31 was already dealt to the round's first actor");
   });
 
   const r = newTestRound(
     [
-      ["7c", "8c", "9c"],
-      ["7h", "Ad", "Ac"],
-      ["7d", "8d", "9d"],
-      ["7s", "8s", "9s"],
-    ],
-    ["Kh", "Kc", "Ah"],
-    [keepOnFirstTurn, drawAce, neverCalled, neverCalled],
-  );
-  r.firstSeat = 0;
-
-  const { log } = await r.run();
-  assert.equal(log.length, 2);
-});
-
-test("run: three aces already dealt ends the round with no turns", async () => {
-  const neverCalled = strategyFunc((): Action => {
-    throw new Error("strategy invoked when three aces were already dealt");
-  });
-
-  const r = newTestRound(
-    [
-      ["Ah", "Ad", "Ac"],
+      ["Ah", "Kh", "Th"],
       ["7c", "8c", "9c"],
       ["7d", "8d", "9d"],
       ["7s", "8s", "9s"],
     ],
-    ["Kh", "Kc", "As"],
+    ["Kc", "Qd", "Jc"],
     [neverCalled, neverCalled, neverCalled, neverCalled],
   );
 
-  const { log } = await r.run();
+  const { log, result } = await r.run();
   assert.equal(log.length, 0);
+  assert.deepEqual(result.winners, [0]);
 });
 
-test("run: a trade bringing a hand to 31 on that player's own first turn does not end the round", async () => {
+test("run: a hand already at 31 for a later seat ends the round the moment their turn starts", async () => {
+  // Seat 2 is dealt a 31 hand outright. Seats 0 and 1 still get their
+  // normal turns first; the round ends before seat 2's decide() is
+  // ever called, and seat 3 never gets a turn at all.
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("7c", "8c", "9c"), strategy: passTurn() },
+    { seat: 1, hand: mustHand("7d", "8d", "9d"), strategy: passTurn() },
+    { seat: 2, hand: mustHand("Ah", "Kh", "Th"), strategy: nilStrategy },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: nilStrategy },
+  ];
+  const r = new Round(mustPot("Kc", "Qd", "Jc"), players, 0);
+
+  const { log, result } = await r.run();
+  assert.equal(log.length, 2);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [0, 1],
+  );
+  assert.deepEqual(result.winners, [2]);
+});
+
+test("run: an exchange bringing the round's first actor to 31 ends the round immediately", async () => {
+  const takePot = strategyFunc(() => exchange());
+  const neverCalled = strategyFunc((): Action => {
+    throw new Error("strategy invoked after the round's first-turn 31 should have ended it");
+  });
+
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("7h", "8h", "9h"), strategy: takePot },
+    { seat: 1, hand: mustHand("7c", "8c", "9c"), strategy: neverCalled },
+    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: neverCalled },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: neverCalled },
+  ];
+  const r = new Round(mustPot("Ah", "Kh", "Th"), players, 0);
+
+  const { log } = await r.run();
+  assert.equal(log.length, 1);
+  assert.equal(log[0]?.action.type, "exchange");
+  assert.equal(log[0]?.scoreAfter, 31);
+});
+
+test("run: a trade bringing a hand to 31 on that player's own first turn ends the round immediately", async () => {
   // Seat 0 keeps on the round's first turn (harmless). Seat 1's own
   // first turn (turnIdx 1, not the round's first turn) trades into a
-  // hand scoring 31 — this must not end the round, since it's seat 1's
-  // own first turn. Seats 2, 3, and seat 0's second turn all still get
-  // asked to act afterward, proving the round continued.
+  // hand scoring 31 -- with no first-turn exception, this ends the
+  // round right there; seats 2, 3, and seat 0's second turn never act.
   const drawTo31 = strategyFunc(() => trade(1, 2));
 
   const players: Player[] = [
     { seat: 0, hand: mustHand("7c", "8c", "9c"), strategy: strategyFunc(() => knock()) },
     { seat: 1, hand: mustHand("Ah", "Kh", "Jc"), strategy: drawTo31 },
-    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: passTurn() },
-    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: passTurn() },
+    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: nilStrategy },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: nilStrategy },
   ];
   // Seat 1's trade(1, 2) swaps its Jc for the pot's Th, completing 31
   // (A + K + T of hearts).
   const r = new Round(mustPot("Kc", "Th", "Qd"), players, 0);
 
-  const { log } = await r.run();
-
-  // Seat 1's turn (index 1) trades into 31, but the round keeps going:
-  // seats 2, 3, and seat 0's second turn (index 4) all still act.
-  assert.equal(log.length, 5, "the round must not have ended at seat 1's first-turn 31");
-  assert.deepEqual(
-    log.map((rec) => rec.seat),
-    [0, 1, 2, 3, 0],
-  );
-  assert.equal(log[1]?.scoreAfter, 31);
-});
-
-test("run: a hand already at 31 entering a player's second turn ends the round before they act", async () => {
-  // Seat 1 is dealt a 31 hand outright and Keeps on its own first turn
-  // (which coincides with the round's first turn here). By the time
-  // play wraps back around to seat 1's second turn, its hand is still
-  // 31 — the round must end right there, before seat 1's decide() is
-  // called a second time.
-  let seat1Calls = 0;
-  const seat1Strategy = strategyFunc(() => {
-    seat1Calls++;
-    if (seat1Calls > 1) {
-      throw new Error("seat 1 should not be asked to act a second time");
-    }
-    return knock();
-  });
-
-  const players: Player[] = [
-    { seat: 0, hand: mustHand("7c", "8c", "9c"), strategy: passTurn() },
-    { seat: 1, hand: mustHand("Ah", "Kh", "Th"), strategy: seat1Strategy },
-    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: passTurn() },
-    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: passTurn() },
-  ];
-  const r = new Round(mustPot("Kc", "Qd", "Jc"), players, 1);
-
   const { log, result } = await r.run();
 
-  assert.equal(seat1Calls, 1, "seat 1's decide() must only be called once");
-  assert.equal(log.length, 4);
+  assert.equal(log.length, 2);
   assert.deepEqual(
     log.map((rec) => rec.seat),
-    [1, 2, 3, 0],
+    [0, 1],
   );
+  assert.equal(log[1]?.scoreAfter, 31);
   assert.deepEqual(result.winners, [1]);
 });
 
@@ -412,6 +392,132 @@ test("run: a trade bringing a hand to 31 on a later turn ends the round immediat
     [0, 1, 2, 3, 0],
   );
   assert.equal(log[4]?.scoreAfter, 31);
+});
+
+test("run: a player dealt three aces is not auto-ended at the deal, and only ends the round by knocking", async () => {
+  let seat1Calls = 0;
+  const seat1Strategy = strategyFunc(() => {
+    seat1Calls++;
+    return knock();
+  });
+
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("7h", "8h", "9h"), strategy: passTurn() },
+    { seat: 1, hand: mustHand("Ah", "Ad", "Ac"), strategy: seat1Strategy },
+    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: passTurn() },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: passTurn() },
+  ];
+  const r = new Round(mustPot("Kc", "Qd", "Jc"), players, 0);
+
+  const { log, result } = await r.run();
+
+  assert.equal(seat1Calls, 1, "seat 1's decide() must be called normally despite holding three aces at the deal");
+  // seat 1's knock (not on the round's first turn) ends the round
+  // after seats 2, 3, and seat 0's second turn each get one more turn.
+  assert.equal(log.length, 5);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [0, 1, 2, 3, 0],
+  );
+  assert.deepEqual(result.winners, [1]);
+});
+
+test("run: a trade completing three aces mid-round does not end the round", async () => {
+  const keepOnFirstTurn = strategyFunc(() => knock());
+  const drawAce = strategyFunc(() => trade(2, 0));
+  let seat2Calls = 0;
+  const seat2Strategy = strategyFunc(() => {
+    seat2Calls++;
+    return knock();
+  });
+
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("7c", "8c", "9c"), strategy: keepOnFirstTurn },
+    { seat: 1, hand: mustHand("7h", "Ad", "Ac"), strategy: drawAce },
+    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: seat2Strategy },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: passTurn() },
+  ];
+  const r = new Round(mustPot("Kh", "Kc", "Ah"), players, 0);
+
+  const { log } = await r.run();
+
+  assert.equal(seat2Calls, 1, "play must continue past seat 1's three aces to seat 2");
+  assert.equal(log[1]?.scoreAfter, 32);
+  // seat 2's knock ends the round after seats 3, 0, and 1 each get one
+  // more turn.
+  assert.equal(log.length, 6);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [0, 1, 2, 3, 0, 1],
+  );
+});
+
+test("run: a 32-holder's Keep on the round's first turn does not end it", async () => {
+  let seat1Calls = 0;
+  const seat1Strategy = strategyFunc(() => {
+    seat1Calls++;
+    return knock();
+  });
+
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("Ah", "Ad", "Ac"), strategy: strategyFunc(() => knock()) },
+    { seat: 1, hand: mustHand("7c", "8c", "9c"), strategy: seat1Strategy },
+    { seat: 2, hand: mustHand("7d", "8d", "9d"), strategy: passTurn() },
+    { seat: 3, hand: mustHand("7s", "8s", "9s"), strategy: passTurn() },
+  ];
+  const r = new Round(mustPot("Kh", "Kc", "Kd"), players, 0);
+
+  const { log } = await r.run();
+
+  assert.equal(seat1Calls, 1, "play must continue past seat 0's Keep despite holding three aces");
+  // seat 1's real knock ends the round after seats 2, 3, and seat 0's
+  // second turn each get one more turn.
+  assert.equal(log.length, 5);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [0, 1, 2, 3, 0],
+  );
+});
+
+test("run: a 32 held by one player still wins even though the round ends via another player's 31 first", async () => {
+  // North (seat 2) secretly completes three aces on an earlier turn,
+  // but it isn't North's turn again by the time East (seat 3) trades
+  // into a 31 -- East's 31 ends the round immediately, before North
+  // ever gets a chance to knock. North still wins: computeResult
+  // scores every player's final hand, and North's is still 32.
+  const southKeep = strategyFunc(() => knock());
+  const westSafeTrade = strategyFunc(() => trade(2, 0));
+  let northCalls = 0;
+  const northStrategy = strategyFunc(() => {
+    northCalls++;
+    if (northCalls > 1) {
+      throw new Error("North should not be asked to act a second time");
+    }
+    return trade(0, 2);
+  });
+  const eastStrategy = strategyFunc(() => trade(1, 2));
+
+  const players: Player[] = [
+    { seat: 0, hand: mustHand("7d", "8d", "9d"), strategy: southKeep },
+    { seat: 1, hand: mustHand("7h", "8h", "9h"), strategy: westSafeTrade },
+    { seat: 2, hand: mustHand("Ah", "Ad", "7c"), strategy: northStrategy },
+    { seat: 3, hand: mustHand("As", "Ks", "7s"), strategy: eastStrategy },
+  ];
+  const r = new Round(mustPot("Ac", "Qs", "9c"), players, 0);
+
+  const { log, result } = await r.run();
+
+  assert.equal(northCalls, 1, "North must not be asked to act again once East's 31 ends the round");
+  assert.equal(log.length, 4);
+  assert.deepEqual(
+    log.map((rec) => rec.seat),
+    [0, 1, 2, 3],
+  );
+  assert.equal(log[3]?.scoreAfter, 31);
+
+  const north = result.players.find((pr) => pr.seat === 2);
+  assert.equal(north?.score, 32, "North's hand must still score 32 at final scoring");
+  assert.deepEqual(result.winners, [2], "North's 32 must win despite East's 31 ending the round");
 });
 
 test("run: isFirstTurnOfRound is true for exactly one decide call", async () => {
@@ -569,11 +675,6 @@ test("run: exchanging after the first turn acts as a knock", async () => {
     });
   };
 
-  // Pot is three kings (30.5), not three aces (32) — since seat 0 now
-  // Keeps rather than trading on the round's first turn, a three-aces
-  // pot would reach seat 1's hand via its exchange and end the round
-  // via the (unrelated) three-aces rule before this test's own knock
-  // detection is exercised.
   const r = newTestRound(
     [
       ["7h", "8h", "9h"],
@@ -769,25 +870,25 @@ test("run: onRoundStart fires once per active seat before any decide() call", as
   );
 });
 
-test("run: onRoundStart fires even when three aces are already dealt", async () => {
+test("run: onRoundStart fires even when a 31 is already dealt to the round's first actor", async () => {
   let starts = 0;
   const neverDecides: Strategy = {
     onRoundStart: () => {
       starts++;
     },
     decide: (): Action => {
-      throw new Error("strategy invoked when three aces were already dealt");
+      throw new Error("strategy invoked when a 31 was already dealt");
     },
   };
 
   const r = newTestRound(
     [
-      ["Ah", "Ad", "Ac"],
+      ["Ah", "Kh", "Th"],
       ["7c", "8c", "9c"],
       ["7d", "8d", "9d"],
       ["7s", "8s", "9s"],
     ],
-    ["Kh", "Kc", "As"],
+    ["Kc", "Qd", "Jc"],
     [neverDecides, neverDecides, neverDecides, neverDecides],
   );
 

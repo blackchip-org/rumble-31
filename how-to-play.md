@@ -34,10 +34,14 @@ The exceptions are:
 
 The round ends:
 
-- Immediately if a player has three aces
-- Immediately if a player has a score of 31 and if every player has had at
-least one turn; otherwise the player wins when their next turn starts
+- Immediately if a player's hand scores 31 -- whether they were dealt
+it or a trade brought them there, and even on their very first turn
 - All players have played their remaining turn after a knock
+
+A hand of three Aces (a score of 32) doesn't end the round by itself
+-- the player holding it has to knock on one of their turns, just
+like any other knock. But a 32 always beats a 31 when scores are
+tallied, even if the round ended some other way first.
 
 At the end of the round, scores are tallied. The player or players with
 the lowest score receive a strike. Players with three strikes are eliminated
