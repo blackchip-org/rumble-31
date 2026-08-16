@@ -115,6 +115,7 @@ body {
   font-family: var(--font-title);
   font-weight: 400;
   font-size: var(--font-size-h1);
+  text-shadow: var(--heading-text-shadow);
 }
 
 /* ---------- buttons (shared skin, used app-wide) ---------- */
@@ -750,6 +751,7 @@ body {
   color: var(--main-title-color);
   text-align: center;
   line-height: 1.15;
+  text-shadow: var(--heading-text-shadow);
 }
 
 .main-title span {
@@ -801,6 +803,7 @@ body {
   color: var(--game-over-title-color);
   text-align: center;
   line-height: 1.15;
+  text-shadow: var(--heading-text-shadow);
 }
 
 .game-over-title span {
@@ -847,6 +850,7 @@ body {
   font-size: 2.5rem;
   color: var(--error-heading);
   text-align: center;
+  text-shadow: var(--heading-text-shadow);
 }
 
 .error-message {
@@ -920,11 +924,13 @@ body {
   font-weight: 400;
   font-size: var(--font-size-about-title);
   color: var(--about-title-color);
+  text-shadow: var(--heading-text-shadow);
 }
 
 .about-line {
   margin: 0;
   font-weight: var(--font-weight-bold);
+  text-shadow: var(--heading-text-shadow);
 }
 
 .about-links {
@@ -1038,6 +1044,7 @@ body {
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-settings-title);
   color: var(--settings-title-color);
+  text-shadow: var(--heading-text-shadow);
 }
 
 .settings-grid {
@@ -1049,10 +1056,12 @@ body {
 
 .settings-label {
   justify-self: start;
+  font-weight: var(--font-weight-bold);
+  text-shadow: var(--heading-text-shadow);
 }
 
 .settings-grid button {
-  justify-self: start;
+  justify-self: stretch;
   padding: 0.5rem 1rem;
 }
 
@@ -1097,6 +1106,7 @@ body {
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-menu-title);
   color: var(--menu-title-color);
+  text-shadow: var(--heading-text-shadow);
 }
 
 .menu-buttons {
@@ -1203,6 +1213,7 @@ body {
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-licenses-title);
   color: var(--licenses-title-color);
+  text-shadow: var(--heading-text-shadow);
 }
 
 .licenses-body {
@@ -1276,6 +1287,7 @@ body {
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-htp-title);
   color: var(--htp-title-color);
+  text-shadow: var(--heading-text-shadow);
 }
 
 .htp-textarea {

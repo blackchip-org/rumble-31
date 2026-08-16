@@ -126,6 +126,10 @@
                                         opens up Bebas Neue's tight
                                         default tracking */
 
+  --heading-text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* drop shadow on
+                                                            heading text,
+                                                            used app-wide */
+
   /* ---------- log window text (independent of the rest) ---------- */
   --font-log: "Inconsolata", ui-monospace, monospace; /* game log
                                                             entries */
