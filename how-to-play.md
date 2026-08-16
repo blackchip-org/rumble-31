@@ -5,11 +5,10 @@ A player is randomly selected as the first dealer. Three cards are
 dealt face down to each player and to a common pool of cards called
 the pot. Play starts to the left of the dealer.
 
-The pot is dealt face down, and no one -- not even the first player --
-knows what's in it. The first player must choose blind, either to keep
-their hand or to trade their entire hand for the pot. After this
-decision has been made, the cards in the pot are revealed by flipping them
-over. Play continues to the next player.
+The first player to act chooses to either keep their hand or to trade
+their hand with the pot. Once that player selects their hand, the 
+cards in the pot are revealed by flipping them over. Play continues to the next 
+player.
 
 On subsequent turns, a player can choose one of the following:
 
@@ -28,26 +27,17 @@ are:
 - Aces: 11 points
 
 When a hand has multiple suits, the suit with the highest tally is the score.
-The exceptions are:
+The exceptions are that a hand with three cards of the same rank is worth 30½
+and a hand with three Aces is worth 32.
 
-- A hand with three cards of the same rank is worth 30½
-- A hand with three Aces is worth 32
-
-The round ends:
-
-- Immediately if a player's hand scores 31 -- whether they were dealt
-it or a trade brought them there, and even on their very first turn
-- All players have played their remaining turn after a knock
-
-A hand of three Aces (a score of 32) doesn't end the round by itself
--- the player holding it has to knock on one of their turns, just
-like any other knock. But a 32 always beats a 31 when scores are
-tallied, even if the round ended some other way first.
+The round ends immediately if a player's hand scores 31, or if all players have
+played their remaining turn after a knock. A player dealt a hand of 31 waits
+until their turn to declare that the round is over.
 
 At the end of the round, scores are tallied. The player or players with
 the lowest score receive a strike. Players with three strikes are eliminated
-from the game -- except the first player (or players, if tied) to reach
-three strikes, who instead get a second chance and are only eliminated on
-a fourth strike. Play continues with another round until a single player
-remains and is crowned the winner.
+from the game. The first player to receive three strikes instead gets a 
+"second chance" and remains in the round until they receive another strike. 
+Play continues with another round until a single player remains and is 
+crowned the winner.
 

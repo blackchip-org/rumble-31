@@ -55,7 +55,7 @@ round's actual first turn. first is only valid alongside turn.
 Only valid alongside turn. Value should be "true" or "false". See turn
 above.
 
-# screen
+## screen
 
 Start at this screen immediately. The value is a screen identifier as
 listed in gui.md. Identifiers are at the end of the screen headings in
