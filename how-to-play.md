@@ -5,8 +5,9 @@ A player is randomly selected as the first dealer. Three cards are
 dealt face down to each player and to a common pool of cards called
 the pot. Play starts to the left of the dealer.
 
-The first player looks at the cards in the pot and can either choose
-to keep their hand or to trade their entire hand with the pot. After this
+The pot is dealt face down, and no one -- not even the first player --
+knows what's in it. The first player must choose blind, either to keep
+their hand or to trade their entire hand for the pot. After this
 decision has been made, the cards in the pot are revealed by flipping them
 over. Play continues to the next player.
 

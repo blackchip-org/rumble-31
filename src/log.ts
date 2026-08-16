@@ -2,7 +2,7 @@ import { cardToString } from "./card/card.ts";
 import type { Card } from "./card/card.ts";
 import type { Game, RoundOutcome } from "./game/game.ts";
 import { seatName } from "./game/seat.ts";
-import type { Hand, Pot, TurnRecord } from "./game/types.ts";
+import type { Hand, TurnRecord } from "./game/types.ts";
 
 // gameStartLines is written once, at program start, per specs/log.md.
 export function gameStartLines(seed: number, version: string): string[] {
@@ -14,16 +14,12 @@ export function gameStartLines(seed: number, version: string): string[] {
 // hand (no other seat's hand is ever logged). South is omitted once
 // already eliminated, since no hand is dealt to them. Who goes first
 // isn't stated separately — it's implied by the very next "Seat's
-// turn" line. The pot is private to everyone but firstSeat (specs/
-// rules.md): its cards are only shown here if South is firstSeat —
-// otherwise the "Pot is dealt" line omits them, and they're logged for
-// the first time by potLine, once the first player has acted.
-export function roundStartLines(roundNum: number, pot: Pot, southHand: Hand | undefined, firstSeat: number): string[] {
-  const lines = [
-    "",
-    `=== Round ${roundNum} ===`,
-    firstSeat === 0 ? `Pot is dealt [${cardsNotation(pot)}]` : "Pot is dealt",
-  ];
+// turn" line. The pot is private to everyone, including the first
+// player to act (specs/rules.md), so the "Pot is dealt" line never
+// names its cards here — they're logged for the first time by
+// potLine, once the first player has acted.
+export function roundStartLines(roundNum: number, southHand: Hand | undefined): string[] {
+  const lines = ["", `=== Round ${roundNum} ===`, "Pot is dealt"];
   if (southHand !== undefined) {
     lines.push(`South is dealt [${cardsNotation(southHand)}]`);
   }

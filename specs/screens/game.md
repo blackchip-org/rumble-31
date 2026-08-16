@@ -95,19 +95,24 @@ On the round's first turn, the pot is private (see "Dealing" below),
 and whichever seat acts first (South or a bot) has its panel tagged
 "First" instead of "turn", with its own distinct highlight color,
 separate from the ordinary yellowish turn highlight. When it is
-South's first turn, the two buttons read "Keep Pot" and "Keep Hand"
-instead of "Take Pot" and "Knock" -- same position and style, but
-clicking either leaves South's hand untouched instead of knocking (see
-specs/rules.md: neither Take Pot nor Keep counts as a knock on this
-turn). Clicking a hand or pot card has no effect on this turn --
+South's first turn, the "Knock" button reads "Keep Hand" instead --
+same position and style, but clicking it leaves South's hand untouched
+instead of knocking (see specs/rules.md: neither Take Pot nor Keep
+counts as a knock on this turn); "Take Pot" keeps its usual label,
+since it's the same blind gamble every other seat faces on their own
+first turn. Clicking a hand or pot card has no effect on this turn --
 trading a single card isn't available until the round's second turn.
 On South's first turn, South's hand cards highlight as a group by
 default, signaling that "all" of South's cards are being considered
-rather than one; hovering or focusing "Keep Pot" switches the
+rather than one; hovering or focusing "Take Pot" switches the
 highlight to the pot's cards instead, and hovering or focusing "Keep
-Hand" switches it back to the hand. The buttons revert to reading
-"Take Pot" and "Knock", and card-clicking to trade resumes working,
-from South's second turn on.
+Hand" switches it back to the hand. Since the pot is still private at
+this point, its cards are shown as face-down card backs (see "Dealing"
+below), so this highlight swaps their card back to the light-yellow
+design (assets/cards.md) rather than the highlighted card art used for
+the hand's group highlight. The Knock button reverts to reading
+"Knock", and card-clicking to trade resumes working, from South's
+second turn on.
 
 To trade a card from a player's hand with one from the pot, the player:
 
@@ -137,13 +142,12 @@ takes about one second with all four players still in the game, and
 proportionally less once players have been eliminated (fewer cards
 left to deal).
 
-The pot is private to everyone except the round's first player to act
-(specs/rules.md). If South is not that player, the pot's three cards
-are dealt showing the light red card back tile too, the same as a
-private bot hand. If South is the first player to act, the pot's
-cards show their real face as dealt, same as today. Either way, once
-the first player has taken their turn (Take Pot or Keep), the pot's
-cards turn face-up and stay public for the rest of the round.
+The pot is private to everyone, including the round's first player to
+act (specs/rules.md) -- its three cards are always dealt showing the
+light red card back tile, the same as a private bot hand, regardless
+of who acts first. Once the first player has taken their turn (Take
+Pot or Keep), the pot's cards turn face-up and stay public for the
+rest of the round.
 
 A player's panel is always the same size, whether it currently holds
 zero, one, two, or three cards; each card appears directly in its

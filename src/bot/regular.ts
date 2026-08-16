@@ -35,6 +35,10 @@ export interface RegularBotMemory {
 const KNOCK_TURN_RANGE: [number, number] = [25, 30];
 const BEST_SCORE_TURNS_AGO_RANGE: [number, number] = [3, 5];
 const KNOCK_SCORE = 29;
+// TAKE_POT_SCORE_RANGE is the [lo-hi] range for the blind first-turn
+// gamble: take the unseen pot when the bot's own hand score is below a
+// number randomly rolled from this range.
+const TAKE_POT_SCORE_RANGE: [number, number] = [13, 16];
 
 // RegularBot implements the Regular strategy described in specs/bots.md:
 // like EasyBot, but it tracks its upstream and downstream neighbors'
@@ -133,7 +137,7 @@ export class RegularBot implements Strategy {
 
   private chooseAction(v: PlayerView): Action {
     if (v.isFirstTurnOfRound) {
-      return score(v.pot) > score(v.hand) ? exchange() : knock();
+      return score(v.hand) < randInt(this.rng, ...TAKE_POT_SCORE_RANGE) ? exchange() : knock();
     }
 
     if (v.ownTurnNumber >= randInt(this.rng, ...KNOCK_TURN_RANGE)) {

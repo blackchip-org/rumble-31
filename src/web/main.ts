@@ -454,10 +454,11 @@ function pauseBetweenRounds(ms: number, signal: AbortSignal): Promise<void> {
 // the acting seat isn't South, whose hand is never concealed.
 //
 // An exchange on the round's first turn (Take Pot) is a further special
-// case: the pot is still private then (specs/rules.md), so unlike every
-// other trade/exchange, the cards moving pot -> hand were never public
-// to begin with and must stay hidden for the entire animation, not just
-// re-concealed on landing -- takenIsSecret drives that.
+// case: the pot is still private then (specs/rules.md), to the acting
+// seat included, so unlike every other trade/exchange, the cards moving
+// pot -> hand were never public to begin with and must stay hidden for
+// the entire animation, not just re-concealed on landing -- takenIsSecret
+// drives that, regardless of which seat is acting.
 async function animateTurnCards(rec: TurnRecord): Promise<void> {
   const hand = seatOf(rec.seat).hand;
   const conceal = rec.seat !== 0;
@@ -469,7 +470,7 @@ async function animateTurnCards(rec: TurnRecord): Promise<void> {
       break;
     }
     case "exchange": {
-      const takenIsSecret = rec.turnIndex === 0 && conceal;
+      const takenIsSecret = rec.turnIndex === 0;
       for (let i = 0; i < 3; i++) {
         await animateCardTrade(hand.children[i] as HTMLElement, potEl.children[i] as HTMLElement, rec.handBefore[i] as Card, rec.potBefore[i] as Card, conceal, takenIsSecret, playSlideSound);
       }
@@ -528,9 +529,8 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 // card faces, every other seat's card backs, then the pot — pausing
 // DEAL_ANIMATION_DELAY between each. Game.playRound awaits onDeal, so
 // the round's first turn doesn't begin until this finishes. Per
-// specs/gui.md. The pot is private (dealt as card backs) unless South
-// is firstSeat — the round's first player to act, the only one who
-// may see it before their turn resolves.
+// specs/gui.md. The pot is private (dealt as card backs) to everyone,
+// including the round's first player to act, until that turn resolves.
 //
 // signal aborting mid-animation (Menu/Abandon, specs/gui.md's Game
 // Menu Screen) stops the per-card loop outright, not just its sound:
@@ -539,10 +539,9 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 // stale iteration still appending cards after the player has already
 // navigated away (and possibly Resumed into a new deal of its own)
 // would corrupt what's on screen.
-async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, firstSeat: number, signal: AbortSignal): Promise<void> {
-  const potPrivate = firstSeat !== 0;
+async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, signal: AbortSignal): Promise<void> {
   const southHand = hands.get(0);
-  for (const line of roundStartLines(roundNum, pot, southHand, firstSeat)) {
+  for (const line of roundStartLines(roundNum, southHand)) {
     appendLogLine(logEl, line);
   }
 
@@ -572,14 +571,7 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
     if (signal.aborted) {
       return;
     }
-    const el =
-      step.kind === "hand"
-        ? step.seat === 0
-          ? cardEl((southHand as Hand)[step.cardIndex] as Card)
-          : backEl()
-        : potPrivate
-          ? backEl()
-          : cardEl(pot[step.potIndex] as Card);
+    const el = step.kind === "hand" && step.seat === 0 ? cardEl((southHand as Hand)[step.cardIndex] as Card) : backEl();
     el.classList.add("card--deal-in");
     if (step.kind === "hand") {
       seatOf(step.seat).hand.appendChild(el);
@@ -603,11 +595,11 @@ async function animateDeal(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 // with no per-card animation or sound — used instead of animateDeal
 // when specs/params.md's north/south/east/west/pot debug params
 // pre-populate the deal, per its "dealing is not animated" note. The
-// pot is private (rendered as card backs) unless South is firstSeat,
-// same as animateDeal.
-function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, firstSeat: number): void {
+// pot is private (rendered as card backs) to everyone, same as
+// animateDeal.
+function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>): void {
   const southHand = hands.get(0);
-  for (const line of roundStartLines(roundNum, pot, southHand, firstSeat)) {
+  for (const line of roundStartLines(roundNum, southHand)) {
     appendLogLine(logEl, line);
   }
 
@@ -624,11 +616,7 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
       renderBacks(seatOf(seat).hand, hand.length);
     }
   }
-  if (firstSeat === 0) {
-    renderCards(potEl, pot);
-  } else {
-    renderBacks(potEl, pot.length);
-  }
+  renderBacks(potEl, pot.length);
 
   if (southHand !== undefined) {
     setScore(seatOf(0).score, score(southHand));
@@ -640,9 +628,10 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 // roundStartLines or resetting won/struck/panel state — this isn't a
 // new deal (specs/state.md), it's redisplaying a round already in
 // progress, whose deal was already logged and whose panel state was
-// already restored before the round loop began. potPrivate mirrors
-// animateDeal's own condition: still true only if the checkpoint was
-// taken before the round's first turn resolved.
+// already restored before the round loop began. potPrivate is true
+// only if the checkpoint was taken before the round's first turn
+// resolved -- the pot is private to everyone until then, regardless of
+// who acts first.
 function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>, potPrivate: boolean): void {
   const southHand = hands.get(0);
   for (const [seat, hand] of hands) {
@@ -825,11 +814,11 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       roundHands = new Map(hands);
       roundPot = pot;
       if (roundNum === startRoundNum && resume?.checkpoint) {
-        renderResumedRound(pot, hands, firstSeat !== 0 && resume.checkpoint.turnIndex === 0);
+        renderResumedRound(pot, hands, resume.checkpoint.turnIndex === 0);
       } else if (roundNum === startRoundNum && params.skipDealAnimation) {
-        renderDealInstant(roundNum, pot, hands, firstSeat);
+        renderDealInstant(roundNum, pot, hands);
       } else {
-        await animateDeal(roundNum, pot, hands, firstSeat, signal);
+        await animateDeal(roundNum, hands, signal);
       }
       // A deal animation in flight when the game was aborted mid-way
       // must not still persist this round's checkpoint afterwards --

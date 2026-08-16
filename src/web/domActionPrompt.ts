@@ -3,7 +3,7 @@ import type { Action, PlayerView, Strategy } from "../game/types.ts";
 import { exchange, knock } from "../game/types.ts";
 import { focusHandCenter, focusKnockButton, focusPotCenter } from "./focusNav.ts";
 import { setScore } from "./panels.ts";
-import { renderCards } from "./render.ts";
+import { renderBacks, renderCards, setBackHighlight } from "./render.ts";
 import { TradeSelection } from "./tradeSelection.ts";
 
 // DomActionPrompt is South's Strategy: it renders the pot and the
@@ -11,12 +11,16 @@ import { TradeSelection } from "./tradeSelection.ts";
 // then resolves once the player either clicks a hand-card/pot-card pair
 // (a trade, in either order) or clicks the standing Take Pot / Knock
 // buttons. On the round's first turn, per specs/rules.md, only Take Pot
-// or Keep are available: clicking a card does nothing, the buttons read
-// "Keep Pot"/"Keep Hand" instead of "Take Pot"/"Knock" (Keep Hand still
-// resolves to knock() — round.ts is what makes it not act as a real
-// knock that turn), and the group of cards Keep Pot/Keep Hand would act
-// on (all of the hand, or all of the pot) highlights as a group instead
-// of one card, tracking hover/focus on the two buttons.
+// or Keep are available: clicking a card does nothing, the pot is
+// private (rendered as card backs, same as a bot's hand — South can't
+// see it either on this turn), the Knock button reads "Keep Hand"
+// instead (still resolves to knock() — round.ts is what makes it not
+// act as a real knock that turn), and the group of cards Take Pot/Keep
+// Hand would act on (all of the pot, or all of the hand) highlights as
+// a group instead of one card, tracking hover/focus on the two
+// buttons: the hand (real card art) via is-keep-highlight, the pot
+// (card backs) by swapping to the light-yellow back via
+// setBackHighlight.
 export class DomActionPrompt implements Strategy {
   private potEl: HTMLElement;
   private handEl: HTMLElement;
@@ -35,14 +39,18 @@ export class DomActionPrompt implements Strategy {
   }
 
   decide(view: PlayerView): Promise<Action> {
-    renderCards(this.potEl, view.pot);
+    const isFirstTurn = view.isFirstTurnOfRound;
+    if (isFirstTurn) {
+      renderBacks(this.potEl, view.pot.length);
+    } else {
+      renderCards(this.potEl, view.pot);
+    }
     renderCards(this.handEl, view.hand);
     setScore(this.scoreEl, score(view.hand));
 
     const handCards = Array.from(this.handEl.children) as HTMLElement[];
     const potCards = Array.from(this.potEl.children) as HTMLElement[];
     const selection = new TradeSelection();
-    const isFirstTurn = view.isFirstTurnOfRound;
 
     return new Promise((resolve) => {
       let settled = false;
@@ -52,20 +60,24 @@ export class DomActionPrompt implements Strategy {
         potCards.forEach((el, i) => el.classList.toggle("is-selected", selection.potIndex() === i));
       };
 
-      // Tracks which group of cards Keep Pot/Keep Hand would act on --
-      // the pot while Take Pot/Keep Pot has mouse hover, real DOM
-      // focus, or focusNav.ts's own app-managed "is-focused" class
+      // Tracks which group of cards Take Pot/Keep Hand would act on --
+      // the pot while Take Pot has mouse hover, real DOM focus, or
+      // focusNav.ts's own app-managed "is-focused" class
       // (controller/keyboard nav never sets real DOM focus -- see
       // focusNav.ts's top comment), the hand otherwise (including
       // while Knock/Keep Hand has any of those, or neither button
       // does). Only wired up to the buttons on the first turn (below);
       // defined unconditionally so detach() can always call
-      // removeEventListener/disconnect with it.
+      // removeEventListener/disconnect with it. The hand's cards are
+      // real, visible card art, so they highlight via the
+      // is-keep-highlight class (cards-highlight.png); the pot's cards
+      // are still-private card backs at this point, so they highlight
+      // by swapping to the light-yellow back instead.
       const updateKeepHighlight = () => {
         const potActive =
           this.takePotBtn.matches(":hover") || document.activeElement === this.takePotBtn || this.takePotBtn.classList.contains("is-focused");
         handCards.forEach((el) => el.classList.toggle("is-keep-highlight", !potActive));
-        potCards.forEach((el) => el.classList.toggle("is-keep-highlight", potActive));
+        potCards.forEach((el) => setBackHighlight(el, potActive));
       };
       const keepFocusObserver = new MutationObserver(updateKeepHighlight);
 
@@ -88,7 +100,10 @@ export class DomActionPrompt implements Strategy {
         this.takePotBtn.removeEventListener("blur", updateKeepHighlight);
         keepFocusObserver.disconnect();
         handCards.forEach((el) => el.classList.remove("is-selected", "is-keep-highlight"));
-        potCards.forEach((el) => el.classList.remove("is-selected", "is-keep-highlight"));
+        potCards.forEach((el) => el.classList.remove("is-selected"));
+        if (isFirstTurn) {
+          potCards.forEach((el) => setBackHighlight(el, false));
+        }
         this.handEl.classList.remove("is-tradeable");
         this.potEl.classList.remove("is-tradeable");
         this.signal.removeEventListener("abort", onAbort);
@@ -118,14 +133,14 @@ export class DomActionPrompt implements Strategy {
 
       this.takePotBtn.disabled = false;
       this.knockBtn.disabled = false;
-      this.takePotBtn.textContent = isFirstTurn ? "Keep Pot" : "Take Pot";
+      this.takePotBtn.textContent = "Take Pot";
       this.knockBtn.textContent = isFirstTurn ? "Keep Hand" : "Knock";
       this.takePotBtn.addEventListener("click", onTakePot);
       this.knockBtn.addEventListener("click", onKnock);
 
       // Trading a single card isn't legal on the round's first turn —
       // only Take Pot/Keep are, via the buttons above. Instead, the
-      // hand or pot cards highlight as a group, tracking which of Keep
+      // hand or pot cards highlight as a group, tracking which of Take
       // Pot/Keep Hand currently has hover or focus, to signal which
       // cards that button would act on.
       if (isFirstTurn) {

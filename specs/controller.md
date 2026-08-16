@@ -53,7 +53,7 @@ specs/screens/game.md's "To trade a card..." behavior: activating a
 card picks or un-picks it exactly like clicking it does, and a trade
 completes once a card in each row is picked, in either order. On the
 round's first turn, cards aren't part of the focus order at all --
-only Menu and Take Pot/Knock (reading "Keep Pot"/"Keep Hand") are
+only Menu and Take Pot/Knock (reading "Take Pot"/"Keep Hand") are
 navigable, matching that turn's mouse/touch behavior of cards being
 unclickable.
 

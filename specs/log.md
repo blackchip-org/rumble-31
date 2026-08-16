@@ -19,18 +19,14 @@ The log for the start of each round looks like the following. X is the round
 number. A blank line is emitted before the log message.
 
     === Round X ===
-    Pot is dealt [7h 8c 9d]
+    Pot is dealt
     South is dealt [7h 8c 9d]
 
-The pot is private to everyone except the round's first player to act
-(specs/rules.md). If South is not that player, the pot's cards are not
-yet known, so the "Pot is dealt" line omits them instead:
-
-    Pot is dealt
-
-The pot's actual cards are then logged for the first time by the
-existing "Pot is [...]" line below, once the first player has taken
-their turn.
+The pot is private to everyone, including the round's first player to
+act (specs/rules.md), so the "Pot is dealt" line never names its cards
+at deal time. The pot's actual cards are then logged for the first
+time by the existing "Pot is [...]" line below, once the first player
+has taken their turn.
 
 For the first player to act in a round, their choices are to keep their hand
 or to keep the pot. The log messages for those are:

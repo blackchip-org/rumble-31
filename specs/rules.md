@@ -24,11 +24,13 @@ dealt face-down to each player, and three cards are dealt to a common
 pool of cards called the pot. Play starts with the seat immediately
 clockwise of the dealer.
 
-The pot is private when it is dealt: only the player who acts first
-that round may see it. Once that player has taken their turn, the pot
-becomes public and every player can see it for the rest of the round.
+The pot is private when it is dealt: nobody, including the player who
+acts first that round, may see it. Once that player has taken their
+turn, the pot becomes public and every player can see it for the rest
+of the round.
 
-Because only the first player to act can see the pot, their turn is
+Because the pot is unseen, the first player to act must choose blind
+between their own dealt hand and the whole pot, so their turn is
 different from every other turn in the round. They have exactly two
 actions available:
 

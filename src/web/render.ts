@@ -1,7 +1,7 @@
 import type { Card, Rank, Suit } from "../card/card.ts";
 import cardsUrl from "../../assets/cards.png";
 import { STRIKE_HIGHLIGHT_BLINK_INTERVAL } from "../config.ts";
-import { BACK_TILE, SHEET_COLS, SHEET_ROWS, TILE_H, TILE_W, tilePosition, type TilePosition } from "./cardSheet.ts";
+import { BACK_TILE, HIGHLIGHT_BACK_TILE, SHEET_COLS, SHEET_ROWS, TILE_H, TILE_W, tilePosition, type TilePosition } from "./cardSheet.ts";
 
 const RANK_NAME: Record<Rank, string> = { A: "Ace", "7": "7", "8": "8", "9": "9", T: "10", J: "Jack", Q: "Queen", K: "King" };
 const SUIT_NAME: Record<Suit, string> = { s: "Spades", h: "Hearts", d: "Diamonds", c: "Clubs" };
@@ -91,6 +91,17 @@ export function renderCards(container: HTMLElement, cards: readonly Card[]): voi
 // renderBacks replaces container's children with count face-down cards.
 export function renderBacks(container: HTMLElement, count: number): void {
   container.replaceChildren(...Array.from({ length: count }, backEl));
+}
+
+// setBackHighlight swaps an already-rendered face-down card (from
+// backEl/renderBacks) between the ordinary light-red back and the
+// light-yellow back used to highlight the round's still-private
+// first-turn pot as a group (specs/screens/game.md) -- there's no real
+// card art to highlight at that point, so this stands in for the
+// is-selected/is-keep-highlight cards-highlight.png swap used
+// elsewhere for visible cards.
+export function setBackHighlight(el: HTMLElement, highlighted: boolean): void {
+  setTile(el, highlighted ? HIGHLIGHT_BACK_TILE : BACK_TILE, "face-down card");
 }
 
 // logText reconstructs the game log as plain text, one line per entry

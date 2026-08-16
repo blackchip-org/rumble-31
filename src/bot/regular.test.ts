@@ -28,14 +28,17 @@ function turn(seat: number, type: PublicTurn["type"], given: string[], taken: st
   return { seat, type, given: given.map(parseCard), taken: taken.map(parseCard) };
 }
 
-test("decide on the first turn: take pot only if it improves the hand", () => {
-  const cases: Array<{ name: string; hand: [string, string, string]; pot: [string, string, string]; wantAction: string }> = [
-    { name: "same-suit pot beats hand score", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kh", "Qh"], wantAction: "exchange" },
-    { name: "pot does not beat hand score", hand: ["Ah", "Kh", "Qh"], pot: ["7c", "8d", "9s"], wantAction: "knock" },
-    { name: "a mixed-suit pot can beat the hand too", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kc", "Qd"], wantAction: "exchange" },
+test("decide on the first turn: blind gamble on the pot based on the hand's own score, per the [13-16] range", () => {
+  // The pot is private on the first turn (specs/rules.md), so the bot
+  // can't compare its score against the hand -- only a hand score well
+  // outside the [13-16] threshold range is deterministic regardless of
+  // the random roll.
+  const cases: Array<{ name: string; hand: [string, string, string]; wantAction: string }> = [
+    { name: "hand score well below the range: always gambles on the pot", hand: ["7c", "8d", "9s"], wantAction: "exchange" },
+    { name: "hand score well above the range: always keeps it", hand: ["Th", "Jh", "Qh"], wantAction: "knock" },
   ];
-  for (const { name, hand, pot, wantAction } of cases) {
-    const v = baseView({ hand: mustHand(...hand), pot: mustPot(...pot), isFirstTurnOfRound: true, ownTurnNumber: 1 });
+  for (const { name, hand, wantAction } of cases) {
+    const v = baseView({ hand: mustHand(...hand), isFirstTurnOfRound: true, ownTurnNumber: 1 });
     const b = new RegularBot();
     assert.equal(b.decide(v).type, wantAction, name);
   }
@@ -116,6 +119,8 @@ test("records the resulting score as its best even from the round's first turn",
   const b = new RegularBot();
   b.onRoundStart();
 
+  // Hand score (9, mismatched suits) is well below the [13-16] blind-gamble
+  // range, so the pot is always taken regardless of the random roll.
   const first = b.decide(baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("7s", "8s", "9s"), isFirstTurnOfRound: true }));
   assert.equal(first.type, "exchange"); // resulting score = score(pot) = 24, at turn 1
 

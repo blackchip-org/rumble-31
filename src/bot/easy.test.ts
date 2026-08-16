@@ -24,15 +24,17 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
   };
 }
 
-test("decide on the first turn: take pot only if it improves the hand", () => {
-  const cases: Array<{ name: string; hand: [string, string, string]; pot: [string, string, string]; wantAction: string }> = [
-    { name: "same-suit pot beats hand score", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kh", "Qh"], wantAction: "exchange" },
-    { name: "pot does not beat hand score", hand: ["Ah", "Kh", "Qh"], pot: ["7c", "8d", "9s"], wantAction: "knock" },
-    { name: "a mixed-suit pot can beat the hand too", hand: ["7c", "8d", "9s"], pot: ["Ah", "Kc", "Qd"], wantAction: "exchange" },
-    { name: "a tied score does not count as an improvement", hand: ["7c", "8d", "9s"], pot: ["9h", "8c", "7d"], wantAction: "knock" },
+test("decide on the first turn: blind gamble on the pot based on the hand's own score, per the [14-17] range", () => {
+  // The pot is private on the first turn (specs/rules.md), so the bot
+  // can't compare its score against the hand -- only a hand score well
+  // outside the [14-17] threshold range is deterministic regardless of
+  // the random roll.
+  const cases: Array<{ name: string; hand: [string, string, string]; wantAction: string }> = [
+    { name: "hand score well below the range: always gambles on the pot", hand: ["7c", "8d", "9s"], wantAction: "exchange" },
+    { name: "hand score well above the range: always keeps it", hand: ["Th", "Jh", "Qh"], wantAction: "knock" },
   ];
-  for (const { name, hand, pot, wantAction } of cases) {
-    const v = baseView({ hand: mustHand(...hand), pot: mustPot(...pot), isFirstTurnOfRound: true, ownTurnNumber: 1 });
+  for (const { name, hand, wantAction } of cases) {
+    const v = baseView({ hand: mustHand(...hand), isFirstTurnOfRound: true, ownTurnNumber: 1 });
     const b = new EasyBot();
     assert.equal(b.decide(v).type, wantAction, name);
   }

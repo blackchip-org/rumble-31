@@ -45,7 +45,8 @@ they are focused on improving their hand but not really watching the
 other players.
 
 Strategy:
-- Take pot or keep: Take pot if it improves the hand
+- Take pot or keep: the pot is unseen at this point, so take the
+  blind gamble if the hand's own score is below [14-17]; otherwise keep
 - Knock if it is the bot's own [18-22]th turn or later
 - Exchange all cards with the pot when its score is >= 30
 - Trade to improve the hand
@@ -77,7 +78,8 @@ A card that does not help the downstream player is a "safe" card. A card
 is safe if it is not in the suit it is collecting.
 
 Strategy:
-- Take pot or keep: Take pot if it improves the hand
+- Take pot or keep: the pot is unseen at this point, so take the
+  blind gamble if the hand's own score is below [13-16]; otherwise keep
 - Knock if it is the bot's own [25-30]th turn or later
 - Exchange all cards with the pot when its score is >= 30
 - If the hand score equals the best score and it has been more than
@@ -110,7 +112,8 @@ A card that does not improve the upstream's hand is a "favorable" card.
 A card that does not improve the downstream's hand is a "safe" card.
 
 Strategy:
-- Take pot or keep: Take pot if it improves the hand
+- Take pot or keep: the pot is unseen at this point, so take the
+  blind gamble if the hand's own score is below [12-15]; otherwise keep
 - Knock if it is the bot's own [25-30]th turn or later
 - Exchange all cards with the pot when its score is >= 30
 - If the hand score equals the best score and it has been more than
