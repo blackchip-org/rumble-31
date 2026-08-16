@@ -18,9 +18,9 @@ along the row and wraps at either end; up/down always moves to the
 previous/next row, wrapping past the top/bottom row, and so does
 left/right on a row with nothing else in it (such as Menu).
 
-Opening a dialog (the Abandon or Install confirmation) moves focus
-into that dialog only, for as long as it's open; the screen behind it
-cannot be focused until the dialog closes.
+Opening the Abandon confirmation dialog moves focus into that dialog
+only, for as long as it's open; the screen behind it cannot be
+focused until the dialog closes.
 
 If the focused button becomes disabled, it immediately loses focus.
 Nothing else gains focus automatically -- the next navigation input
@@ -41,6 +41,7 @@ visited, without waiting for a navigation input:
   "Main Menu" (or, on Settings entered from the Game Menu, "Game
   Menu") button.
 - The Game Over screen defaults to "Play Again".
+- The Application Info screen defaults to "Proceed Anyway".
 
 Screens not listed above (the Game Screen, the Game Menu screen) fall
 back to the first item in their focus order, per Focus above; the Game
@@ -117,8 +118,9 @@ focus around the rest of the screen.
 ## Scrolling
 
 The Game Screen's log, the How to Play and Licenses screens' text, the
-About screen's credits, and the Error screen's stack trace are each a
-scrollable panel with no equivalent in the focus order above -- instead
+About screen's credits, the Application Info screen's instructions,
+and the Error screen's stack trace are each a scrollable panel with no
+equivalent in the focus order above -- instead
 of focusing them, the left stick scrolls whichever one belongs to the
 screen currently on-screen, proportionally to how far the stick is
 pushed up or down. This works regardless of what else has focus, and

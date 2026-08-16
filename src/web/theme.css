@@ -93,6 +93,14 @@
   /* ---------- main screen (independently restylable) ---------- */
   --main-bg: #1b5e3a; /* felt-green main screen background */
   --main-title-color: #fff; /* main screen title color */
+
+  /* ---------- application info screen (independently restylable) ----------
+     Shares --font-size-title with the main screen's heading -- per
+     specs/screens/appinfo.md it should look identical. */
+  --appinfo-bg: var(--main-bg); /* application info screen background */
+  --appinfo-title-color: #fff; /* "Rumble 31" heading color */
+  --appinfo-text-color: var(--ink); /* body/instructions text color */
+
   --button-bg: #1c2e5e; /* button background, used app-wide */
   --button-bg-hover: #26397a; /* button background on hover, used
                                   app-wide */

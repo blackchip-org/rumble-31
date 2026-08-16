@@ -106,7 +106,10 @@ specs/params.md:
   state the same way as above so returning to the Game Menu (rather
   than Resume) still works after the reload.
 - If there is no saved state, or it is invalid, the application
-  behaves as it does today: a bare visit shows the Main Screen.
+  behaves as it does today: a bare visit shows the Main Screen --
+  unless specs/screens/appinfo.md's Application Info screen conditions
+  are also met, in which case that screen is shown instead (see
+  "Application Info screen" below).
 
 ## The Game Menu screen
 
@@ -141,3 +144,15 @@ Reaching the error screen never reads or writes saved state. A
 reload after an error re-attempts normal restoration from whatever
 state existed before the error was thrown; it does not return to the
 error screen itself.
+
+## Application Info screen
+
+Like the error screen, the Application Info screen (specs/screens/
+appinfo.md) never reads or writes saved state -- it is not one of the
+screens listed under "What is stored" above. It is shown only when
+there is no saved state to restore at all, so once the player
+proceeds past it to the Main Menu, the Main Menu's own normal
+navigation saves state (per "When state is saved" above) and the
+Application Info screen is not shown again on any later visit, unless
+saved state is cleared some other way (e.g. Abandon, or a debug
+parameter -- see "Interaction with debug parameters" below).

@@ -83,6 +83,12 @@ parameter always shows the "Main Menu" back button with the bot
 difficulty toggles enabled, same as reaching it from the Main
 screen -- see specs/screens/settings.md.
 
+For the application info screen (appinfo), reaching it through this
+parameter shows it directly regardless of platform, saved state, or
+whether the game is already running standalone -- normally all three
+gate whether it's shown at all (specs/screens/appinfo.md). Combine
+with platform below to see a specific platform's instructions.
+
 ## clear
 
 Value should be "true" or "false" (default "false" if omitted).
@@ -95,13 +101,14 @@ takes over as usual.
 
 ## platform
 
-Value should be "ios", "android", or "other". Overrides the Main
-Screen's own User-Agent-based detection of whether to show the
-"Install as App" button and which platform's instructions its dialog
-displays (specs/screens/main.md), so that behavior can be exercised
-without a real iOS or Android device. Combine with screen=main to
-land on the Main Screen and see the button, for example
-"?platform=ios&screen=main". platform=other hides the button, same
-as a desktop browser.
+Value should be "ios", "android", or "other". Overrides the
+Application Info screen's own User-Agent-based detection of whether
+it is shown at all and which platform's install instructions it
+displays (specs/screens/appinfo.md), so that behavior can be
+exercised without a real iOS or Android device. Combine with
+screen=appinfo to see a specific platform's instructions directly,
+for example "?platform=ios&screen=appinfo". platform=other never
+shows the screen through normal navigation, same as a desktop
+browser.
 
 

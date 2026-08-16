@@ -25,11 +25,29 @@
       <div class="main-panel">
         <h1 class="main-title">Rumble<span>31</span></h1>
         <div class="main-buttons">
-          <button id="install-app-btn" type="button" hidden>Install as App</button>
           <button id="new-game-btn" type="button">New Game</button>
           <button id="htp-btn" type="button">How to Play</button>
           <button id="settings-btn" type="button">Settings</button>
           <button id="about-btn" type="button">About</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="appinfo-screen" class="appinfo-screen" hidden>
+      <div class="appinfo-panel">
+        <h1 class="appinfo-title">Rumble<span>31</span></h1>
+        <div class="appinfo-body-wrap">
+          <div id="appinfo-body" class="appinfo-body">
+            <p class="appinfo-text">
+              This game works best when installed as an application on your
+              mobile device. If your device did not prompt you to install
+              this, use the instructions below.
+            </p>
+            <p id="appinfo-instructions" class="appinfo-text"></p>
+          </div>
+        </div>
+        <div class="appinfo-buttons">
+          <button id="appinfo-proceed-btn" type="button">Proceed Anyway</button>
         </div>
       </div>
     </section>
@@ -158,13 +176,6 @@
       <div class="abandon-dialog-buttons">
         <button id="abandon-yes-btn" type="button">Yes</button>
         <button id="abandon-no-btn" type="button">No</button>
-      </div>
-    </dialog>
-
-    <dialog id="install-dialog" class="install-dialog">
-      <p id="install-dialog-text" class="install-dialog-message"></p>
-      <div class="install-dialog-buttons">
-        <button id="install-dialog-close-btn" type="button">Close</button>
       </div>
     </dialog>
 

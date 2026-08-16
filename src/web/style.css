@@ -129,7 +129,7 @@ body {
 .settings-buttons button,
 .menu-buttons button,
 .abandon-dialog-buttons button,
-.install-dialog-buttons button,
+.appinfo-buttons button,
 .licenses-buttons button,
 .htp-buttons button {
   border: 1px solid var(--panel-border);
@@ -163,7 +163,7 @@ body {
 .settings-buttons button:hover:not(:disabled),
 .menu-buttons button:hover:not(:disabled),
 .abandon-dialog-buttons button:hover:not(:disabled),
-.install-dialog-buttons button:hover:not(:disabled),
+.appinfo-buttons button:hover:not(:disabled),
 .licenses-buttons button:hover:not(:disabled),
 .htp-buttons button:hover:not(:disabled) {
   background: var(--button-bg-hover);
@@ -183,7 +183,7 @@ body {
 .settings-buttons button:active:not(:disabled),
 .menu-buttons button:active:not(:disabled),
 .abandon-dialog-buttons button:active:not(:disabled),
-.install-dialog-buttons button:active:not(:disabled),
+.appinfo-buttons button:active:not(:disabled),
 .licenses-buttons button:active:not(:disabled),
 .htp-buttons button:active:not(:disabled) {
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -743,18 +743,29 @@ body {
   gap: 2.5rem;
 }
 
-.main-title {
+/* .appinfo-title shares every rule with .main-title except color --
+   specs/screens/appinfo.md calls for an identical look. */
+.main-title,
+.appinfo-title {
   margin: 0;
   font-family: var(--font-title);
   font-size: var(--font-size-title);
   font-weight: 400;
-  color: var(--main-title-color);
   text-align: center;
   line-height: 1.15;
   text-shadow: var(--heading-text-shadow);
 }
 
-.main-title span {
+.main-title {
+  color: var(--main-title-color);
+}
+
+.appinfo-title {
+  color: var(--appinfo-title-color);
+}
+
+.main-title span,
+.appinfo-title span {
   display: block;
 }
 
@@ -1012,6 +1023,76 @@ body {
   padding: 0.75rem 1rem;
 }
 
+/* ---------- application info screen ---------- */
+
+.appinfo-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--appinfo-bg);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Same [hidden]-specificity-tie reasoning as .error-screen/.game-over-screen
+   above: display must be gated on :not([hidden]), not the bare selector. */
+.appinfo-screen:not([hidden]) {
+  display: flex;
+}
+
+.appinfo-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  gap: 2rem;
+  color: var(--appinfo-text-color);
+}
+
+.appinfo-body-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.appinfo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 46ch;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--panel-dark);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+
+.appinfo-text {
+  margin: 0;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.appinfo-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(60vw, 260px);
+  flex-shrink: 0;
+}
+
+.appinfo-buttons button {
+  padding: 0.75rem 1rem;
+}
+
 /* ---------- settings screen ---------- */
 
 .settings-screen {
@@ -1156,36 +1237,6 @@ body {
 }
 
 .abandon-dialog-buttons button {
-  padding: 0.5rem 1.5rem;
-}
-
-/* ---------- install as app dialog ---------- */
-
-.install-dialog {
-  border: none;
-  border-radius: 10px;
-  padding: 1.75rem 2rem;
-  max-width: min(90vw, 360px);
-  background: var(--panel);
-  color: var(--ink);
-  font-family: var(--font-body);
-}
-
-.install-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.6);
-}
-
-.install-dialog-message {
-  margin: 0 0 1.5rem;
-  text-align: center;
-}
-
-.install-dialog-buttons {
-  display: flex;
-  justify-content: center;
-}
-
-.install-dialog-buttons button {
   padding: 0.5rem 1.5rem;
 }
 
@@ -1473,30 +1524,35 @@ body {
     width: max-content;
   }
 
-  /* Main and Game Over are the only two screens whose title scales
-     with the viewport (every other screen's title is a fixed 2.25rem
-     -- see theme.css) -- so they're the only two that overflow a
+  /* Main, Game Over, and Application Info are the only screens whose
+     title scales with the viewport (every other screen's title is a
+     fixed 2.25rem -- see theme.css; Application Info shares Main's
+     own --font-size-title) -- so they're the ones that overflow a
      short mobile-landscape viewport. overflow-y: auto is a safety net
      matching this file's general "shrink, then scroll" fallback
      (see the top of this file) for whatever's still too tall once the
      title's shrunk. */
   .main-screen,
-  .game-over-screen {
+  .game-over-screen,
+  .appinfo-screen {
     overflow-y: auto;
   }
 
   .main-panel,
-  .game-over-panel {
+  .game-over-panel,
+  .appinfo-panel {
     gap: 1rem;
   }
 
   .main-buttons,
-  .game-over-buttons {
+  .game-over-buttons,
+  .appinfo-buttons {
     gap: 0.5rem;
   }
 
   .main-buttons button,
-  .game-over-buttons button {
+  .game-over-buttons button,
+  .appinfo-buttons button {
     padding: 0.5rem 1rem;
   }
 
@@ -1505,10 +1561,11 @@ body {
     --font-size-game-over-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
   }
 
-  /* About's body already shrinks and scrolls at the base level (see
-     .about-body-wrap above); this breakpoint just tightens spacing
-     for the shorter viewport. */
-  .about-screen {
+  /* About's and Application Info's bodies already shrink and scroll at
+     the base level (see .about-body-wrap/.appinfo-body-wrap above);
+     this breakpoint just tightens spacing for the shorter viewport. */
+  .about-screen,
+  .appinfo-screen {
     padding: 0.5rem 1rem;
   }
 

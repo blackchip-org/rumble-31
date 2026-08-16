@@ -17,8 +17,6 @@ be on different lines. Use New Rocker regular for this font and render it
 in white.
 - The following buttons. The background color of the button should be a dark
 blue and the text is white:
-    - Install as App (only on iOS or Android, and only when the game
-      is not already running standalone/installed)
     - New Game
     - How to Play
     - Settings
@@ -28,8 +26,3 @@ Clicking on the "New Game" button navigates to the Game Screen.
 Clicking on the "How to Play" button navigates to the How to Play screen.
 Clicking on the "Settings" button navigates to the Settings Screen.
 Clicking on the "About" button navigates to the About Screen.
-
-Clicking on "Install as App" shows a dialog box centered on the screen
-with instructions for adding the game to the home screen, worded for
-whichever platform was detected (iOS Safari or Android Chrome), and a
-"Close" button to dismiss it.

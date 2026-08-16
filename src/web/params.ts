@@ -17,7 +17,7 @@ const HAND_PARAM_NAMES = ["north", "south", "east", "west"] as const;
 
 // SCREEN_IDS are the screen identifiers listed in specs/gui.md's
 // section headings.
-const SCREEN_IDS = ["game", "main", "over", "error", "settings", "about", "licenses", "htp", "menu"] as const;
+const SCREEN_IDS = ["game", "main", "appinfo", "over", "error", "settings", "about", "licenses", "htp", "menu"] as const;
 export type ScreenId = (typeof SCREEN_IDS)[number];
 
 export interface DebugParams {
@@ -30,9 +30,9 @@ export interface DebugParams {
   screen: ScreenId | undefined;
   clear: boolean;
   // platform overrides installPrompt.ts's own User-Agent-based
-  // detection, for exercising the Main Screen's "Install as App"
-  // button/dialog (specs/screens/main.md) without a real iOS/Android
-  // device.
+  // detection, for exercising the Application Info screen's
+  // (specs/screens/appinfo.md) iOS/Android instructions without a
+  // real iOS/Android device.
   platform: Platform | undefined;
 }
 

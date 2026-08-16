@@ -1,5 +1,5 @@
-// Platform detection for the "Install as App" main-menu button
-// (specs/screens/main.md): shown on iOS/Android when the game isn't
+// Platform detection for the Application Info screen
+// (specs/screens/appinfo.md): shown on iOS/Android when the game isn't
 // already running standalone (added to the home screen).
 
 export const PLATFORMS = ["ios", "android", "other"] as const;
@@ -22,8 +22,8 @@ export function detectPlatform(userAgent: string, maxTouchPoints: number): Platf
   return "other";
 }
 
-// INSTALL_INSTRUCTIONS is the "Install as App" dialog's body text,
-// per platform.
+// INSTALL_INSTRUCTIONS is the Application Info screen's instructions
+// text, per platform.
 export const INSTALL_INSTRUCTIONS: Record<"ios" | "android", string> = {
   ios: 'Tap the Share icon in Safari, then "Add to Home Screen".',
   android: 'Tap the ⋮ menu in Chrome, then "Add to Home screen" (or "Install app").',

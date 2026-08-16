@@ -19,13 +19,13 @@ import type { NavAction } from "./gamepadInput.ts";
 // id (rather than importing main.ts's private element consts) so this
 // module stays a self-contained, DOM-id-based dependency of main.ts,
 // not the other way around.
-const SCREEN_IDS = ["main-screen", "game-screen", "menu-screen", "about-screen", "licenses-screen", "htp-screen", "settings-screen", "game-over-screen", "error-screen"];
+const SCREEN_IDS = ["main-screen", "appinfo-screen", "game-screen", "menu-screen", "about-screen", "licenses-screen", "htp-screen", "settings-screen", "game-over-screen", "error-screen"];
 
 // DIALOG_IDS are the app's native <dialog> elements. An open dialog is
 // its own focus scope -- the screen behind it is already inert to
 // mouse/keyboard (a modal dialog), so it must be inert to controller
 // navigation too.
-const DIALOG_IDS = ["abandon-dialog", "install-dialog"];
+const DIALOG_IDS = ["abandon-dialog"];
 
 // GAME_SCREEN_ID gets a dedicated row-based builder (buildGameScreenGrid)
 // instead of the generic per-screen query, since it's the only screen
@@ -49,6 +49,7 @@ const TRADEABLE_CLASS = "is-tradeable";
 // reset to this same fixed id.
 const SCREEN_DEFAULTS: Readonly<Record<string, { id: string; sticky: boolean }>> = {
   "main-screen": { id: "new-game-btn", sticky: true },
+  "appinfo-screen": { id: "appinfo-proceed-btn", sticky: false },
   "htp-screen": { id: "htp-main-menu-btn", sticky: false },
   "settings-screen": { id: "settings-back-btn", sticky: false },
   "about-screen": { id: "about-main-menu-btn", sticky: false },

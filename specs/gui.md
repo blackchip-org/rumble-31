@@ -20,6 +20,9 @@ the phone in landscape mode.
   dealing, trading, and the log panel during a round.
 - [Main Screen](screens/main.md) (main) — Landing screen shown when
   the app is opened with no debug URL parameters.
+- [Application Info Screen](screens/appinfo.md) (appinfo) — Shown
+  instead of the Main Screen on a qualifying mobile visit with no
+  saved state, nudging the player to install the game as an app.
 - [Game Over Screen](screens/over.md) (over) — Shown when a game
   ends, with options to play again, return to the menu, or save the
   log.

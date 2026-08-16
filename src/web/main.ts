@@ -261,15 +261,14 @@ interface SeatEls {
 const mainScreenEl = must<HTMLElement>("main-screen");
 const gameScreenEl = must<HTMLElement>("game-screen");
 const menuBtn = must<HTMLButtonElement>("menu-btn");
-const installAppBtn = must<HTMLButtonElement>("install-app-btn");
 const newGameBtn = must<HTMLButtonElement>("new-game-btn");
 const htpBtn = must<HTMLButtonElement>("htp-btn");
 const settingsBtn = must<HTMLButtonElement>("settings-btn");
 const aboutBtn = must<HTMLButtonElement>("about-btn");
 
-const installDialogEl = must<HTMLDialogElement>("install-dialog");
-const installDialogTextEl = must<HTMLElement>("install-dialog-text");
-const installDialogCloseBtn = must<HTMLButtonElement>("install-dialog-close-btn");
+const appinfoScreenEl = must<HTMLElement>("appinfo-screen");
+const appinfoInstructionsEl = must<HTMLElement>("appinfo-instructions");
+const appinfoProceedBtn = must<HTMLButtonElement>("appinfo-proceed-btn");
 
 // installPlatform is fixed for the life of the page load; standalone
 // (already installed/launched from the home screen) is checked via
@@ -277,12 +276,23 @@ const installDialogCloseBtn = must<HTMLButtonElement>("install-dialog-close-btn"
 // navigator.standalone, since iOS Safari doesn't support the former.
 // specs/params.md's platform debug parameter overrides the detected
 // platform, for exercising the iOS/Android instructions without a
-// real device.
+// real device. Both drive the Application Info screen (specs/screens/
+// appinfo.md): which instructions it shows, and (via showAppInfo
+// below) whether it's shown at all.
 const installPlatform = debugParams.platform ?? detectPlatform(navigator.userAgent, navigator.maxTouchPoints);
 const isStandaloneApp =
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as unknown as { standalone?: boolean }).standalone === true;
-installAppBtn.hidden = installPlatform === "other" || isStandaloneApp;
+
+// showAppInfo decides whether the Application Info screen preempts the
+// Main Screen (specs/screens/appinfo.md): only on a bare visit
+// (matching savedState above) with no saved state at all -- once the
+// player proceeds past it, showMainScreen()'s own saveState call means
+// savedState is defined on every later visit, so this never fires
+// again without saved state being cleared some other way (e.g. a
+// debug parameter, which also short-circuits this via the bare-visit
+// check).
+const showAppInfo = window.location.search === "" && savedState === undefined && installPlatform !== "other" && !isStandaloneApp;
 
 const menuScreenEl = must<HTMLElement>("menu-screen");
 const menuResumeBtn = must<HTMLButtonElement>("menu-resume-btn");
@@ -1026,6 +1036,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
 // if any, was already showing.
 function hideAllScreens(): void {
   mainScreenEl.hidden = true;
+  appinfoScreenEl.hidden = true;
   gameScreenEl.hidden = true;
   menuScreenEl.hidden = true;
   aboutScreenEl.hidden = true;
@@ -1097,6 +1108,18 @@ function showGameMenuScreen(game: GameState): void {
   hideAllScreens();
   menuScreenEl.hidden = false;
   saveState({ screen: "menu", game }, localStorage);
+}
+
+// showAppInfoScreen swaps whichever screen is up for the Application
+// Info screen (specs/screens/appinfo.md), filling in the install
+// instructions for installPlatform (blank for "other" -- only reachable
+// via the screen=appinfo debug parameter with no platform override).
+// Never persisted -- see showAppInfo's own comment above for why.
+function showAppInfoScreen(): void {
+  appinfoInstructionsEl.textContent = installPlatform === "other" ? "" : INSTALL_INSTRUCTIONS[installPlatform];
+  hideAllScreens();
+  appinfoScreenEl.hidden = false;
+  focusScreenDefault();
 }
 
 // showMainScreen swaps whichever screen is up for the main screen (per
@@ -1375,11 +1398,7 @@ newGameBtn.addEventListener("click", () => showGameScreen());
 settingsBtn.addEventListener("click", () => showSettingsScreen({ from: "main" }));
 aboutBtn.addEventListener("click", showAboutScreen);
 
-installAppBtn.addEventListener("click", () => {
-  installDialogTextEl.textContent = INSTALL_INSTRUCTIONS[installPlatform as "ios" | "android"];
-  installDialogEl.showModal();
-});
-installDialogCloseBtn.addEventListener("click", () => installDialogEl.close());
+appinfoProceedBtn.addEventListener("click", showMainScreen);
 
 // specs/params.md's screen debug param picks the initial screen
 // directly. Without it, savedState (specs/state.md) picks up wherever
@@ -1392,11 +1411,15 @@ installDialogCloseBtn.addEventListener("click", () => installDialogEl.close());
 // with a game-seeding param, in which case that takes over as usual.
 const initialScreen: ScreenId =
   debugParams.screen ??
+  (showAppInfo ? "appinfo" : undefined) ??
   savedState?.screen ??
   (window.location.search === "" || (debugParams.clear && debugParams.initialDeal === undefined) ? "main" : "game");
 switch (initialScreen) {
   case "main":
     showMainScreen();
+    break;
+  case "appinfo":
+    showAppInfoScreen();
     break;
   case "settings":
     showSettingsScreen(savedState?.screen === "settings" ? savedState : { from: "main" });
