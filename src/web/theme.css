@@ -25,10 +25,40 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Bebas Neue";
+  src: url("../../assets/BebasNeue-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  /* Variable font (weights 100-900 in one file) -- Google Fonts no
+     longer ships static per-weight Inter TTFs. */
+  font-family: "Inter";
+  src: url("../../assets/Inter-Regular.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  /* Variable font (weights 400-700 in one file) -- Google Fonts no
+     longer ships static per-weight Lora TTFs. */
+  font-family: "Lora";
+  src: url("../../assets/Lora-Regular.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ---------- colors ---------- */
   --bg: #1b1b1f; /* page background */
-  --panel: #202024; /* seat/player panel and log panel background */
+  --panel: #173e26; /* seat/player panel background */
+  --panel-dark: #232c29; /* log panel and score box background --
+                             near-black, distinct from --panel */
   --panel-border: #333338; /* default border for panels, header, score
                                box, buttons, and log panel */
   --ink: #eee; /* default body text color */
@@ -63,13 +93,19 @@
   /* ---------- main screen (independently restylable) ---------- */
   --main-bg: #1b5e3a; /* felt-green main screen background */
   --main-title-color: #fff; /* main screen title color */
-  --button-bg: #1c2e5e; /* main screen button background */
-  --button-bg-hover: #26397a; /* main screen button background on hover */
-  --button-fg: #fff; /* main screen button text color */
+  --button-bg: #1c2e5e; /* button background, used app-wide */
+  --button-bg-hover: #26397a; /* button background on hover, used
+                                  app-wide */
+  --button-fg: #fff; /* button text color, used app-wide */
 
   /* ---------- fonts ---------- */
-  --font-body: system-ui, sans-serif; /* default body font */
-  --font-mono: ui-monospace, monospace; /* score box and action buttons */
+  --font-body: "Lora", system-ui, sans-serif; /* default body font */
+  --font-mono: ui-monospace, monospace; /* text areas */
+  --font-score: "Inconsolata", var(--font-mono); /* score box */
+  --font-button: "Bebas Neue", var(--font-body); /* button text, used
+                                                      app-wide */
+  --font-label: "Inter", var(--font-body); /* seat label ("SOUTH - YOU"
+                                                and similar) */
   --font-weight-bold: 600; /* seat/pot labels and action buttons */
 
   --font-size-base: clamp(16px, 0.6vw + 12px, 20px); /* root font size,
@@ -86,9 +122,13 @@
   --letter-spacing-label: 0.09em; /* seat label, pot label */
   --letter-spacing-tag: 0.08em; /* turn/eliminated/knocked/strike state
                                     tag */
+  --letter-spacing-button: 0.04em; /* button text, used app-wide --
+                                        opens up Bebas Neue's tight
+                                        default tracking */
 
   /* ---------- log window text (independent of the rest) ---------- */
-  --font-log: ui-monospace, monospace; /* game log entries */
+  --font-log: "Inconsolata", ui-monospace, monospace; /* game log
+                                                            entries */
   --font-weight-log: 400; /* game log entries */
   --font-size-log: clamp(0.6rem, 0.32vw + 0.48rem, 0.7rem); /* game log
                                                                  entries */
@@ -104,41 +144,41 @@
   --error-stack: #999; /* fatal error stack trace color */
 
   /* ---------- game over screen (independently restylable) ---------- */
-  --game-over-bg: #000; /* game over screen background */
+  --game-over-bg: var(--main-bg); /* game over screen background */
   --game-over-title-color: #fff; /* "You Won!"/"Game Over" text color */
   --font-size-game-over-title: clamp(2.5rem, 4vw + 1.5rem, 4.5rem); /* game
                                                                          over
                                                                          title */
 
   /* ---------- about screen (independently restylable) ---------- */
-  --about-bg: var(--bg); /* about screen background */
+  --about-bg: var(--main-bg); /* about screen background */
   --about-title-color: #fff; /* "Rumble 31" heading color */
   --about-text-color: var(--ink); /* version/build/credit/body text color */
   --font-size-about-title: 2.25rem; /* about screen "Rumble 31" heading */
 
   /* ---------- settings screen (independently restylable) ---------- */
-  --settings-bg: var(--bg); /* settings screen background */
+  --settings-bg: var(--main-bg); /* settings screen background */
   --settings-title-color: #fff; /* "Settings" heading color */
   --settings-text-color: var(--ink); /* setting label/control text color */
   --font-size-settings-title: 2.25rem; /* settings screen "Settings"
                                            heading */
 
   /* ---------- licenses screen (independently restylable) ---------- */
-  --licenses-bg: var(--bg); /* licenses screen background */
+  --licenses-bg: var(--main-bg); /* licenses screen background */
   --licenses-title-color: #fff; /* "Licenses" heading color */
   --licenses-text-color: var(--ink); /* list box / text area color */
   --font-size-licenses-title: 2.25rem; /* licenses screen "Licenses"
                                            heading */
 
   /* ---------- how to play screen (independently restylable) ---------- */
-  --htp-bg: var(--bg); /* how to play screen background */
+  --htp-bg: var(--main-bg); /* how to play screen background */
   --htp-title-color: #fff; /* "How to Play" heading color */
   --htp-text-color: var(--ink); /* text area color */
   --font-size-htp-title: 2.25rem; /* how to play screen "How to Play"
                                       heading */
 
   /* ---------- game menu screen (independently restylable) ---------- */
-  --menu-bg: var(--bg); /* game menu screen background */
+  --menu-bg: var(--main-bg); /* game menu screen background */
   --menu-title-color: #fff; /* "Game Menu" heading color */
   --font-size-menu-title: 2.25rem; /* game menu screen "Game Menu"
                                        heading */

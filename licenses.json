@@ -1,5 +1,10 @@
 [
   {
+    "name": "Bebas Neue Font",
+    "license": "OFL-1.1",
+    "text": "assets/BebasNeue.OFL.txt"
+  },
+  {
     "name": "Comic Neue Font",
     "license": "OFL-1.1",
     "text": "assets/ComicNeue.OFL.txt"
@@ -13,6 +18,16 @@
     "name": "Inconsolata Font",
     "license": "OFL-1.1",
     "text": "assets/Inconsolata.OFL.txt"
+  },
+  {
+    "name": "Inter Font",
+    "license": "OFL-1.1",
+    "text": "assets/Inter.OFL.txt"
+  },
+  {
+    "name": "Lora Font",
+    "license": "OFL-1.1",
+    "text": "assets/Lora.OFL.txt"
   },
   {
     "name": "New Rocker Font",
