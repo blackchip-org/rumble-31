@@ -866,6 +866,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
   gap: 2rem;
   color: var(--about-text-color);
 }
@@ -876,6 +879,7 @@ body {
   align-items: center;
   text-align: center;
   gap: 0.2rem;
+  flex-shrink: 0;
 }
 
 .about-title {
@@ -891,12 +895,9 @@ body {
   font-weight: var(--font-weight-bold);
 }
 
-#about-build + .about-credit {
-  margin-top: 0.8rem;
-}
-
 .about-links {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 0.8rem;
 }
@@ -926,11 +927,37 @@ body {
   display: flex;
   justify-content: center;
   width: 100%;
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 .about-body {
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
   max-width: 46ch;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--panel-dark);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+
+.about-credits {
+  display: flex;
+  flex-direction: column;
+}
+
+.about-credit {
+  margin: 0;
+  text-align: center;
+  font-weight: var(--font-weight-bold);
+}
+
+.about-text {
+  margin: 0;
   text-align: left;
   line-height: 1.5;
 }
@@ -940,6 +967,7 @@ body {
   flex-direction: column;
   gap: 1rem;
   width: min(60vw, 260px);
+  flex-shrink: 0;
 }
 
 .about-buttons button {
@@ -1544,34 +1572,15 @@ body {
     --font-size-game-over-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
   }
 
-  /* Unlike Main/Game Over above, About's body text doesn't have its
-     own viewport-scaled font size that a shorter clamp() could shrink
-     -- it also doesn't have the licenses/htp screens' flex: 1 1 auto;
-     min-height: 0 shrink-to-scroll treatment on its body, so it just
-     overflows a short mobile viewport outright instead of scrolling.
-     .about-panel normally sizes to its content; height: 100% instead
-     stretches it to .about-screen's own height (a definite height,
-     since that's position: fixed; inset: 0), so the leftover space
-     goes to .about-body-wrap below (which can now shrink and scroll)
-     rather than pushing the screen's total height past the viewport. */
+  /* About's body already shrinks and scrolls at the base level (see
+     .about-body-wrap above); this breakpoint just tightens spacing
+     for the shorter viewport. */
   .about-screen {
     padding: 0.5rem 1rem;
   }
 
   .about-panel {
-    height: 100%;
-    min-height: 0;
     gap: 0.5rem;
-  }
-
-  .about-header {
-    flex-shrink: 0;
-  }
-
-  .about-body-wrap {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
   }
 
   /* Buttons read better side by side than stacked when height, not
@@ -1579,7 +1588,6 @@ body {
   .about-buttons {
     flex-direction: row;
     width: auto;
-    flex-shrink: 0;
   }
 }
 
