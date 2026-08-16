@@ -1,14 +1,17 @@
 import { newRound } from "./round.ts";
 import type { RoundDealOverride } from "./round.ts";
 import { Rng } from "../rng.ts";
+import type { ParsedStrikes } from "./strikes.ts";
 import type { Hand, Pot, Result, Strategy, TurnRecord } from "./types.ts";
 
 // RoundOutcome records one round's result within a game: the seats
-// struck this round, and any eliminated as a result.
+// struck this round, any eliminated as a result, and any granted a
+// second chance (specs/rules.md) instead of being eliminated.
 export interface RoundOutcome {
   result: Result;
   struck: number[];
   eliminated: number[];
+  secondChanceGranted: number[];
 }
 
 // nextActiveSeatClockwise returns the next seat clockwise from seat
@@ -49,6 +52,11 @@ export class Game {
   strategies: [Strategy, Strategy, Strategy, Strategy] | undefined;
   strikes: [number, number, number, number];
   eliminated: [boolean, boolean, boolean, boolean];
+  // secondChance marks seats already granted the one-time-per-game
+  // second chance (specs/rules.md): the first seat(s) to reach three
+  // strikes keep playing instead of being eliminated, and are only
+  // eliminated on a fourth strike.
+  secondChance: [boolean, boolean, boolean, boolean];
 
   // dealerSeat is the dealer for whichever round is currently in
   // progress, or about to be dealt next — advanced (skipping
@@ -84,6 +92,7 @@ export class Game {
     strategies?: [Strategy, Strategy, Strategy, Strategy];
     strikes?: [number, number, number, number];
     eliminated?: [boolean, boolean, boolean, boolean];
+    secondChance?: [boolean, boolean, boolean, boolean];
     rng?: Rng;
     initialDeal?: RoundDealOverride;
     dealerSeat?: number;
@@ -91,6 +100,7 @@ export class Game {
     this.strategies = init?.strategies;
     this.strikes = init?.strikes ?? [0, 0, 0, 0];
     this.eliminated = init?.eliminated ?? [false, false, false, false];
+    this.secondChance = init?.secondChance ?? [false, false, false, false];
     this.onDeal = undefined;
     this.onTurn = undefined;
     this.over = false;
@@ -144,14 +154,14 @@ export class Game {
 
     const { result } = await r.run();
 
-    const { struck, eliminated } = this.applyResult(active, result);
+    const { struck, eliminated, secondChanceGranted } = this.applyResult(active, result);
 
     const stillActive = this.activeSeats();
     if (stillActive.length > 1) {
       this.dealerSeat = nextActiveSeatClockwise(this.dealerSeat as number, stillActive);
     }
 
-    return { result, struck, eliminated };
+    return { result, struck, eliminated, secondChanceGranted };
   }
 
   // run plays rounds until the game is over, for callers that don't need
@@ -175,12 +185,22 @@ export class Game {
   }
 
   // applyResult finds the lowest score among active seats in result,
-  // strikes every seat tied for it, and eliminates any that reach 3
-  // strikes. Already-eliminated seats are never struck. If this round
-  // would eliminate every remaining active seat at once, none of them
-  // are actually eliminated — the game ends instead with them tied as
-  // co-winners, since eliminating everyone would leave no winner at all.
-  applyResult(active: readonly number[], result: Result): { struck: number[]; eliminated: number[] } {
+  // strikes every seat tied for it, and eliminates any that reach
+  // their elimination threshold — normally 3 strikes, or 4 for a seat
+  // already holding a second chance (specs/rules.md). Already-
+  // eliminated seats are never struck.
+  //
+  // The very first time any seat(s) ever reach 3 strikes in this game
+  // (nobody yet holds a second chance), they're granted one instead of
+  // being eliminated — this can only happen once per game, since after
+  // it does, every seat's threshold is fixed (4 if it got the grant, 3
+  // otherwise) for the rest of the game.
+  //
+  // If a round's true eliminations would eliminate every remaining
+  // active seat at once, none of them are actually eliminated — the
+  // game ends instead with them tied as co-winners, since eliminating
+  // everyone would leave no winner at all.
+  applyResult(active: readonly number[], result: Result): { struck: number[]; eliminated: number[]; secondChanceGranted: number[] } {
     const scoreOf = new Map(result.players.map((pr) => [pr.seat, pr.score]));
 
     const first = active[0] as number;
@@ -192,46 +212,64 @@ export class Game {
       }
     }
 
+    const grantAlreadyUsed = this.secondChance.some(Boolean);
+
     const struck: number[] = [];
-    const reaching3: number[] = [];
+    const reachingThreshold: number[] = [];
     for (const seat of active) {
       if (scoreOf.get(seat) !== lowest) {
         continue;
       }
       this.strikes[seat] = (this.strikes[seat] as number) + 1;
       struck.push(seat);
-      if ((this.strikes[seat] as number) >= 3) {
-        reaching3.push(seat);
+      const threshold = this.secondChance[seat] ? 4 : 3;
+      if ((this.strikes[seat] as number) >= threshold) {
+        reachingThreshold.push(seat);
       }
     }
 
-    if (reaching3.length === active.length) {
-      this.over = true;
-      return { struck, eliminated: [] };
+    if (!grantAlreadyUsed && reachingThreshold.length > 0) {
+      for (const seat of reachingThreshold) {
+        this.secondChance[seat] = true;
+      }
+      return { struck, eliminated: [], secondChanceGranted: reachingThreshold };
     }
 
-    for (const seat of reaching3) {
+    if (reachingThreshold.length === active.length) {
+      this.over = true;
+      return { struck, eliminated: [], secondChanceGranted: [] };
+    }
+
+    for (const seat of reachingThreshold) {
       this.eliminated[seat] = true;
     }
-    return { struck, eliminated: reaching3 };
+    return { struck, eliminated: reachingThreshold, secondChanceGranted: [] };
   }
 }
 
 // newGame returns a Game ready to play, deriving every round's seed
-// from seed so a game is fully reproducible. initialStrikes seeds each
-// seat's strike count (for -strikes debugging); a seat starting at 3 or
-// more strikes begins the game already eliminated, per applyResult's
+// from seed so a game is fully reproducible. initial seeds each seat's
+// starting strikes/second-chance state (for the web GUI's strikes=
+// debug param — specs/params.md); a seat with strikes >= 3 and no
+// second chance begins the game already eliminated, per applyResult's
 // own threshold. initialDeal, if given, is applied only to the game's
-// first round (for the web GUI's debug params — specs/params.md).
-// dealerSeat, if given, fixes the game's starting dealer instead of
-// picking one randomly (or deriving it from initialDeal.firstSeat).
+// first round. dealerSeat, if given, fixes the game's starting dealer
+// instead of picking one randomly (or deriving it from
+// initialDeal.firstSeat).
 export function newGame(
   seed: number,
   strategies: [Strategy, Strategy, Strategy, Strategy],
-  initialStrikes: [number, number, number, number] = [0, 0, 0, 0],
+  initial: ParsedStrikes = { strikes: [0, 0, 0, 0], secondChance: [false, false, false, false], eliminated: [false, false, false, false] },
   initialDeal?: RoundDealOverride,
   dealerSeat?: number,
 ): Game {
-  const eliminated = initialStrikes.map((s) => s >= 3) as [boolean, boolean, boolean, boolean];
-  return new Game({ strategies, rng: new Rng(seed), strikes: [...initialStrikes], eliminated, initialDeal, dealerSeat });
+  return new Game({
+    strategies,
+    rng: new Rng(seed),
+    strikes: [...initial.strikes],
+    eliminated: [...initial.eliminated],
+    secondChance: [...initial.secondChance],
+    initialDeal,
+    dealerSeat,
+  });
 }

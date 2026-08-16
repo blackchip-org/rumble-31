@@ -2,11 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildDebugMenuGameState } from "./gameMenu.ts";
 import type { DebugParams } from "./params.ts";
+import { parseStrikesDigits } from "../game/strikes.ts";
 import type { Settings } from "./settings.ts";
 
-function params(initialStrikes: [number, number, number, number]): DebugParams {
+function params(strikesRaw: string): DebugParams {
   return {
-    initialStrikes,
+    initialStrikes: parseStrikesDigits(strikesRaw),
     initialDeal: undefined,
     skipDealAnimation: false,
     screen: "menu",
@@ -20,31 +21,43 @@ const settings: Settings = { soundsEnabled: true, bot1: "regular", bot2: "diffic
 const cases = [
   {
     name: "no strikes: nobody eliminated",
-    strikes: [0, 0, 0, 0] as [number, number, number, number],
+    strikesRaw: "0000",
+    wantStrikes: [0, 0, 0, 0],
     wantEliminated: [false, false, false, false],
+    wantSecondChance: [false, false, false, false],
   },
   {
     name: "a seat with 3+ strikes starts eliminated",
-    strikes: [3, 1, 0, 2] as [number, number, number, number],
+    strikesRaw: "3102",
+    wantStrikes: [3, 1, 0, 2],
     wantEliminated: [true, false, false, false],
+    wantSecondChance: [false, false, false, false],
+  },
+  {
+    name: "a seat given s starts with an active second chance, not eliminated",
+    strikesRaw: "s102",
+    wantStrikes: [3, 1, 0, 2],
+    wantEliminated: [false, false, false, false],
+    wantSecondChance: [true, false, false, false],
   },
 ];
 
-test("buildDebugMenuGameState eliminated status", () => {
+test("buildDebugMenuGameState strikes/eliminated/secondChance status", () => {
   for (const c of cases) {
-    const got = buildDebugMenuGameState(params(c.strikes), settings);
+    const got = buildDebugMenuGameState(params(c.strikesRaw), settings);
+    assert.deepEqual(got.strikes, c.wantStrikes, c.name);
     assert.deepEqual(got.eliminated, c.wantEliminated, c.name);
-    assert.deepEqual(got.strikes, c.strikes, c.name);
+    assert.deepEqual(got.secondChance, c.wantSecondChance, c.name);
   }
 });
 
 test("buildDebugMenuGameState reflects the given Settings' bot difficulties", () => {
-  const got = buildDebugMenuGameState(params([0, 0, 0, 0]), settings);
+  const got = buildDebugMenuGameState(params("0000"), settings);
   assert.deepEqual(got.botSeats, ["regular", "difficult", "easy"]);
 });
 
 test("buildDebugMenuGameState has no round in progress and no log yet", () => {
-  const got = buildDebugMenuGameState(params([0, 0, 0, 0]), settings);
+  const got = buildDebugMenuGameState(params("0000"), settings);
   assert.equal(got.roundNum, 1);
   assert.equal(got.dealerSeat, 0);
   assert.deepEqual(got.log, []);

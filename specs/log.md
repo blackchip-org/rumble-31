@@ -81,6 +81,12 @@ are receiving strikes, use the same order as above.
     North receives a strike
     North receives a strike and is eliminated
 
+The last form is used instead when the strike is the one that grants a
+player their second chance (specs/rules.md) rather than eliminating
+them:
+
+    North receives a strike and gets a second chance
+
 Then announce the scores for each player:
 
     Seat has 9.0 points with 1 strike

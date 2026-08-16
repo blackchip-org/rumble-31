@@ -100,4 +100,12 @@ for the lowest score, they all receive strikes. A player with three strikes
 is removed from the game: starting with the next round, they are no
 longer dealt a hand, do not take turns, and do not appear in round
 results or the pot. The last remaining player is the winner of the
-game. 
+game.
+
+The first player to reach three strikes gets a second chance instead
+of being eliminated: they keep playing, and are only removed from the
+game on a fourth strike. If more than one player ties for being first
+to reach three strikes, they all get a second chance. This applies
+only once per game -- any player who reaches three strikes after that
+first player (or players) is eliminated immediately, with no further
+leniency. 

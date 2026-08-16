@@ -584,6 +584,12 @@ body {
   border: 1px solid rgba(224, 89, 107, 0.45);
 }
 
+.strike.second-chance {
+  background: rgba(224, 192, 64, 0.14);
+  color: var(--second-chance);
+  border: 1px solid rgba(224, 192, 64, 0.45);
+}
+
 /* ---------- actions ---------- */
 
 .actions button {

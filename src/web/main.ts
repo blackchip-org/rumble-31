@@ -748,6 +748,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
         strategies,
         strikes: resume.strikes,
         eliminated: resume.eliminated,
+        secondChance: resume.secondChance,
         rng: new Rng(seed),
         initialDeal: resume.checkpoint ? checkpointToOverride(resume.checkpoint) : undefined,
         dealerSeat: resume.dealerSeat,
@@ -770,7 +771,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     setStruck(seatOf(seat).panel, false);
     setPanelState(seatOf(seat).panel, g.eliminated[seat] ? "eliminated" : "none");
     setScore(seatOf(seat).score, null);
-    renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
+    renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number, g.secondChance[seat] as boolean);
     seatOf(seat).hand.replaceChildren();
   }
   potEl.replaceChildren();
@@ -783,7 +784,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
 
   const startRoundNum = resume?.roundNum ?? 1;
 
-  saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: startRoundNum, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
+  saveGameState({ strikes: g.strikes, eliminated: g.eliminated, secondChance: g.secondChance, roundNum: startRoundNum, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
 
   for (let roundNum = startRoundNum; ; roundNum++) {
     if (signal.aborted) {
@@ -836,6 +837,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       saveGameState({
         strikes: g.strikes,
         eliminated: g.eliminated,
+        secondChance: g.secondChance,
         roundNum,
         dealerSeat: g.dealerSeat as number,
         botSeats,
@@ -882,6 +884,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       saveGameState({
         strikes: g.strikes,
         eliminated: g.eliminated,
+        secondChance: g.secondChance,
         roundNum,
         dealerSeat: g.dealerSeat as number,
         botSeats,
@@ -942,7 +945,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       }
     }
     for (let seat = 0; seat < 4; seat++) {
-      renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number);
+      renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number, g.secondChance[seat] as boolean);
       if (g.eliminated[seat]) {
         setPanelState(seatOf(seat).panel, "eliminated");
         // The hand itself is left alone here — a seat eliminated by
@@ -975,6 +978,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
           game: {
             strikes: g.strikes,
             eliminated: g.eliminated,
+            secondChance: g.secondChance,
             roundNum: roundNum + 1,
             dealerSeat: g.dealerSeat as number,
             botSeats,
@@ -985,7 +989,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
         localStorage,
       );
     } else {
-      saveGameState({ strikes: g.strikes, eliminated: g.eliminated, roundNum: roundNum + 1, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
+      saveGameState({ strikes: g.strikes, eliminated: g.eliminated, secondChance: g.secondChance, roundNum: roundNum + 1, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
     }
 
     await pauseBetweenRounds(3000, signal);
@@ -1226,12 +1230,20 @@ function showGameOverScreen(southWon: boolean): void {
 // played. Per that spec, the win/loss message defaults to whether
 // South (seat 0) already starts eliminated per the strikes param.
 function showDebugGameOverScreen(params: DebugParams): void {
-  const eliminated = params.initialStrikes.map((s) => s >= 3) as [boolean, boolean, boolean, boolean];
-  const southWon = params.initialStrikes[0] < 3;
+  const southWon = !params.initialStrikes.eliminated[0];
   saveState(
     {
       screen: "over",
-      game: { strikes: params.initialStrikes, eliminated, roundNum: 1, dealerSeat: 0, botSeats: [settings.bot1, settings.bot2, settings.bot3], log: logLines(), southWon },
+      game: {
+        strikes: params.initialStrikes.strikes,
+        eliminated: params.initialStrikes.eliminated,
+        secondChance: params.initialStrikes.secondChance,
+        roundNum: 1,
+        dealerSeat: 0,
+        botSeats: [settings.bot1, settings.bot2, settings.bot3],
+        log: logLines(),
+        southWon,
+      },
     },
     localStorage,
   );

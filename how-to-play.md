@@ -46,6 +46,8 @@ tallied, even if the round ended some other way first.
 
 At the end of the round, scores are tallied. The player or players with
 the lowest score receive a strike. Players with three strikes are eliminated
-from the game. Play continues with another round until a single player
+from the game -- except the first player (or players, if tied) to reach
+three strikes, who instead get a second chance and are only eliminated on
+a fourth strike. Play continues with another round until a single player
 remains and is crowned the winner.
 

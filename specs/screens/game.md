@@ -42,6 +42,12 @@ the following:
     - XXO: Two strikes
     - XXX: Three strikes
 
+The first player(s) to reach three strikes get a second chance instead
+of being eliminated (specs/rules.md): while they hold it, the third
+indicator shows a yellow "/" instead of a red X (XX/) rather than the
+plain XXX above. It reverts to a plain red XXX, same as any other
+elimination, once they're actually eliminated on a fourth strike.
+
 The player panel should highlight in the following conditions:
 
 - A yellowish highlight when it is the player's turn

@@ -20,6 +20,7 @@ test("parseDebugParams: valid combinations", () => {
     name: string;
     search: string;
     wantInitialStrikes: [number, number, number, number];
+    wantSecondChance?: [boolean, boolean, boolean, boolean];
     wantAssignedHands?: Array<[number, Hand]>;
     wantAssignedPot?: Pot;
     wantFirstSeat?: number;
@@ -41,6 +42,14 @@ test("parseDebugParams: valid combinations", () => {
       name: "strikes alone doesn't touch initialDeal",
       search: "strikes=1121",
       wantInitialStrikes: [1, 1, 2, 1],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+    },
+    {
+      name: "strikes with s/S grants an active second chance instead of eliminating",
+      search: "strikes=sS10",
+      wantInitialStrikes: [3, 3, 1, 0],
+      wantSecondChance: [true, true, false, false],
       wantSkipDealAnimation: false,
       wantNoInitialDeal: true,
     },
@@ -233,7 +242,8 @@ test("parseDebugParams: valid combinations", () => {
 
   for (const c of cases) {
     const got = parseDebugParams(c.search);
-    assert.deepEqual(got.initialStrikes, c.wantInitialStrikes, `${c.name}: initialStrikes`);
+    assert.deepEqual(got.initialStrikes.strikes, c.wantInitialStrikes, `${c.name}: initialStrikes`);
+    assert.deepEqual(got.initialStrikes.secondChance, c.wantSecondChance ?? [false, false, false, false], `${c.name}: secondChance`);
     assert.equal(got.skipDealAnimation, c.wantSkipDealAnimation, `${c.name}: skipDealAnimation`);
     assert.equal(got.screen, c.wantScreen, `${c.name}: screen`);
     assert.equal(got.clear, c.wantClear ?? false, `${c.name}: clear`);

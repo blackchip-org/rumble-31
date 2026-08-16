@@ -15,11 +15,11 @@ import type { GameState } from "./state.ts";
 // Settings-screen bot difficulties, and there is no round in progress
 // (no checkpoint) or log yet.
 export function buildDebugMenuGameState(params: DebugParams, settings: Settings): GameState {
-  const eliminated = params.initialStrikes.map((s) => s >= 3) as [boolean, boolean, boolean, boolean];
   const botSeats: BotSeats = [settings.bot1, settings.bot2, settings.bot3];
   return {
-    strikes: params.initialStrikes,
-    eliminated,
+    strikes: params.initialStrikes.strikes,
+    eliminated: params.initialStrikes.eliminated,
+    secondChance: params.initialStrikes.secondChance,
     roundNum: 1,
     dealerSeat: 0,
     botSeats,

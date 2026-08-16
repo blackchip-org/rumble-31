@@ -25,8 +25,9 @@ The stored object records:
 - Which screen is showing: `main`, `settings`, `about`, `licenses`,
   `htp`, `game`, `over`, or `menu`. The error screen is never recorded
   here (see "Error screen" below).
-- If the screen is `game`, `over`, or `menu`: each seat's strikes and
-  elimination status, the current round number, which seat holds
+- If the screen is `game`, `over`, or `menu`: each seat's strikes,
+  elimination status, and second-chance status (specs/rules.md), the
+  current round number, which seat holds
   the dealer button (specs/rules.md), and which bot difficulty
   (specs/bots.md) is seated at each of the three bot seats. The
   latter is fixed for the life of the game: it is chosen once, when
@@ -78,8 +79,9 @@ specs/params.md:
 
 - If valid saved state exists, the application starts on the screen
   it names, instead of the Main Screen.
-- If that screen is `game`, the saved strikes, eliminations, round
-  number, dealer button, and bot seat assignment are restored -- the
+- If that screen is `game`, the saved strikes, eliminations,
+  second-chance status, round number, dealer button, and bot seat
+  assignment are restored -- the
   same three bot difficulties stay in the same seats they started the
   game in, rather than being reshuffled per specs/bots.md's normal
   new-game behavior. If a round-in-progress

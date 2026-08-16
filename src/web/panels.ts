@@ -6,10 +6,18 @@ const STRIKE_COUNT = 3;
 
 // renderStrikes fills el with STRIKE_COUNT indicators: the first
 // `strikes` show as a red hit, the rest as a green ok, per gui.md's
-// OOO/XOO/XXO/XXX table.
-export function renderStrikes(el: HTMLElement, strikes: number): void {
+// OOO/XOO/XXO/XXX table. hasSecondChance seats holding an unused
+// second chance (specs/rules.md) at exactly 3 strikes show XX/
+// instead of XXX, with the third indicator yellow — reverting to
+// plain XXX once strikes reaches 4 (true elimination).
+export function renderStrikes(el: HTMLElement, strikes: number, hasSecondChance: boolean): void {
   const spans = Array.from({ length: STRIKE_COUNT }, (_, i) => {
     const span = document.createElement("span");
+    if (hasSecondChance && strikes === 3 && i === STRIKE_COUNT - 1) {
+      span.className = "strike second-chance";
+      span.textContent = "/";
+      return span;
+    }
     const hit = i < strikes;
     span.className = `strike ${hit ? "hit" : "ok"}`;
     span.textContent = hit ? "×" : "";

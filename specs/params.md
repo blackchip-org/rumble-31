@@ -6,12 +6,17 @@ settings or to pre-populate state. Those parameters are as follows:
 ## strikes
 
 Set the number of strikes initially given for each player. This is a sequence
-of four digits, where the first digit is the strikes to give to seat 0, the
-second digit is the strikes to give to seat 1, the third to seat 2, and the
-fourth to seat 3. For example, "strikes=1121" will give each seat a strike
-except for seat 2, which gets two. A seat given 3 or more strikes starts the
-game already eliminated. If that seat is seat 0, the game is over before it
-starts: no rounds are played at all.
+of four characters, where the first is for seat 0, the second for seat 1, the
+third for seat 2, and the fourth for seat 3. For example, "strikes=1121" will
+give each seat a strike except for seat 2, which gets two. A seat given 3 or
+more strikes starts the game already eliminated. If that seat is seat 0, the
+game is over before it starts: no rounds are played at all.
+
+Each character is normally a digit, but may instead be "s" or "S" to give
+that seat 3 strikes with an active, unused second chance (specs/rules.md)
+instead of starting eliminated -- its strike indicators show XX/ rather than
+XXX. For example, "strikes=s000" starts seat 0 on 3 strikes with a second
+chance still in hand, one more strike away from elimination.
 
 ## north, south, east, west, pot
 

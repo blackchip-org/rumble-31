@@ -20,10 +20,12 @@ test("applyResult", () => {
     name: string;
     preStrikes?: [number, number, number, number];
     preEliminated?: [boolean, boolean, boolean, boolean];
+    preSecondChance?: [boolean, boolean, boolean, boolean];
     active: number[];
     scores: [number, number, number, number];
     wantStruck: number[];
     wantEliminated: number[];
+    wantSecondChanceGranted: number[];
     wantStrikes: [number, number, number, number];
   }> = [
     {
@@ -32,6 +34,7 @@ test("applyResult", () => {
       scores: [10, 20, 20, 20],
       wantStruck: [0],
       wantEliminated: [],
+      wantSecondChanceGranted: [],
       wantStrikes: [1, 0, 0, 0],
     },
     {
@@ -40,6 +43,7 @@ test("applyResult", () => {
       scores: [10, 10, 20, 20],
       wantStruck: [0, 1],
       wantEliminated: [],
+      wantSecondChanceGranted: [],
       wantStrikes: [1, 1, 0, 0],
     },
     {
@@ -50,48 +54,111 @@ test("applyResult", () => {
       scores: [1, 10, 20, 20],
       wantStruck: [1],
       wantEliminated: [],
+      wantSecondChanceGranted: [],
       wantStrikes: [3, 1, 0, 0],
     },
     {
-      name: "a seat reaching 3 strikes is eliminated",
+      // The grant is already marked used (via preSecondChance on a
+      // different, already-eliminated seat), so this seat's own first
+      // crossing of 3 strikes is a true elimination, not a grant.
+      name: "a seat reaching 3 strikes after the grant is already used is eliminated",
+      preStrikes: [3, 2, 0, 0],
+      preEliminated: [true, false, false, false],
+      preSecondChance: [true, false, false, false],
+      active: [1, 2, 3],
+      scores: [99, 5, 20, 20],
+      wantStruck: [1],
+      wantEliminated: [1],
+      wantSecondChanceGranted: [],
+      wantStrikes: [3, 3, 0, 0],
+    },
+    {
+      name: "the first seat to ever reach 3 strikes gets a second chance instead of elimination",
       preStrikes: [0, 2, 0, 0],
       active: [0, 1, 2, 3],
       scores: [20, 5, 20, 20],
       wantStruck: [1],
-      wantEliminated: [1],
+      wantEliminated: [],
+      wantSecondChanceGranted: [1],
       wantStrikes: [0, 3, 0, 0],
+    },
+    {
+      name: "seats tied for the first-ever 3-strike crossing all get a second chance",
+      preStrikes: [2, 2, 0, 0],
+      active: [0, 1, 2, 3],
+      scores: [5, 5, 20, 20],
+      wantStruck: [0, 1],
+      wantEliminated: [],
+      wantSecondChanceGranted: [0, 1],
+      wantStrikes: [3, 3, 0, 0],
+    },
+    {
+      name: "a seat with an active second chance is eliminated on its fourth strike",
+      preStrikes: [3, 0, 0, 0],
+      preSecondChance: [true, false, false, false],
+      active: [0, 1, 2, 3],
+      scores: [5, 20, 20, 20],
+      wantStruck: [0],
+      wantEliminated: [0],
+      wantSecondChanceGranted: [],
+      wantStrikes: [4, 0, 0, 0],
     },
   ];
 
   for (const tt of cases) {
-    const g = new Game({ strikes: tt.preStrikes, eliminated: tt.preEliminated });
+    const g = new Game({ strikes: tt.preStrikes, eliminated: tt.preEliminated, secondChance: tt.preSecondChance });
     const result = resultWithScores(tt.scores);
 
-    const { struck, eliminated } = g.applyResult(tt.active, result);
+    const { struck, eliminated, secondChanceGranted } = g.applyResult(tt.active, result);
 
     assert.deepEqual(struck, tt.wantStruck, tt.name);
     assert.deepEqual(eliminated, tt.wantEliminated, tt.name);
+    assert.deepEqual(secondChanceGranted, tt.wantSecondChanceGranted, tt.name);
     assert.deepEqual(g.strikes, tt.wantStrikes, tt.name);
   }
 });
 
 // Regression test: when the only two remaining active seats tie for
-// lowest and both were already on 2 strikes, they both reach 3 strikes
-// in the same round. Eliminating both would leave zero active seats and
-// no winner at all, contradicting "the last remaining player is the
-// winner" — they must end the game tied as co-winners instead.
+// lowest and both were already on 2 strikes, they both reach their
+// elimination threshold in the same round. Eliminating both would
+// leave zero active seats and no winner at all, contradicting "the
+// last remaining player is the winner" — they must end the game tied
+// as co-winners instead. preSecondChance marks the grant as already
+// used (by a different, already-eliminated seat), so seats 2 and 3
+// reaching 3 strikes here is a true elimination attempt, not a grant.
 test("simultaneous elimination of the last two seats ends the game in a tie", () => {
-  const g = new Game({ strikes: [3, 3, 2, 2], eliminated: [true, true, false, false] });
+  const g = new Game({ strikes: [3, 3, 2, 2], eliminated: [true, true, false, false], secondChance: [true, false, false, false] });
   const result = resultWithScores([0, 0, 15, 15]);
 
-  const { struck, eliminated } = g.applyResult([2, 3], result);
+  const { struck, eliminated, secondChanceGranted } = g.applyResult([2, 3], result);
 
   assert.deepEqual(struck, [2, 3]);
   assert.deepEqual(eliminated, []);
+  assert.deepEqual(secondChanceGranted, []);
   assert.equal(g.eliminated[2], false);
   assert.equal(g.eliminated[3], false);
   assert.equal(g.active(), false);
   assert.deepEqual(g.winners(), [2, 3]);
+});
+
+// Regression test: if the game's very first 3-strike crossing happens
+// to involve every remaining active seat tying at once, they all get
+// the second chance instead — granting isn't elimination, so the game
+// must keep going rather than ending in a tie.
+test("a first-ever crossing covering every active seat grants second chances instead of ending in a tie", () => {
+  const g = new Game({ strikes: [0, 0, 2, 2], eliminated: [false, false, false, false] });
+  const result = resultWithScores([20, 20, 0, 0]);
+
+  const { struck, eliminated, secondChanceGranted } = g.applyResult([2, 3], result);
+
+  assert.deepEqual(struck, [2, 3]);
+  assert.deepEqual(eliminated, []);
+  assert.deepEqual(secondChanceGranted, [2, 3]);
+  assert.equal(g.secondChance[2], true);
+  assert.equal(g.secondChance[3], true);
+  assert.equal(g.eliminated[2], false);
+  assert.equal(g.eliminated[3], false);
+  assert.equal(g.active(), true);
 });
 
 // quickPlay always knocks: Keep on the round's first turn (trade isn't
@@ -109,17 +176,23 @@ test("run plays a full game to a valid conclusion", async () => {
 
     assert.ok(winners.length > 0, `seed=${seed}: winners is empty`);
     for (const seat of winners) {
-      assert.ok((g.strikes[seat] as number) < 3, `seed=${seed}: winner seat ${seat} has 3+ strikes`);
+      const threshold = g.secondChance[seat] ? 4 : 3;
+      assert.ok((g.strikes[seat] as number) < threshold, `seed=${seed}: winner seat ${seat} has reached its elimination threshold`);
     }
     for (let seat = 0; seat < 4; seat++) {
       if (g.eliminated[seat]) {
-        assert.equal(g.strikes[seat], 3, `seed=${seed}: eliminated seat ${seat} strikes`);
+        const threshold = g.secondChance[seat] ? 4 : 3;
+        assert.equal(g.strikes[seat], threshold, `seed=${seed}: eliminated seat ${seat} strikes`);
       }
     }
     assert.ok(log.length > 0, `seed=${seed}: log is empty`);
-    // At most 4 seats * 3 strikes each can ever be handed out, and
-    // every round hands out at least one strike.
-    assert.ok(log.length <= 12, `seed=${seed}: log.length = ${log.length}, want <= 12`);
+    // At most 3 seats are ever eliminated (the 4th is the winner), each
+    // needing at most 4 strikes if it held the one-time-per-game second
+    // chance (specs/rules.md); the winner itself can hold at most 3
+    // (second-chance threshold minus one) without being eliminated.
+    // Every round hands out at least one strike, so rounds can't exceed
+    // this generous sum-of-final-strikes upper bound.
+    assert.ok(log.length <= 16, `seed=${seed}: log.length = ${log.length}, want <= 16`);
     for (const outcome of log) {
       for (const seat of outcome.eliminated) {
         assert.ok(outcome.struck.includes(seat), `seed=${seed}: eliminated seat ${seat} not in struck`);
@@ -225,7 +298,11 @@ test("playRound excludes an already-eliminated seat from dealing, turns, and res
 // threshold for strikes earned through play.
 test("newGame seeds initial strikes, eliminating any seat starting at 3 or more", async () => {
   const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
-  const g = newGame(1, strategies, [3, 1, 0, 4]);
+  const g = newGame(1, strategies, {
+    strikes: [3, 1, 0, 4],
+    secondChance: [false, false, false, false],
+    eliminated: [true, false, false, true],
+  });
 
   assert.deepEqual(g.strikes, [3, 1, 0, 4]);
   assert.deepEqual(g.eliminated, [true, false, false, true]);
@@ -235,6 +312,21 @@ test("newGame seeds initial strikes, eliminating any seat starting at 3 or more"
     outcome.result.players.map((pr) => pr.seat).sort((a, b) => a - b),
     [1, 2],
   );
+});
+
+// newGame's initial.secondChance seeds a seat with 3 strikes and an
+// active second chance instead of starting it eliminated.
+test("newGame seeds an active second chance instead of eliminating a seat at exactly 3 strikes", () => {
+  const strategies: [Strategy, Strategy, Strategy, Strategy] = [quickPlay, quickPlay, quickPlay, quickPlay];
+  const g = newGame(1, strategies, {
+    strikes: [3, 0, 0, 0],
+    secondChance: [true, false, false, false],
+    eliminated: [false, false, false, false],
+  });
+
+  assert.deepEqual(g.strikes, [3, 0, 0, 0]);
+  assert.deepEqual(g.secondChance, [true, false, false, false]);
+  assert.deepEqual(g.eliminated, [false, false, false, false]);
 });
 
 // Regression test: onDeal's firstSeat argument must match the round it

@@ -9,10 +9,10 @@ import type { BotMemory } from "../bot/factory.ts";
 import type { Hand, Pot } from "../game/types.ts";
 
 const STORAGE_KEY = "rumble31.state";
-// Bumped to 5 when the menu screen and settings' origin were added —
-// an old save is simply treated as absent (see loadState), no
-// migration needed.
-const SCHEMA_VERSION = 5;
+// Bumped to 6 when GameState gained secondChance (specs/rules.md's
+// second-chance rule) — an old save is simply treated as absent (see
+// loadState), no migration needed.
+const SCHEMA_VERSION = 6;
 
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
@@ -46,6 +46,9 @@ export interface RoundCheckpoint {
 export interface GameState {
   strikes: [number, number, number, number];
   eliminated: [boolean, boolean, boolean, boolean];
+  // secondChance marks seats already granted the one-time-per-game
+  // second chance (specs/rules.md).
+  secondChance: [boolean, boolean, boolean, boolean];
   roundNum: number;
   dealerSeat: number;
   // botSeats[i] is the difficulty seated at seat i+1 (specs/bots.md),

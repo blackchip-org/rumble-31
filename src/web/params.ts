@@ -8,6 +8,7 @@ import { parseCard, cardToString } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
 import { seatByName, seatName } from "../game/seat.ts";
 import { parseStrikesDigits } from "../game/strikes.ts";
+import type { ParsedStrikes } from "../game/strikes.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import type { Hand, Pot } from "../game/types.ts";
 import { PLATFORMS, type Platform } from "./installPrompt.ts";
@@ -20,7 +21,7 @@ const SCREEN_IDS = ["game", "main", "over", "error", "settings", "about", "licen
 export type ScreenId = (typeof SCREEN_IDS)[number];
 
 export interface DebugParams {
-  initialStrikes: [number, number, number, number];
+  initialStrikes: ParsedStrikes;
   initialDeal: RoundDealOverride | undefined;
   // skipDealAnimation is true iff any of north/south/east/west/pot was
   // given — per specs/params.md, only that case starts the game
@@ -41,8 +42,11 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
   const q = typeof search === "string" ? new URLSearchParams(search) : search;
 
   const strikesRaw = q.get("strikes");
-  const initialStrikes = strikesRaw === null ? ([0, 0, 0, 0] as [number, number, number, number]) : parseStrikesDigits(strikesRaw);
-  const eliminated = initialStrikes.map((s) => s >= 3);
+  const initialStrikes: ParsedStrikes =
+    strikesRaw === null
+      ? { strikes: [0, 0, 0, 0], secondChance: [false, false, false, false], eliminated: [false, false, false, false] }
+      : parseStrikesDigits(strikesRaw);
+  const eliminated = initialStrikes.eliminated;
 
   const assignedHands = new Map<number, Hand>();
   for (const name of HAND_PARAM_NAMES) {

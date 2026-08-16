@@ -46,6 +46,8 @@
                       border and eliminated state tag */
   --bad-glow: rgba(224, 89, 107, 0.4); /* glow behind a struck panel's
                                            border */
+  --second-chance: #e0c040; /* "second chance" (XX/) strike indicator
+                                color */
   --win: #ffffff; /* winning panel's border color */
   --win-glow: rgba(255, 255, 255, 0.35); /* glow behind a winning
                                              panel's border */

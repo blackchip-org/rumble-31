@@ -83,7 +83,9 @@ export function roundRecapLines(outcome: RoundOutcome, strikes: readonly number[
   }
   for (const seat of outcome.struck) {
     const eliminated = outcome.eliminated.includes(seat);
-    lines.push(`${seatName(seat)} receives a strike${eliminated ? " and is eliminated" : ""}`);
+    const gotSecondChance = outcome.secondChanceGranted.includes(seat);
+    const suffix = eliminated ? " and is eliminated" : gotSecondChance ? " and gets a second chance" : "";
+    lines.push(`${seatName(seat)} receives a strike${suffix}`);
   }
   for (const pr of outcome.result.players) {
     const n = strikes[pr.seat] as number;

@@ -132,6 +132,7 @@ test("roundRecapLines", () => {
     },
     struck: [0],
     eliminated: [],
+    secondChanceGranted: [],
   };
   assert.deepEqual(roundRecapLines(outcome, [1, 0, 0, 0]), [
     "South has [7h 8c 9d]",
@@ -150,10 +151,28 @@ test("roundRecapLines marks an eliminated seat", () => {
     },
     struck: [2],
     eliminated: [2],
+    secondChanceGranted: [],
   };
   assert.deepEqual(roundRecapLines(outcome, [0, 0, 3, 0]), [
     "North has [7h 8c 9d]",
     "North receives a strike and is eliminated",
+    "North has 24.0 points with 3 strikes",
+  ]);
+});
+
+test("roundRecapLines marks a seat granted a second chance", () => {
+  const outcome: RoundOutcome = {
+    result: {
+      players: [{ seat: 2, hand: mustHand("7h", "8c", "9d"), score: 24, rank: 1 }],
+      winners: [2],
+    },
+    struck: [2],
+    eliminated: [],
+    secondChanceGranted: [2],
+  };
+  assert.deepEqual(roundRecapLines(outcome, [0, 0, 3, 0]), [
+    "North has [7h 8c 9d]",
+    "North receives a strike and gets a second chance",
     "North has 24.0 points with 3 strikes",
   ]);
 });
