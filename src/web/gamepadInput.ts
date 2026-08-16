@@ -44,21 +44,36 @@ export function diffButtonStates(prev: readonly boolean[], curr: readonly boolea
   return pressed;
 }
 
-// AXIS_DEADZONE is how far a stick must be pushed, on a -1..1 axis,
-// before it counts as a directional press.
-export const AXIS_DEADZONE = 0.5;
+// ScrollEvent is the input-source-agnostic scroll instruction reported
+// alongside NavActions, for scrollNav.ts to apply to whichever screen's
+// panel is currently visible: "axis" for the left stick's continuous,
+// proportional scroll (reported every poll frame, including 0 once the
+// stick re-centers) and "page" for a single L1/R1 bumper press
+// (edge-triggered like the D-pad/face buttons).
+export type ScrollEvent = { kind: "axis"; deltaY: number } | { kind: "page"; dir: "up" | "down" };
 
-// AXIS_DIRECTIONS indexes axisDirections' returned array -- index i's
-// boolean corresponds to AXIS_DIRECTIONS[i].
-export const AXIS_DIRECTIONS: readonly NavAction[] = ["up", "down", "left", "right"];
+// SCROLL_BUTTON_MAP is the L1/R1 shoulder bumpers (W3C Standard
+// Gamepad indices 4/5) -- a backup for controllers whose stick isn't
+// usable for fine analog scrolling.
+export const SCROLL_BUTTON_MAP: Readonly<Record<number, "up" | "down">> = { 4: "up", 5: "down" };
 
-// axisDirections turns a stick's raw x/y axis values into which of
-// the four directions are currently held past deadzone, in
-// AXIS_DIRECTIONS' order -- fed through diffButtonStates the same as
-// button state, so holding the stick over doesn't repeat-fire every
-// frame.
-export function axisDirections(x: number, y: number, deadzone: number = AXIS_DEADZONE): boolean[] {
-  return [y < -deadzone, y > deadzone, x < -deadzone, x > deadzone];
+// SCROLL_DEADZONE/SCROLL_MAX_SPEED tune the left stick's continuous
+// scroll -- a small deadzone so scrolling ramps in smoothly rather
+// than snapping to "on" past a coarse threshold.
+export const SCROLL_DEADZONE = 0.15;
+export const SCROLL_MAX_SPEED = 24; // px per polled frame at full deflection
+
+// scrollDeltaFromAxis turns a stick's raw Y axis (-1..1, positive =
+// down) into a per-frame scroll delta in pixels: 0 within deadzone,
+// ramping linearly from 0 at the deadzone edge to maxSpeed at full
+// deflection.
+export function scrollDeltaFromAxis(y: number, deadzone: number = SCROLL_DEADZONE, maxSpeed: number = SCROLL_MAX_SPEED): number {
+  const magnitude = Math.abs(y);
+  if (magnitude <= deadzone) {
+    return 0;
+  }
+  const scale = (magnitude - deadzone) / (1 - deadzone);
+  return Math.sign(y) * scale * maxSpeed;
 }
 
 export interface GamepadInputHandle {
@@ -66,17 +81,18 @@ export interface GamepadInputHandle {
 }
 
 // startGamepadInput polls navigator.getGamepads() via
-// requestAnimationFrame, edge-detecting button and stick presses and
-// reporting each as an onAction(NavAction) call. getSwapConfirmCancel
-// is read fresh on every frame rather than once, so a mid-session
-// Settings change takes effect immediately. The poll loop only runs
-// while at least one gamepad is connected, so a session with no
-// controller plugged in pays no per-frame cost.
-export function startGamepadInput(onAction: (action: NavAction) => void, getSwapConfirmCancel: () => boolean): GamepadInputHandle {
+// requestAnimationFrame, edge-detecting D-pad/face/bumper button
+// presses and reporting each as an onAction(NavAction) or
+// onScroll({kind: "page", ...}) call, plus the left stick's raw Y axis
+// every frame as an onScroll({kind: "axis", ...}) call.
+// getSwapConfirmCancel is read fresh on every frame rather than once,
+// so a mid-session Settings change takes effect immediately. The poll
+// loop only runs while at least one gamepad is connected, so a session
+// with no controller plugged in pays no per-frame cost.
+export function startGamepadInput(onAction: (action: NavAction) => void, getSwapConfirmCancel: () => boolean, onScroll: (event: ScrollEvent) => void): GamepadInputHandle {
   let rafId: number | undefined;
   let running = false;
   const prevButtons = new Map<number, boolean[]>();
-  const prevAxes = new Map<number, boolean[]>();
 
   function poll(): void {
     const map = buttonMapFor(getSwapConfirmCancel());
@@ -91,15 +107,14 @@ export function startGamepadInput(onAction: (action: NavAction) => void, getSwap
         if (action) {
           onAction(action);
         }
+        const scrollDir = SCROLL_BUTTON_MAP[i];
+        if (scrollDir) {
+          onScroll({ kind: "page", dir: scrollDir });
+        }
       }
       prevButtons.set(pad.index, currButtons);
 
-      const currAxes = axisDirections(pad.axes[0] ?? 0, pad.axes[1] ?? 0);
-      const prevAxisState = prevAxes.get(pad.index) ?? [false, false, false, false];
-      for (const i of diffButtonStates(prevAxisState, currAxes)) {
-        onAction(AXIS_DIRECTIONS[i] as NavAction);
-      }
-      prevAxes.set(pad.index, currAxes);
+      onScroll({ kind: "axis", deltaY: scrollDeltaFromAxis(pad.axes[1] ?? 0) });
     }
     if (running) {
       rafId = requestAnimationFrame(poll);
@@ -124,7 +139,6 @@ export function startGamepadInput(onAction: (action: NavAction) => void, getSwap
       cancelAnimationFrame(rafId);
     }
     prevButtons.clear();
-    prevAxes.clear();
   }
 
   if (hasGamepad()) {

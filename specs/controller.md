@@ -28,10 +28,10 @@ recomputes focus the normal way, falling back to the first item.
 
 ## Controller Mapping
 
-By default, a controller's D-pad or left stick moves focus, its
-bottom face button (A on an Xbox-style controller) activates the
-focused item, and its right face button (B) cancels/backs out. This
-matches the W3C Standard Gamepad layout.
+By default, a controller's D-pad moves focus, its bottom face button
+(A on an Xbox-style controller) activates the focused item, and its
+right face button (B) cancels/backs out. This matches the W3C Standard
+Gamepad layout.
 
 The Settings screen has a "Confirm/Cancel" toggle that swaps which
 face button confirms vs. cancels, for players used to a
@@ -79,3 +79,33 @@ Hand button, rather than any card.
 This only takes effect once the player has used a controller or
 keyboard at least once in the current session -- a player who has only
 ever used the mouse never sees a focus ring appear on its own.
+
+## List Boxes
+
+The Licenses screen's item list is a list box rather than a button, so
+moving focus onto it doesn't let the D-pad change which item is
+selected on its own. Pressing confirm while it's focused "activates"
+it instead (shown with a differently colored focus ring): while
+active, the D-pad moves the selected item up/down through the list
+(clamping at either end, not wrapping) instead of moving focus
+elsewhere, updating the shown license text immediately, the same as
+clicking a different item would. Pressing cancel deactivates the list
+box, without triggering cancel's usual behavior elsewhere (closing a
+dialog, or opening the Game Menu) -- the D-pad goes back to moving
+focus around the rest of the screen.
+
+## Scrolling
+
+The Game Screen's log, the How to Play and Licenses screens' text, the
+About screen's credits, and the Error screen's stack trace are each a
+scrollable panel with no equivalent in the focus order above -- instead
+of focusing them, the left stick scrolls whichever one belongs to the
+screen currently on-screen, proportionally to how far the stick is
+pushed up or down. This works regardless of what else has focus, and
+doesn't move focus itself.
+
+For controllers without a stick usable for fine scrolling, the L1/R1
+shoulder bumpers page up/down the same panel a fixed amount per press.
+
+Only up/down scrolling is supported; the stick's left/right axis and
+the D-pad are unaffected and still only move focus.

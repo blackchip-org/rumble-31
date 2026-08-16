@@ -510,6 +510,16 @@ body {
   outline-offset: 3px;
 }
 
+/* A <select> the D-pad has "activated" for item selection
+   (focusNav.ts's activeListEl) -- a distinct accent color from the
+   plain focus ring above, since the D-pad now steers the list's own
+   items instead of the rest of the screen. Same selector specificity
+   as .is-focused, so appearing later here is what makes it win. */
+.is-list-active {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .pot-cards .card,
 #pot.cards .card {
   cursor: pointer;
@@ -1287,8 +1297,8 @@ body {
   border-radius: 6px;
   background: var(--panel);
   color: var(--licenses-text-color);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-family: var(--font-licenses);
+  font-size: 0.75rem;
   line-height: 1.5;
   white-space: pre-wrap;
   resize: none;

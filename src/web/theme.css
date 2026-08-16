@@ -139,6 +139,9 @@
   --font-heading: "Comic Neue", var(--font-body); /* fatal error heading */
   --font-error: "Inconsolata", var(--font-mono); /* fatal error message
                                                       and stack trace */
+
+  /* ---------- licenses screen text (independently restylable) ---------- */
+  --font-licenses: "Inconsolata", var(--font-mono); /* license text panel */
   --error-heading: #ff6961; /* fatal error heading color */
   --error-fg: #fff; /* fatal error message color */
   --error-stack: #999; /* fatal error stack trace color */

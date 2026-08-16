@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AXIS_DEADZONE, axisDirections, buttonMapFor, diffButtonStates, type NavAction } from "./gamepadInput.ts";
+import { SCROLL_BUTTON_MAP, SCROLL_DEADZONE, SCROLL_MAX_SPEED, buttonMapFor, diffButtonStates, scrollDeltaFromAxis, type NavAction } from "./gamepadInput.ts";
 
 test("diffButtonStates", () => {
   const cases: Array<{ name: string; prev: boolean[]; curr: boolean[]; want: number[] }> = [
@@ -18,20 +18,31 @@ test("diffButtonStates", () => {
   }
 });
 
-test("axisDirections", () => {
-  const cases: Array<{ name: string; x: number; y: number; deadzone?: number; want: boolean[] }> = [
-    { name: "centered stick", x: 0, y: 0, want: [false, false, false, false] },
-    { name: "pushed up", x: 0, y: -1, want: [true, false, false, false] },
-    { name: "pushed down", x: 0, y: 1, want: [false, true, false, false] },
-    { name: "pushed left", x: -1, y: 0, want: [false, false, true, false] },
-    { name: "pushed right", x: 1, y: 0, want: [false, false, false, true] },
-    { name: "within deadzone: no direction", x: 0.2, y: -0.2, want: [false, false, false, false] },
-    { name: "just past default deadzone", x: 0, y: -(AXIS_DEADZONE + 0.01), want: [true, false, false, false] },
-    { name: "custom deadzone", x: 0.3, y: 0, deadzone: 0.2, want: [false, false, false, true] },
+test("scrollDeltaFromAxis", () => {
+  const cases: Array<{ name: string; y: number; deadzone?: number; maxSpeed?: number; want: number }> = [
+    { name: "centered stick", y: 0, want: 0 },
+    { name: "within deadzone: no scroll", y: SCROLL_DEADZONE - 0.01, want: 0 },
+    { name: "exactly at deadzone: no scroll", y: SCROLL_DEADZONE, want: 0 },
+    { name: "full deflection down: max speed", y: 1, want: SCROLL_MAX_SPEED },
+    { name: "full deflection up: negative max speed", y: -1, want: -SCROLL_MAX_SPEED },
+    { name: "halfway between deadzone and full deflection", y: (SCROLL_DEADZONE + 1) / 2, want: SCROLL_MAX_SPEED / 2 },
+    { name: "custom deadzone/maxSpeed", y: 0.6, deadzone: 0.5, maxSpeed: 10, want: 2 },
   ];
 
   for (const c of cases) {
-    assert.deepEqual(axisDirections(c.x, c.y, c.deadzone), c.want, c.name);
+    assert.ok(Math.abs(scrollDeltaFromAxis(c.y, c.deadzone, c.maxSpeed) - c.want) < 1e-9, c.name);
+  }
+});
+
+test("SCROLL_BUTTON_MAP", () => {
+  const cases: Array<{ name: string; button: number; want: "up" | "down" | undefined }> = [
+    { name: "L1 scrolls up", button: 4, want: "up" },
+    { name: "R1 scrolls down", button: 5, want: "down" },
+    { name: "unmapped button", button: 0, want: undefined },
+  ];
+
+  for (const c of cases) {
+    assert.equal(SCROLL_BUTTON_MAP[c.button], c.want, c.name);
   }
 });
 

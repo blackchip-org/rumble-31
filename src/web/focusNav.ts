@@ -41,6 +41,12 @@ const TRADEABLE_CLASS = "is-tradeable";
 
 const FOCUSED_CLASS = "is-focused";
 
+// LIST_ACTIVE_CLASS marks a <select> currently "activated" for D-pad
+// item selection (see activateList/handleListAction below) -- added
+// alongside FOCUSED_CLASS, which the select keeps the whole time it's
+// activated, so CSS can style the two states differently.
+const LIST_ACTIVE_CLASS = "is-list-active";
+
 // FocusGrid is the navigable layout of the current scope: a list of
 // rows, each a list of elements. left/right move within a row,
 // up/down move between rows (see moveGridPosition). Every scope other
@@ -51,6 +57,15 @@ type FocusGrid = readonly (readonly HTMLElement[])[];
 
 let focusedEl: HTMLElement | null = null;
 let cancelFallback: () => void = () => {};
+
+// activeListEl is the <select> currently activated for D-pad item
+// selection, if any -- set by activate() when the focused element is
+// a <select>, cleared by handleListAction on cancel. While set,
+// handleAction routes every NavAction to handleListAction instead of
+// the normal move/activate/cancel dispatch, so the D-pad steers the
+// list's own items (and can't stray onto Main Menu or trigger the
+// screen's cancel behavior) until the player explicitly backs out.
+let activeListEl: HTMLSelectElement | null = null;
 
 // navUsed marks whether the player has issued a real NavAction at
 // least once this session -- set unconditionally at the top of
@@ -131,6 +146,20 @@ function computeGrid(): FocusGrid {
   }
 
   return [];
+}
+
+// moveListIndex is the pure position arithmetic behind
+// handleListAction: given a <select>'s current selectedIndex and
+// option count, which index dir moves to. Clamps rather than wraps --
+// unlike moveGridPosition's screen-level lists, a real listbox's own
+// arrow keys don't wrap either, and a long license list wrapping
+// around would be more surprising than helpful.
+export function moveListIndex(index: number, length: number, dir: NavAction): number {
+  if (length === 0) {
+    return index;
+  }
+  const delta = dir === "up" || dir === "left" ? -1 : 1;
+  return Math.min(length - 1, Math.max(0, index + delta));
 }
 
 // moveGridPosition is the pure position arithmetic behind moveFocus:
@@ -228,6 +257,9 @@ function moveFocus(dir: "up" | "down" | "left" | "right"): void {
 // click listener is already wired to it -- no gamepad/keyboard-specific
 // action logic needed per element (including cards: activating one
 // does exactly what clicking it does today, in domActionPrompt.ts).
+// A <select> is the one exception: clicking it doesn't let the D-pad
+// change its selected item, so this activates list mode instead (see
+// activeListEl above).
 function activate(): void {
   const grid = computeGrid();
   if (grid.length === 0) {
@@ -235,7 +267,40 @@ function activate(): void {
   }
   const [row, col] = currentPositionIn(grid);
   focusOn(grid, row, col);
-  grid[row]?.[col]?.click();
+  const el = grid[row]?.[col];
+  if (el instanceof HTMLSelectElement) {
+    activeListEl = el;
+    el.classList.add(LIST_ACTIVE_CLASS);
+    return;
+  }
+  el?.click();
+}
+
+// handleListAction is handleAction's dispatch while activeListEl is
+// set: up/down/left/right move the selection via moveListIndex,
+// dispatching a "change" event so main.ts's existing listener updates
+// the license text exactly as a mouse click on an option would.
+// cancel deactivates the list, returning the D-pad to normal screen
+// navigation; confirm is a no-op, since the selection already took
+// effect the moment it moved.
+function handleListAction(action: NavAction): void {
+  const el = activeListEl;
+  if (!el) {
+    return;
+  }
+  if (action === "cancel") {
+    el.classList.remove(LIST_ACTIVE_CLASS);
+    activeListEl = null;
+    return;
+  }
+  if (action === "confirm") {
+    return;
+  }
+  const newIndex = moveListIndex(el.selectedIndex, el.options.length, action);
+  if (newIndex !== el.selectedIndex) {
+    el.selectedIndex = newIndex;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
 }
 
 // cancel closes whichever dialog is open, if any -- a gamepad/keyboard
@@ -324,6 +389,10 @@ export function focusKnockButton(): void {
 // both report NavActions to.
 export function handleAction(action: NavAction): void {
   navUsed = true;
+  if (activeListEl) {
+    handleListAction(action);
+    return;
+  }
   switch (action) {
     case "up":
     case "down":

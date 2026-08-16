@@ -42,6 +42,7 @@ import { detectPlatform, INSTALL_INSTRUCTIONS } from "./installPrompt.ts";
 import { startGamepadInput } from "./gamepadInput.ts";
 import { startKeyboardNav } from "./keyboardNav.ts";
 import { handleAction, registerCancelFallback } from "./focusNav.ts";
+import { handleScrollEvent } from "./scrollNav.ts";
 
 // sleep resolves after ms.
 function sleep(ms: number): Promise<void> {
@@ -1305,13 +1306,16 @@ menuBtn.addEventListener("click", openGameMenu);
 // sources report the same NavAction vocabulary to focusNav.ts, which
 // moves/activates focus and, on cancel with no dialog open, calls this
 // fallback -- the Escape-opens-Game-Menu behavior described above.
+// The gamepad's left stick and L1/R1 bumpers additionally report
+// ScrollEvents to scrollNav.ts, scrolling whichever screen's log/text
+// panel is currently visible.
 registerCancelFallback(() => {
   if (!gameScreenEl.hidden) {
     openGameMenu();
   }
 });
 startKeyboardNav(handleAction);
-startGamepadInput(handleAction, () => settings.swapConfirmCancel);
+startGamepadInput(handleAction, () => settings.swapConfirmCancel, handleScrollEvent);
 
 menuResumeBtn.addEventListener("click", () => showGameScreen(currentMenuGame));
 menuSettingsBtn.addEventListener("click", () => showSettingsScreen({ from: "menu", game: currentMenuGame as GameState }));

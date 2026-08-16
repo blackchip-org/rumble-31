@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { moveGridPosition } from "./focusNav.ts";
+import { moveGridPosition, moveListIndex } from "./focusNav.ts";
 import type { NavAction } from "./gamepadInput.ts";
 
 test("moveGridPosition", () => {
@@ -30,5 +30,21 @@ test("moveGridPosition", () => {
 
   for (const c of cases) {
     assert.deepEqual(moveGridPosition(c.row, c.col, c.rowLengths, c.dir), c.want, c.name);
+  }
+});
+
+test("moveListIndex", () => {
+  const cases: Array<{ name: string; index: number; length: number; dir: NavAction; want: number }> = [
+    { name: "down moves to the next item", index: 0, length: 5, dir: "down", want: 1 },
+    { name: "up moves to the previous item", index: 1, length: 5, dir: "up", want: 0 },
+    { name: "right acts like down", index: 0, length: 5, dir: "right", want: 1 },
+    { name: "left acts like up", index: 1, length: 5, dir: "left", want: 0 },
+    { name: "down clamps at the last item instead of wrapping", index: 4, length: 5, dir: "down", want: 4 },
+    { name: "up clamps at the first item instead of wrapping", index: 0, length: 5, dir: "up", want: 0 },
+    { name: "empty list stays put", index: 0, length: 0, dir: "down", want: 0 },
+  ];
+
+  for (const c of cases) {
+    assert.equal(moveListIndex(c.index, c.length, c.dir), c.want, c.name);
   }
 });
