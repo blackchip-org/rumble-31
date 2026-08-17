@@ -25,7 +25,7 @@ const SCREEN_IDS = ["main-screen", "appinfo-screen", "game-screen", "menu-screen
 // its own focus scope -- the screen behind it is already inert to
 // mouse/keyboard (a modal dialog), so it must be inert to controller
 // navigation too.
-const DIALOG_IDS = ["abandon-dialog"];
+const DIALOG_IDS = ["abandon-dialog", "reset-dialog"];
 
 // GAME_SCREEN_ID gets a dedicated row-based builder (buildGameScreenGrid)
 // instead of the generic per-screen query, since it's the only screen

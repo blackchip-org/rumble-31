@@ -309,6 +309,11 @@ const bot2ToggleBtn = must<HTMLButtonElement>("bot2-toggle-btn");
 const bot3ToggleBtn = must<HTMLButtonElement>("bot3-toggle-btn");
 const confirmCancelToggleBtn = must<HTMLButtonElement>("confirm-cancel-toggle-btn");
 const settingsBackBtn = must<HTMLButtonElement>("settings-back-btn");
+const resetBtn = must<HTMLButtonElement>("reset-btn");
+
+const resetDialogEl = must<HTMLDialogElement>("reset-dialog");
+const resetYesBtn = must<HTMLButtonElement>("reset-yes-btn");
+const resetNoBtn = must<HTMLButtonElement>("reset-no-btn");
 
 const gameOverScreenEl = must<HTMLElement>("game-over-screen");
 const gameOverLine1El = must<HTMLElement>("game-over-line1");
@@ -1361,6 +1366,13 @@ abandonYesBtn.addEventListener("click", () => {
   clearState(localStorage);
   abandonDialogEl.close();
   showMainScreen();
+});
+
+resetBtn.addEventListener("click", () => resetDialogEl.showModal());
+resetNoBtn.addEventListener("click", () => resetDialogEl.close());
+resetYesBtn.addEventListener("click", () => {
+  localStorage.clear();
+  window.location.reload();
 });
 licensesListEl.addEventListener("change", syncLicenseText);
 saveLogBtn.addEventListener("click", () => downloadTextFile(logFilename(new Date()), logText(logEl)));

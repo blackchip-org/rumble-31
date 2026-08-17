@@ -18,8 +18,8 @@ along the row and wraps at either end; up/down always moves to the
 previous/next row, wrapping past the top/bottom row, and so does
 left/right on a row with nothing else in it (such as Menu).
 
-Opening the Abandon confirmation dialog moves focus into that dialog
-only, for as long as it's open; the screen behind it cannot be
+Opening the Abandon or Reset confirmation dialog moves focus into that
+dialog only, for as long as it's open; the screen behind it cannot be
 focused until the dialog closes.
 
 If the focused button becomes disabled, it immediately loses focus.

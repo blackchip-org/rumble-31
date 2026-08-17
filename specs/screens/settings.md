@@ -13,6 +13,7 @@ settings are:
 - Bot 2
 - Bot 3
 - Confirm/Cancel
+- Reset
 
 Sounds is a button that by default reads "Enabled". Clicking on it toggles
 to "Disabled". When this setting is disabled, the application should
@@ -28,6 +29,15 @@ on it toggles to "Swapped". This controls which controller face
 button confirms vs. cancels during controller navigation
 (specs/controller.md); "Standard" follows the W3C Standard Gamepad
 layout, "Swapped" reverses it for a Nintendo-style layout.
+
+Reset is a button that reads "Confirm", using a reddish fill color to
+distinguish it from the other settings' buttons. Clicking on it shows a
+dialog box centered on the screen asking "Are you sure you want to
+reset all state?" with "Yes" and "No" buttons below it. Clicking on
+"Yes" clears all local storage and reloads the application, landing
+back on the Main Menu or the Application Info screen exactly as a
+fresh visit would (specs/screens/appinfo.md). Clicking on "No"
+dismisses the dialog box.
 
 When the Settings screen is entered via the Game Menu, the Bot settings
 should be disabled. Those settings should not be modified while a game
