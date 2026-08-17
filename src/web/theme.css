@@ -91,7 +91,8 @@
                              alongside .is-selected */
 
   /* ---------- main screen (independently restylable) ---------- */
-  --main-bg: #1b5e3a; /* felt-green main screen background */
+  --main-bg: #1b5e3a url("../../assets/felt.svg") repeat; /* felt-green
+    main screen background, tiled with a felt texture */
   --main-title-color: #fff; /* main screen title color */
 
   /* ---------- application info screen (independently restylable) ----------
