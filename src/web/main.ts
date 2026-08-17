@@ -43,53 +43,47 @@ import { startGamepadInput } from "./gamepadInput.ts";
 import { startKeyboardNav } from "./keyboardNav.ts";
 import { focusScreenDefault, handleAction, registerCancelFallback } from "./focusNav.ts";
 import { handleScrollEvent } from "./scrollNav.ts";
+import { SoundEffect, resumeSoundsOnFirstGesture } from "./sound.ts";
 
 // sleep resolves after ms.
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// dealAudio is the single Audio instance shared by every dealt card.
-// Reusing one instance (instead of allocating a new one per card) avoids
-// the per-card decode/allocation overhead that was causing audible
-// delays during a fast deal. When a new card is dealt before the
-// previous clip finishes, playDealSound rewinds and restarts it,
-// cutting the previous play off rather than letting instances overlap.
-const dealAudio = new Audio(dealSoundUrl);
+// dealAudio is the sound effect for every dealt card, decoded once and
+// played independently per card (sound.ts) so a fast deal's overlapping
+// plays never cut each other off.
+const dealAudio = new SoundEffect(dealSoundUrl);
 
-// turnAudio is the single Audio instance shared by every "it's your
-// turn" notification, reused for the same reason as dealAudio above.
-const turnAudio = new Audio(turnSoundUrl);
+// turnAudio is the "it's your turn" notification sound.
+const turnAudio = new SoundEffect(turnSoundUrl);
 
-// knockAudio is the single Audio instance shared by every knock,
-// reused for the same reason as dealAudio above.
-const knockAudio = new Audio(knockSoundUrl);
+// knockAudio is the sound played when a player knocks.
+const knockAudio = new SoundEffect(knockSoundUrl);
 
 // score31Audio/score32Audio/endOfRoundAudio are the round-end sounds
 // (specs/assets.md): score31Audio for a round won with 31, score32Audio
 // for a round won with 32 (three aces), endOfRoundAudio for any other
-// winning score. Reused across rounds for the same reason as dealAudio
-// above.
-const score31Audio = new Audio(score31SoundUrl);
-const score32Audio = new Audio(score32SoundUrl);
-const endOfRoundAudio = new Audio(endOfRoundSoundUrl);
+// winning score.
+const score31Audio = new SoundEffect(score31SoundUrl);
+const score32Audio = new SoundEffect(score32SoundUrl);
+const endOfRoundAudio = new SoundEffect(endOfRoundSoundUrl);
 
-// slideAudio is the single Audio instance shared by every card-slide
-// animation leg, reused for the same reason as dealAudio above.
-const slideAudio = new Audio(slideSoundUrl);
+// slideAudio is the sound played for every card-slide animation leg.
+const slideAudio = new SoundEffect(slideSoundUrl);
 
 // winAudio/loseAudio play whenever the Game Over screen is shown, per
-// specs/assets.md, reused for the same reason as dealAudio above.
-const winAudio = new Audio(winSoundUrl);
-const loseAudio = new Audio(loseSoundUrl);
+// specs/assets.md.
+const winAudio = new SoundEffect(winSoundUrl);
+const loseAudio = new SoundEffect(loseSoundUrl);
 
 // Registered at module load, unconditionally, rather than only inside
 // main() — the Game Over screen can be reached directly (a saved
 // "over" state on reload, or specs/params.md's screen=over debug
 // param) without main() ever running, and its win/lose sound still
-// needs a prior gesture to unlock per unlockSoundsOnFirstGesture's own
+// needs a prior gesture to unlock per resumeSoundsOnFirstGesture's own
 // comment.
-unlockSoundsOnFirstGesture([dealAudio, turnAudio, knockAudio, score31Audio, score32Audio, endOfRoundAudio, slideAudio, winAudio, loseAudio]);
+resumeSoundsOnFirstGesture();
 
 // settings holds the user's persisted preferences (specs/gui.md's
 // Settings Screen), loaded once at startup and kept in sync with
@@ -117,17 +111,13 @@ let currentMenuGame: GameState | undefined;
 // disabled.
 let currentSettingsOrigin: SettingsOrigin = { from: "main" };
 
-// playDealSound plays deal.wav for one card being dealt, restarting
-// dealAudio from the beginning, unless the player has disabled sounds.
-// play() can still reject under the browser's autoplay policy (e.g. if
-// unlockDealSoundOnFirstGesture hasn't fired yet) — logged, not thrown,
-// since the deal works fine without sound either way.
+// playDealSound plays deal.wav for one card being dealt, unless the
+// player has disabled sounds.
 function playDealSound(): void {
   if (!settings.soundsEnabled) {
     return;
   }
-  dealAudio.currentTime = 0;
-  dealAudio.play().catch((err: unknown) => console.warn("deal.wav: play() failed", err));
+  dealAudio.play();
 }
 
 // playTurnSound plays turn.wav when it becomes the human player's
@@ -137,8 +127,7 @@ function playTurnSound(): void {
   if (!settings.soundsEnabled) {
     return;
   }
-  turnAudio.currentTime = 0;
-  turnAudio.play().catch((err: unknown) => console.warn("turn.wav: play() failed", err));
+  turnAudio.play();
 }
 
 // playKnockSound plays knock.wav when a player knocks, unless the
@@ -147,8 +136,7 @@ function playKnockSound(): void {
   if (!settings.soundsEnabled) {
     return;
   }
-  knockAudio.currentTime = 0;
-  knockAudio.play().catch((err: unknown) => console.warn("knock.wav: play() failed", err));
+  knockAudio.play();
 }
 
 // playRoundEndSound plays the round-end sound matching winningScore --
@@ -160,8 +148,7 @@ function playRoundEndSound(winningScore: number): void {
     return;
   }
   const audio = winningScore === 31 ? score31Audio : winningScore === 32 ? score32Audio : endOfRoundAudio;
-  audio.currentTime = 0;
-  audio.play().catch((err: unknown) => console.warn("round-end sound: play() failed", err));
+  audio.play();
 }
 
 // playGameOverSound plays win.wav or lose.wav when the Game Over
@@ -172,8 +159,7 @@ function playGameOverSound(southWon: boolean): void {
     return;
   }
   const audio = southWon ? winAudio : loseAudio;
-  audio.currentTime = 0;
-  audio.play().catch((err: unknown) => console.warn("game-over sound: play() failed", err));
+  audio.play();
 }
 
 // playSlideSound plays slide.wav when a card-slide animation leg
@@ -183,35 +169,7 @@ function playSlideSound(): void {
   if (!settings.soundsEnabled) {
     return;
   }
-  slideAudio.currentTime = 0;
-  slideAudio.play().catch((err: unknown) => console.warn("slide.wav: play() failed", err));
-}
-
-// unlockSoundsOnFirstGesture plays (silently, then immediately pauses)
-// every clip in audios on the page's first click or keypress. Round
-// 1's deal starts automatically, before the player has done anything,
-// and browsers block unmuted audio until there's been a user gesture
-// on the page — without this, the first sounds would be silent until
-// the player happened to interact with something else first (or,
-// depending on the browser, indefinitely).
-function unlockSoundsOnFirstGesture(audios: readonly HTMLAudioElement[]): void {
-  const unlock = () => {
-    document.removeEventListener("click", unlock);
-    document.removeEventListener("keydown", unlock);
-    for (const audio of audios) {
-      audio.volume = 0;
-      audio
-        .play()
-        .then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-          audio.volume = 1;
-        })
-        .catch((err: unknown) => console.warn("could not unlock audio", err));
-    }
-  };
-  document.addEventListener("click", unlock, { once: true });
-  document.addEventListener("keydown", unlock, { once: true });
+  slideAudio.play();
 }
 
 // Installed before anything else in this module runs (including the
@@ -1086,15 +1044,15 @@ function hideAllScreens(): void {
 // than under the (now hidden) game screen.
 function abortCurrentGame(): void {
   currentGameAbort?.abort();
-  dealAudio.pause();
-  turnAudio.pause();
-  knockAudio.pause();
-  score31Audio.pause();
-  score32Audio.pause();
-  endOfRoundAudio.pause();
-  slideAudio.pause();
-  winAudio.pause();
-  loseAudio.pause();
+  dealAudio.stop();
+  turnAudio.stop();
+  knockAudio.stop();
+  score31Audio.stop();
+  score32Audio.stop();
+  endOfRoundAudio.stop();
+  slideAudio.stop();
+  winAudio.stop();
+  loseAudio.stop();
   for (const ghost of document.querySelectorAll(".card--ghost")) {
     ghost.remove();
   }
