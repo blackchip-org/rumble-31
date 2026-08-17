@@ -33,6 +33,13 @@ import type {
 // knocked (or exchanged past the round's first turn), so the round
 // still ends once play wraps back around to them, instead of
 // forgetting that and continuing indefinitely.
+// RoundEndReason records what stopped a round: a hand reaching 31
+// (checked unconditionally on every turn, per Round.run's own
+// comment) or a seat knocking. seat is who reached 31, or who knocked
+// first -- see Round.run for how these are told apart, including the
+// case where both happen in the same round.
+export type RoundEndReason = { type: "31"; seat: number } | { type: "knock"; seat: number };
+
 export interface RoundDealOverride {
   assignedHands?: Map<number, Hand>;
   assignedPot?: Pot;
@@ -101,8 +108,9 @@ export class Round {
   // knock, since computeResult scores every player's hand as it stands
   // when the round ends, regardless of what ended it.
   //
-  // Returns the final result and a log of every turn taken.
-  async run(): Promise<{ result: Result; log: TurnRecord[] }> {
+  // Returns the final result, a log of every turn taken, and why the
+  // round ended (RoundEndReason).
+  async run(): Promise<{ result: Result; log: TurnRecord[]; endReason: RoundEndReason }> {
     // A round resumed past its first turn (specs/state.md) must not
     // re-fire onRoundStart -- that would wipe out a strategy's
     // already-accumulated per-round memory (e.g. a bot's tracked
@@ -123,11 +131,13 @@ export class Round {
     let knocked = this.knocked;
     let knockerSeat = this.knockerSeat;
     const ownTurnNum = new Map<number, number>();
+    let endReason: RoundEndReason | undefined;
 
     for (;;) {
       const player = this.players[idx] as Player;
       const seat = player.seat;
       if (knocked && seat === knockerSeat) {
+        endReason = { type: "knock", seat: knockerSeat };
         break;
       }
 
@@ -138,7 +148,7 @@ export class Round {
       // actor on turn 0.
       const priorOwnTurns = ownTurnNum.get(seat) ?? 0;
       if (score(player.hand) === 31) {
-        return { result: this.computeResult(), log };
+        return { result: this.computeResult(), log, endReason: { type: "31", seat } };
       }
 
       ownTurnNum.set(seat, priorOwnTurns + 1);
@@ -171,8 +181,12 @@ export class Round {
       await this.onTurn?.(record);
 
       // An action that brings this hand to 31 ends the round
-      // immediately, on any turn, including a player's own first turn.
+      // immediately, on any turn, including a player's own first turn
+      // — even one already ended by an earlier knock this round, so a
+      // 31 reached during the knocker's final lap still reports as
+      // "31", not "knock" (the 31 check above always runs first).
       if (score(player.hand) === 31) {
+        endReason = { type: "31", seat };
         break;
       }
       if (!knocked && !isFirstTurn && (action.type === "knock" || action.type === "exchange")) {
@@ -182,7 +196,7 @@ export class Round {
       idx = (idx + 1) % this.players.length;
     }
 
-    return { result: this.computeResult(), log };
+    return { result: this.computeResult(), log, endReason: endReason as RoundEndReason };
   }
 
   // apply performs the state mutation for a and returns a record of it.

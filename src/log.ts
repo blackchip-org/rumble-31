@@ -5,21 +5,23 @@ import { seatName } from "./game/seat.ts";
 import type { Hand, TurnRecord } from "./game/types.ts";
 
 // gameStartLines is written once, at program start, per specs/log.md.
-export function gameStartLines(seed: number, version: string): string[] {
-  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`];
+// botStrategyLabels names the three bot seats' strategies (e.g.
+// "Easy"), in seat order.
+export function gameStartLines(seed: number, version: string, botStrategyLabels: readonly string[]): string[] {
+  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`, `Bot strategies are ${botStrategyLabels.join(", ")}`];
 }
 
 // roundStartLines is written once a round is dealt, before its first
-// turn: the round header, the dealt pot, and the human's own dealt
-// hand (no other seat's hand is ever logged). South is omitted once
-// already eliminated, since no hand is dealt to them. Who goes first
-// isn't stated separately — it's implied by the very next "Seat's
-// turn" line. The pot is private to everyone, including the first
-// player to act (specs/rules.md), so the "Pot is dealt" line never
-// names its cards here — they're logged for the first time by
-// potLine, once the first player has acted.
-export function roundStartLines(roundNum: number, southHand: Hand | undefined): string[] {
-  const lines = ["", `=== Round ${roundNum} ===`, "Pot is dealt"];
+// turn: the round header, the round's dealer, and the human's own
+// dealt hand (no other seat's hand is ever logged). South is omitted
+// once already eliminated, since no hand is dealt to them. Who goes
+// first isn't stated separately — it's implied by the very next
+// "Seat's turn" line. The pot is private to everyone, including the
+// first player to act (specs/rules.md), so it's never named here —
+// it's logged for the first time by potLine, once the first player
+// has acted.
+export function roundStartLines(roundNum: number, southHand: Hand | undefined, dealerSeat: number): string[] {
+  const lines = ["", `=== Round ${roundNum} ===`, `${seatName(dealerSeat)} is the dealer`];
   if (southHand !== undefined) {
     lines.push(`South is dealt [${cardsNotation(southHand)}]`);
   }
@@ -73,23 +75,26 @@ function potLine(rec: TurnRecord): string {
   return `Pot is [${cardsNotation(rec.potAfter)}]`;
 }
 
-// roundRecapLines is written once a round ends: every participant's
-// final hand, then a line for each seat struck this round, then every
-// participant's score and strike count.
+// roundRecapLines is written once a round ends: how the round ended,
+// then every participant's final hand, then a line for each seat
+// struck this round, then every participant's score and strike count.
 export function roundRecapLines(outcome: RoundOutcome, strikes: readonly number[]): string[] {
   const lines: string[] = [];
+  const { type, seat } = outcome.endReason;
+  lines.push(type === "31" ? `Round over: ${seatName(seat)} has 31` : `Round over: ${seatName(seat)} knocked`);
   for (const pr of outcome.result.players) {
     lines.push(`${seatName(pr.seat)} has [${cardsNotation(pr.hand)}]`);
   }
-  for (const seat of outcome.struck) {
-    const eliminated = outcome.eliminated.includes(seat);
-    const gotSecondChance = outcome.secondChanceGranted.includes(seat);
+  for (const s of outcome.struck) {
+    const eliminated = outcome.eliminated.includes(s);
+    const gotSecondChance = outcome.secondChanceGranted.includes(s);
     const suffix = eliminated ? " and is eliminated" : gotSecondChance ? " and gets a second chance" : "";
-    lines.push(`${seatName(seat)} receives a strike${suffix}`);
+    lines.push(`${seatName(s)} receives a strike${suffix}`);
   }
   for (const pr of outcome.result.players) {
     const n = strikes[pr.seat] as number;
-    lines.push(`${seatName(pr.seat)} has ${pr.score.toFixed(1)} points with ${n} strike${n === 1 ? "" : "s"}`);
+    const scoreText = Number.isInteger(pr.score) ? String(pr.score) : pr.score.toFixed(1);
+    lines.push(`${seatName(pr.seat)} has ${scoreText} points with ${n} strike${n === 1 ? "" : "s"}`);
   }
   return lines;
 }

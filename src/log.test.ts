@@ -15,25 +15,31 @@ function mustPot(...notation: [string, string, string]): Pot {
 }
 
 test("gameStartLines", () => {
-  assert.deepEqual(gameStartLines(42, "0.0"), ["Welcome to Rumble 31, v0.0", "Starting game with seed 42"]);
+  assert.deepEqual(gameStartLines(42, "0.0", ["Easy", "Regular", "Difficult"]), [
+    "Welcome to Rumble 31, v0.0",
+    "Starting game with seed 42",
+    "Bot strategies are Easy, Regular, Difficult",
+  ]);
 });
 
 test("roundStartLines", () => {
   const southHand = mustHand("7h", "8c", "9d");
-  const cases: Array<{ name: string; southHand: Hand | undefined; want: string[] }> = [
+  const cases: Array<{ name: string; southHand: Hand | undefined; dealerSeat: number; want: string[] }> = [
     {
       name: "South is dealt in: pot still private",
       southHand,
-      want: ["", "=== Round 1 ===", "Pot is dealt", "South is dealt [7h 8c 9d]"],
+      dealerSeat: 2,
+      want: ["", "=== Round 1 ===", "North is the dealer", "South is dealt [7h 8c 9d]"],
     },
     {
       name: "South already eliminated, so not dealt a hand",
       southHand: undefined,
-      want: ["", "=== Round 1 ===", "Pot is dealt"],
+      dealerSeat: 0,
+      want: ["", "=== Round 1 ===", "South is the dealer"],
     },
   ];
   for (const c of cases) {
-    assert.deepEqual(roundStartLines(1, c.southHand), c.want, c.name);
+    assert.deepEqual(roundStartLines(1, c.southHand, c.dealerSeat), c.want, c.name);
   }
 });
 
@@ -125,7 +131,7 @@ test("roundRecapLines", () => {
   const outcome: RoundOutcome = {
     result: {
       players: [
-        { seat: 0, hand: cardsFor("7h", "8c", "9d"), score: 9.0, rank: 4 },
+        { seat: 0, hand: cardsFor("7h", "8c", "9d"), score: 9, rank: 4 },
         { seat: 2, hand: cardsFor("Ah", "Ad", "Ac"), score: 32, rank: 1 },
       ],
       winners: [2],
@@ -133,13 +139,34 @@ test("roundRecapLines", () => {
     struck: [0],
     eliminated: [],
     secondChanceGranted: [],
+    endReason: { type: "31", seat: 2 },
   };
   assert.deepEqual(roundRecapLines(outcome, [1, 0, 0, 0]), [
+    "Round over: North has 31",
     "South has [7h 8c 9d]",
     "North has [Ah Ad Ac]",
     "South receives a strike",
-    "South has 9.0 points with 1 strike",
-    "North has 32.0 points with 0 strikes",
+    "South has 9 points with 1 strike",
+    "North has 32 points with 0 strikes",
+  ]);
+});
+
+test("roundRecapLines names the knocker, and keeps a fractional score's decimal", () => {
+  const outcome: RoundOutcome = {
+    result: {
+      players: [{ seat: 2, hand: mustHand("7h", "8h", "9h"), score: 30.5, rank: 1 }],
+      winners: [2],
+    },
+    struck: [2],
+    eliminated: [],
+    secondChanceGranted: [],
+    endReason: { type: "knock", seat: 2 },
+  };
+  assert.deepEqual(roundRecapLines(outcome, [0, 0, 1, 0]), [
+    "Round over: North knocked",
+    "North has [7h 8h 9h]",
+    "North receives a strike",
+    "North has 30.5 points with 1 strike",
   ]);
 });
 
@@ -152,11 +179,13 @@ test("roundRecapLines marks an eliminated seat", () => {
     struck: [2],
     eliminated: [2],
     secondChanceGranted: [],
+    endReason: { type: "knock", seat: 2 },
   };
   assert.deepEqual(roundRecapLines(outcome, [0, 0, 3, 0]), [
+    "Round over: North knocked",
     "North has [7h 8c 9d]",
     "North receives a strike and is eliminated",
-    "North has 24.0 points with 3 strikes",
+    "North has 24 points with 3 strikes",
   ]);
 });
 
@@ -169,11 +198,13 @@ test("roundRecapLines marks a seat granted a second chance", () => {
     struck: [2],
     eliminated: [],
     secondChanceGranted: [2],
+    endReason: { type: "knock", seat: 2 },
   };
   assert.deepEqual(roundRecapLines(outcome, [0, 0, 3, 0]), [
+    "Round over: North knocked",
     "North has [7h 8c 9d]",
     "North receives a strike and gets a second chance",
-    "North has 24.0 points with 3 strikes",
+    "North has 24 points with 3 strikes",
   ]);
 });
 

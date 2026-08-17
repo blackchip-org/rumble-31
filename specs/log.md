@@ -10,23 +10,18 @@ cards for that event.
 
 When the game starts, it should write out the following by substituting
 0.0 with the actual version number, and X with the random number generator
-seed being used.
+seed being used. "Easy" is replaced with the actual bot strategies in use. 
 
     Welcome to Rumble 31, v0.0
     Starting game with seed X
+    Bot strategies are Easy, Easy, Easy 
 
 The log for the start of each round looks like the following. X is the round
 number. A blank line is emitted before the log message.
 
     === Round X ===
-    Pot is dealt
+    Seat is the dealer 
     South is dealt [7h 8c 9d]
-
-The pot is private to everyone, including the round's first player to
-act (specs/rules.md), so the "Pot is dealt" line never names its cards
-at deal time. The pot's actual cards are then logged for the first
-time by the existing "Pot is [...]" line below, once the first player
-has taken their turn.
 
 For the first player to act in a round, their choices are to keep their hand
 or to keep the pot. The log messages for those are:
@@ -67,8 +62,14 @@ If that seat is the first to act that round, instead use:
 
     Seat goes first
 
-At the end of the round, announce the hands first for each player using
-this format:
+At the end of the round, first state how the round ended. Use one of the 
+following:
+
+    Round over: Seat has 31
+    Round over: Seat knocked
+
+If multiple seats knocked, the log shows the first seat that knocked. Then, 
+announce the hands for each player using this format:
 
     South has [7h 8c 9d]
 
@@ -89,7 +90,7 @@ them:
 
 Then announce the scores for each player:
 
-    Seat has 9.0 points with 1 strike
+    Seat has 9 points with 1 strike
 
 If the human player wins, write:
 
@@ -101,4 +102,10 @@ When the game ends, write:
 
 Any other logging that currently exists in the code should be removed.
 
+At the end of the game, the player has the option to save the log. The 
+filename for this log should be rumble31-<TIMESTAMP>.txt where <TIMESTAMP>
+is a timestamp in 2 digit year, month, day, hyphen, 24-hour, minute format. 
+For example:
+
+    rumble31-260816-2039.txt
 

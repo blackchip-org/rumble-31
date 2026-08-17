@@ -574,9 +574,9 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 // stale iteration still appending cards after the player has already
 // navigated away (and possibly Resumed into a new deal of its own)
 // would corrupt what's on screen.
-async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, signal: AbortSignal): Promise<void> {
+async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, dealerSeat: number, signal: AbortSignal): Promise<void> {
   const southHand = hands.get(0);
-  for (const line of roundStartLines(roundNum, southHand)) {
+  for (const line of roundStartLines(roundNum, southHand, dealerSeat)) {
     appendLogLine(logEl, line);
   }
 
@@ -632,9 +632,9 @@ async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, s
 // pre-populate the deal, per its "dealing is not animated" note. The
 // pot is private (rendered as card backs) to everyone, same as
 // animateDeal.
-function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>): void {
+function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, dealerSeat: number): void {
   const southHand = hands.get(0);
-  for (const line of roundStartLines(roundNum, southHand)) {
+  for (const line of roundStartLines(roundNum, southHand, dealerSeat)) {
     appendLogLine(logEl, line);
   }
 
@@ -812,7 +812,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   potEl.replaceChildren();
 
   if (!resume) {
-    for (const line of gameStartLines(seed, version)) {
+    for (const line of gameStartLines(seed, version, botSeats.map((n) => BOT_LABELS[n]))) {
       appendLogLine(logEl, line);
     }
   }
@@ -852,9 +852,9 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       if (roundNum === startRoundNum && resume?.checkpoint) {
         renderResumedRound(pot, hands, resume.checkpoint.turnIndex === 0);
       } else if (roundNum === startRoundNum && params.skipDealAnimation) {
-        renderDealInstant(roundNum, pot, hands);
+        renderDealInstant(roundNum, pot, hands, g.dealerSeat as number);
       } else {
-        await animateDeal(roundNum, hands, signal);
+        await animateDeal(roundNum, hands, g.dealerSeat as number, signal);
       }
       // A deal animation in flight when the game was aborted mid-way
       // must not still persist this round's checkpoint afterwards --
@@ -1332,6 +1332,19 @@ function downloadTextFile(filename: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 
+// logFilename names a saved log rumble31-<TIMESTAMP>.txt per
+// specs/log.md, TIMESTAMP being now's local time as YYMMDD-HHmm, e.g.
+// rumble31-260816-2039.txt.
+function logFilename(now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yy = pad(now.getFullYear() % 100);
+  const mm = pad(now.getMonth() + 1);
+  const dd = pad(now.getDate());
+  const hh = pad(now.getHours());
+  const mi = pad(now.getMinutes());
+  return `rumble31-${yy}${mm}${dd}-${hh}${mi}.txt`;
+}
+
 playAgainBtn.addEventListener("click", () => showGameScreen());
 mainMenuBtn.addEventListener("click", showMainScreen);
 aboutMainMenuBtn.addEventListener("click", showMainScreen);
@@ -1392,7 +1405,7 @@ abandonYesBtn.addEventListener("click", () => {
   showMainScreen();
 });
 licensesListEl.addEventListener("change", syncLicenseText);
-saveLogBtn.addEventListener("click", () => downloadTextFile("rumble-31-log.txt", logText(logEl)));
+saveLogBtn.addEventListener("click", () => downloadTextFile(logFilename(new Date()), logText(logEl)));
 soundsToggleBtn.addEventListener("click", () => {
   settings = { ...settings, soundsEnabled: !settings.soundsEnabled };
   saveSettings(settings, localStorage);

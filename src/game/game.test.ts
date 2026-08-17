@@ -197,6 +197,11 @@ test("run plays a full game to a valid conclusion", async () => {
       for (const seat of outcome.eliminated) {
         assert.ok(outcome.struck.includes(seat), `seed=${seed}: eliminated seat ${seat} not in struck`);
       }
+      assert.ok(["31", "knock"].includes(outcome.endReason.type), `seed=${seed}: unexpected endReason.type ${outcome.endReason.type}`);
+      assert.ok(
+        outcome.result.players.some((pr) => pr.seat === outcome.endReason.seat),
+        `seed=${seed}: endReason.seat ${outcome.endReason.seat} did not take part in the round`,
+      );
     }
   }
 });

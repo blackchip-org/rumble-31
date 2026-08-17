@@ -174,7 +174,7 @@ test("run: knock ends the round after one full lap", async () => {
   );
   r.firstSeat = 0;
 
-  const { log } = await r.run();
+  const { log, endReason } = await r.run();
 
   // Seat 0 keeps (turn 0), seat 1 knocks (turn 1), seats 2 and 3
   // each get one more turn (turns 2, 3), seat 0 gets its promised extra
@@ -185,6 +185,7 @@ test("run: knock ends the round after one full lap", async () => {
     [0, 1, 2, 3, 0],
   );
   assert.equal(log[1]?.action.type, "knock");
+  assert.deepEqual(endReason, { type: "knock", seat: 1 });
 });
 
 test("run: onTurn callback fires once per logged turn, in order", async () => {
@@ -281,9 +282,10 @@ test("run: a hand already at 31 for the round's very first actor ends the round 
     [neverCalled, neverCalled, neverCalled, neverCalled],
   );
 
-  const { log, result } = await r.run();
+  const { log, result, endReason } = await r.run();
   assert.equal(log.length, 0);
   assert.deepEqual(result.winners, [0]);
+  assert.deepEqual(endReason, { type: "31", seat: 0 });
 });
 
 test("run: a hand already at 31 for a later seat ends the round the moment their turn starts", async () => {
@@ -298,13 +300,14 @@ test("run: a hand already at 31 for a later seat ends the round the moment their
   ];
   const r = new Round(mustPot("Kc", "Qd", "Jc"), players, 0);
 
-  const { log, result } = await r.run();
+  const { log, result, endReason } = await r.run();
   assert.equal(log.length, 2);
   assert.deepEqual(
     log.map((rec) => rec.seat),
     [0, 1],
   );
   assert.deepEqual(result.winners, [2]);
+  assert.deepEqual(endReason, { type: "31", seat: 2 });
 });
 
 test("run: an exchange bringing the round's first actor to 31 ends the round immediately", async () => {
@@ -321,10 +324,11 @@ test("run: an exchange bringing the round's first actor to 31 ends the round imm
   ];
   const r = new Round(mustPot("Ah", "Kh", "Th"), players, 0);
 
-  const { log } = await r.run();
+  const { log, endReason } = await r.run();
   assert.equal(log.length, 1);
   assert.equal(log[0]?.action.type, "exchange");
   assert.equal(log[0]?.scoreAfter, 31);
+  assert.deepEqual(endReason, { type: "31", seat: 0 });
 });
 
 test("run: a trade bringing a hand to 31 on that player's own first turn ends the round immediately", async () => {

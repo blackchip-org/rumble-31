@@ -1,5 +1,5 @@
 import { newRound } from "./round.ts";
-import type { RoundDealOverride } from "./round.ts";
+import type { RoundDealOverride, RoundEndReason } from "./round.ts";
 import { Rng } from "../rng.ts";
 import type { ParsedStrikes } from "./strikes.ts";
 import type { Hand, Pot, Result, Strategy, TurnRecord } from "./types.ts";
@@ -12,6 +12,7 @@ export interface RoundOutcome {
   struck: number[];
   eliminated: number[];
   secondChanceGranted: number[];
+  endReason: RoundEndReason;
 }
 
 // nextActiveSeatClockwise returns the next seat clockwise from seat
@@ -152,7 +153,7 @@ export class Game {
     );
     r.onTurn = this.onTurn;
 
-    const { result } = await r.run();
+    const { result, endReason } = await r.run();
 
     const { struck, eliminated, secondChanceGranted } = this.applyResult(active, result);
 
@@ -161,7 +162,7 @@ export class Game {
       this.dealerSeat = nextActiveSeatClockwise(this.dealerSeat as number, stillActive);
     }
 
-    return { result, struck, eliminated, secondChanceGranted };
+    return { result, struck, eliminated, secondChanceGranted, endReason };
   }
 
   // run plays rounds until the game is over, for callers that don't need
