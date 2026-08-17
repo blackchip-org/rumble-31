@@ -1020,9 +1020,9 @@ body {
   width: 100%;
   min-height: 0;
   overflow-y: auto;
-  background: var(--panel-dark);
+  background: var(--panel);
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 1.25rem 1.5rem;
 }
 
@@ -1046,11 +1046,11 @@ body {
 .about-text a {
   color: var(--about-text-color);
   font-weight: var(--font-weight-bold);
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .about-text a:hover {
-  text-decoration: none;
+  text-decoration: underline;
 }
 
 .about-buttons {
