@@ -80,6 +80,14 @@ export interface GamepadInputHandle {
   stop(): void;
 }
 
+// getGamepads guards navigator.getGamepads itself: iOS Safari drops the
+// Gamepad API when the page is running standalone (added to the home
+// screen), even though it's present in a regular Safari tab, so calling
+// it unconditionally can throw and take down the whole page.
+function getGamepads(): (Gamepad | null)[] {
+  return typeof navigator.getGamepads === "function" ? navigator.getGamepads() : [];
+}
+
 // startGamepadInput polls navigator.getGamepads() via
 // requestAnimationFrame, edge-detecting D-pad/face/bumper button
 // presses and reporting each as an onAction(NavAction) or
@@ -96,7 +104,7 @@ export function startGamepadInput(onAction: (action: NavAction) => void, getSwap
 
   function poll(): void {
     const map = buttonMapFor(getSwapConfirmCancel());
-    for (const pad of navigator.getGamepads()) {
+    for (const pad of getGamepads()) {
       if (!pad) {
         continue;
       }
@@ -122,7 +130,7 @@ export function startGamepadInput(onAction: (action: NavAction) => void, getSwap
   }
 
   function hasGamepad(): boolean {
-    return navigator.getGamepads().some((p) => p !== null);
+    return getGamepads().some((p) => p !== null);
   }
 
   function start(): void {
