@@ -710,12 +710,24 @@ body {
 
 /* ---------- log panel ---------- */
 
+/* Matches .panel's width/height formulas and right/bottom edges so the
+   log lines up with East above it and South beside it, instead of
+   floating at its own size. The right offset mirrors how East's own
+   right edge is derived: #table's margin: 0 auto (its max-width:
+   1700px, above) plus .seat-east's own 1rem padding-right. bottom:
+   1rem matches #table's own padding-bottom, which is what South's
+   panel sits flush against. The height's chrome term (4.56rem) is
+   .panel's own padding (1.15rem) + its two 0.4rem row gaps (0.8rem) +
+   its score/strikes row (1.5rem) + its label row (~1.11rem, measured —
+   font-metric driven, not a clean rem value like the rest), matching
+   .panel's rendered height (var(--card-h) plus that chrome) so the log
+   panel is exactly as tall as South's panel. */
 #log-panel {
   position: fixed;
-  right: 1.25rem;
-  bottom: 1.25rem;
-  width: clamp(320px, 18vw, 460px);
-  max-height: min(260px, 28vh);
+  right: calc(max(0px, (100vw - 1700px) / 2) + 1rem);
+  bottom: 1rem;
+  width: calc(var(--card-w) * 3 + 3.2rem);
+  height: calc(var(--card-h) + 4.56rem);
   background: var(--panel-dark);
   border: 1px solid var(--panel-border);
   border-radius: 10px;
@@ -1404,6 +1416,7 @@ body {
   #log-panel {
     position: static;
     width: auto;
+    height: auto;
     max-height: none;
     margin: 1rem 1.5rem;
   }
