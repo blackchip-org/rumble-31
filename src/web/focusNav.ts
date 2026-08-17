@@ -448,6 +448,22 @@ export function focusHandCenter(): void {
   focusContainerCenter("hand");
 }
 
+// clearFocus drops the focus ring without moving it anywhere else --
+// domActionPrompt.ts calls this when a pick completes a trade, since
+// unlike a mid-trade pick (focusPotCenter/focusHandCenter above)
+// there's no further action left for focus to land on. No-ops if the
+// player has never used a controller/keyboard (navUsed, matching
+// focusPotCenter/focusHandCenter).
+export function clearFocus(): void {
+  if (!navUsed) {
+    return;
+  }
+  for (const el of document.querySelectorAll<HTMLElement>(`.${FOCUSED_CLASS}`)) {
+    el.classList.remove(FOCUSED_CLASS);
+  }
+  focusedEl = null;
+}
+
 // focusElementById focuses el (by id) if it's part of the current grid
 // -- used for targets that aren't a container's cards (see
 // focusContainerCenter above), such as a specific button.

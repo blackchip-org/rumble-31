@@ -89,9 +89,12 @@ Once a card in a pot's or hand's row is picked, focus jumps to the
 other row's center card, so a trade can be made with left/right and
 confirm alone: focus starts on the hand's center card as soon as
 trading becomes available each turn; picking a hand card moves focus
-to the pot's center card, and picking a pot card (whether picked first
-or after the hand) moves focus to the hand's center card. Un-picking a
-card (activating an already-picked card again) does not move focus.
+to the pot's center card, and picking a pot card moves focus to the
+hand's center card -- unless that pick is the second of the pair (a
+hand card is already picked, or vice versa), completing the trade: no
+further action remains to take, so focus is dropped instead of moved.
+Un-picking a card (activating an already-picked card again) does not
+move focus.
 
 On the round's first turn, when cards aren't part of the focus order
 at all (see Card Navigation above), focus instead starts on the Keep

@@ -1,7 +1,7 @@
 import { score } from "../card/score.ts";
 import type { Action, PlayerView, Strategy } from "../game/types.ts";
 import { exchange, knock } from "../game/types.ts";
-import { focusHandCenter, focusKnockButton, focusPotCenter } from "./focusNav.ts";
+import { clearFocus, focusHandCenter, focusKnockButton, focusPotCenter } from "./focusNav.ts";
 import { setScore } from "./panels.ts";
 import { renderBacks, renderCards, setBackHighlight } from "./render.ts";
 import { TradeSelection } from "./tradeSelection.ts";
@@ -114,6 +114,7 @@ export class DomActionPrompt implements Strategy {
           return;
         }
         settled = true;
+        clearFocus();
         detach();
         resolve(action);
       };
@@ -164,11 +165,10 @@ export class DomActionPrompt implements Strategy {
             const picking = selection.handIndex() !== i;
             selection.clickHand(i);
             syncSelection();
-            if (picking) {
-              focusPotCenter();
-            }
             if (selection.ready()) {
               finish(selection.action());
+            } else if (picking) {
+              focusPotCenter();
             }
           });
         });
@@ -178,11 +178,10 @@ export class DomActionPrompt implements Strategy {
             const picking = selection.potIndex() !== i;
             selection.clickPot(i);
             syncSelection();
-            if (picking) {
-              focusHandCenter();
-            }
             if (selection.ready()) {
               finish(selection.action());
+            } else if (picking) {
+              focusHandCenter();
             }
           });
         });
