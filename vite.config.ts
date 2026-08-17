@@ -5,9 +5,10 @@ import { defineConfig } from "vite";
 // plain relative paths (e.g. "../game/game.ts"), same as the CLI does.
 export default defineConfig({
   root: "src/web",
-  // Deployed at https://<host>/rumble31/, not the domain root, so
-  // asset URLs need that prefix or they 404 against the root instead.
-  base: "/rumble31/",
+  // Deployed under a subpath that moves around (e.g. /rumble31/,
+  // /v3/ during WIP), not the domain root, so asset URLs are built
+  // relative to index.html rather than pinned to one absolute prefix.
+  base: "./",
   build: {
     outDir: "../../dist/web",
     emptyOutDir: true,
