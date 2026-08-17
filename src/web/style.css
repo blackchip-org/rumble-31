@@ -1043,6 +1043,16 @@ body {
   line-height: 1.5;
 }
 
+.about-text a {
+  color: var(--about-text-color);
+  font-weight: var(--font-weight-bold);
+  text-decoration: underline;
+}
+
+.about-text a:hover {
+  text-decoration: none;
+}
+
 .about-buttons {
   display: flex;
   flex-direction: column;
