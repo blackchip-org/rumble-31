@@ -9,9 +9,7 @@ setting, the second column is a control to adjust the setting. The
 settings are:
 
 - Sounds
-- Bot 1
-- Bot 2
-- Bot 3
+- Difficulty
 - Confirm/Cancel
 - Reset
 
@@ -19,10 +17,12 @@ Sounds is a button that by default reads "Enabled". Clicking on it toggles
 to "Disabled". When this setting is disabled, the application should
 not emit any sounds.
 
-For each bot setting there is a button that by default reads "Easy".
-Clicking on it cycles through "Easy", "Regular", "Difficult". Changing
-a bot setting takes effect starting with the next game; it has no
-effect on a game already in progress.
+Difficulty is a button that by default reads "Moderate". Clicking on it
+cycles through "Easy", "Moderate", "Hard". Each difficulty determines
+the three bot strategies (specs/bots.md) seated for the game's three bot
+seats, per the mapping configured in config.ts. Changing the difficulty
+takes effect starting with the next game; it has no effect on a game
+already in progress.
 
 Confirm/Cancel is a button that by default reads "Standard". Clicking
 on it toggles to "Swapped". This controls which controller face
@@ -39,9 +39,9 @@ back on the Main Menu or the Application Info screen exactly as a
 fresh visit would (specs/screens/appinfo.md). Clicking on "No"
 dismisses the dialog box.
 
-When the Settings screen is entered via the Game Menu, the Bot settings
-should be disabled. Those settings should not be modified while a game
-is in progress.
+When the Settings screen is entered via the Game Menu, the Difficulty
+setting should be disabled. It should not be modified while a game is
+in progress.
 
 A "Main Menu" or "Game Menu" button is shown below the settings depending
 on which screen it came from. Clicking on that button will navigate back to
@@ -53,6 +53,6 @@ These settings should be saved and retrieved from local storage.
 ## Mobile
 
 In landscape orientation, on a narrow enough (phone-sized) viewport,
-the settings list is arranged into two side-by-side groups of three
-label/control pairs each, instead of one column of six, so the whole
+the settings list is arranged into two side-by-side groups of two
+label/control pairs each, instead of one column of four, so the whole
 panel fits the shorter viewport height.

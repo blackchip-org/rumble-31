@@ -3,6 +3,9 @@
 Values that should be available for the developer to tweak easily are
 included in a config.ts file. It holds the following constants:
 
+- DIFFICULTY_BOT_STRATEGIES: Maps each Difficulty option of the
+Settings Screen (specs/screens/settings.md) to the three bot
+strategies (specs/bots.md) seated for that game's three bot seats.
 - MIN_BOT_THINK_TIME: The minimum number of milliseconds to pause to
 simulate bot thinking.
 - MAX_BOT_THINK_TIME: The maximum number of milliseconds to pause to

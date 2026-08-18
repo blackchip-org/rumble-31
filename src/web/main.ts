@@ -4,8 +4,8 @@
 
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
-import { BOT_NAMES, createBot, snapshotBot, type BotMemory, type BotName } from "../bot/factory.ts";
-import { DEAL_ANIMATION_DELAY, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME } from "../config.ts";
+import { createBot, snapshotBot, type BotMemory, type BotName } from "../bot/factory.ts";
+import { DEAL_ANIMATION_DELAY, DIFFICULTIES, DIFFICULTY_BOT_STRATEGIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
@@ -304,9 +304,7 @@ const htpMainMenuBtn = must<HTMLButtonElement>("htp-main-menu-btn");
 
 const settingsScreenEl = must<HTMLElement>("settings-screen");
 const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
-const bot1ToggleBtn = must<HTMLButtonElement>("bot1-toggle-btn");
-const bot2ToggleBtn = must<HTMLButtonElement>("bot2-toggle-btn");
-const bot3ToggleBtn = must<HTMLButtonElement>("bot3-toggle-btn");
+const difficultyToggleBtn = must<HTMLButtonElement>("difficulty-toggle-btn");
 const confirmCancelToggleBtn = must<HTMLButtonElement>("confirm-cancel-toggle-btn");
 const settingsBackBtn = must<HTMLButtonElement>("settings-back-btn");
 const resetBtn = must<HTMLButtonElement>("reset-btn");
@@ -1138,35 +1136,34 @@ function syncConfirmCancelToggleBtn(): void {
   confirmCancelToggleBtn.textContent = settings.swapConfirmCancel ? "Swapped" : "Standard";
 }
 
-// BOT_LABELS maps a BotName to its Settings Screen button label
-// (specs/gui.md's Settings Screen section: "Easy", "Regular",
-// "Difficult").
+// BOT_LABELS maps a BotName to its game-log label (specs/log.md: "Easy",
+// "Regular", "Difficult").
 const BOT_LABELS: Record<BotName, string> = { easy: "Easy", regular: "Regular", difficult: "Difficult" };
 
-// syncBotToggleBtns sets each of the three bot toggle buttons' labels
-// to match settings.bot1/bot2/bot3.
-function syncBotToggleBtns(): void {
-  bot1ToggleBtn.textContent = BOT_LABELS[settings.bot1];
-  bot2ToggleBtn.textContent = BOT_LABELS[settings.bot2];
-  bot3ToggleBtn.textContent = BOT_LABELS[settings.bot3];
+// DIFFICULTY_LABELS maps a Difficulty to its Settings Screen button
+// label (specs/screens/settings.md: "Easy", "Moderate", "Hard").
+const DIFFICULTY_LABELS: Record<Difficulty, string> = { easy: "Easy", moderate: "Moderate", hard: "Hard" };
+
+// syncDifficultyToggleBtn sets the difficulty toggle button's label to
+// match settings.difficulty.
+function syncDifficultyToggleBtn(): void {
+  difficultyToggleBtn.textContent = DIFFICULTY_LABELS[settings.difficulty];
 }
 
 // showSettingsScreen swaps whichever screen is up for the settings
 // screen (per specs/gui.md's Main Screen and Game Menu Screen
 // sections' "Settings" buttons), and persists it -- together with
 // origin -- as the screen to resume (specs/state.md). Entered from the
-// Game Menu, the bot-difficulty toggles are disabled (a game is in
+// Game Menu, the Difficulty toggle is disabled (a game is in
 // progress) and the back button reads "Game Menu" instead of "Main
 // Menu" (wired below, alongside the other menu/settings listeners).
 function showSettingsScreen(origin: SettingsOrigin): void {
   currentSettingsOrigin = origin;
   syncSoundsToggleBtn();
-  syncBotToggleBtns();
+  syncDifficultyToggleBtn();
   syncConfirmCancelToggleBtn();
   const fromMenu = origin.from === "menu";
-  bot1ToggleBtn.disabled = fromMenu;
-  bot2ToggleBtn.disabled = fromMenu;
-  bot3ToggleBtn.disabled = fromMenu;
+  difficultyToggleBtn.disabled = fromMenu;
   settingsBackBtn.textContent = fromMenu ? "Game Menu" : "Main Menu";
   hideAllScreens();
   settingsScreenEl.hidden = false;
@@ -1264,7 +1261,7 @@ function showDebugGameOverScreen(params: DebugParams): void {
         secondChance: params.initialStrikes.secondChance,
         roundNum: 1,
         dealerSeat: 0,
-        botSeats: [settings.bot1, settings.bot2, settings.bot3],
+        botSeats: DIFFICULTY_BOT_STRATEGIES[settings.difficulty],
         log: logLines(),
         southWon,
       },
@@ -1387,26 +1384,16 @@ confirmCancelToggleBtn.addEventListener("click", () => {
   syncConfirmCancelToggleBtn();
 });
 
-// nextBotName cycles a BotName through BOT_NAMES's order (specs/gui.md's
-// Settings Screen section: "Easy", "Regular", "Difficult").
-function nextBotName(name: BotName): BotName {
-  return BOT_NAMES[(BOT_NAMES.indexOf(name) + 1) % BOT_NAMES.length] as BotName;
+// nextDifficulty cycles a Difficulty through DIFFICULTIES's order
+// (specs/screens/settings.md: "Easy", "Moderate", "Hard").
+function nextDifficulty(difficulty: Difficulty): Difficulty {
+  return DIFFICULTIES[(DIFFICULTIES.indexOf(difficulty) + 1) % DIFFICULTIES.length] as Difficulty;
 }
 
-bot1ToggleBtn.addEventListener("click", () => {
-  settings = { ...settings, bot1: nextBotName(settings.bot1) };
+difficultyToggleBtn.addEventListener("click", () => {
+  settings = { ...settings, difficulty: nextDifficulty(settings.difficulty) };
   saveSettings(settings, localStorage);
-  syncBotToggleBtns();
-});
-bot2ToggleBtn.addEventListener("click", () => {
-  settings = { ...settings, bot2: nextBotName(settings.bot2) };
-  saveSettings(settings, localStorage);
-  syncBotToggleBtns();
-});
-bot3ToggleBtn.addEventListener("click", () => {
-  settings = { ...settings, bot3: nextBotName(settings.bot3) };
-  saveSettings(settings, localStorage);
-  syncBotToggleBtns();
+  syncDifficultyToggleBtn();
 });
 
 newGameBtn.addEventListener("click", () => showGameScreen());

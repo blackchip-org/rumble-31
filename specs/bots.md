@@ -9,11 +9,12 @@ these are:
 - Regular
 - Difficult
 
-At the start of the game, each bot (of 3) is given a strategy according 
-to what is defined in the settings: the "Bot 1" setting's difficulty for
-the first bot, "Bot 2"'s for the second, and "Bot 3"'s for the third.
-These three bots are then randomly assigned to the remaining seats (the
-human is always South), so which setting ends up in which seat varies
+At the start of the game, the three bots' strategies are chosen
+according to the Settings Screen's Difficulty setting (specs/screens/
+settings.md: "Easy", "Moderate", or "Hard"), each of which maps to a
+tuple of three of the strategies above, configured in config.ts. These
+three bots are then randomly assigned to the remaining seats (the
+human is always South), so which strategy ends up in which seat varies
 from game to game.
 
 In the descriptions below, the following applies:

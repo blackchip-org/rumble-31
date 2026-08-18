@@ -1,5 +1,22 @@
 // Developer-tunable constants, per specs/config.md.
 
+import type { BotName } from "./bot/factory.ts";
+
+// DIFFICULTIES/Difficulty are the Settings Screen's "Difficulty" option
+// (specs/screens/settings.md), each mapping to the three bot strategies
+// (specs/bots.md) seated for a game's three bot seats, per
+// DIFFICULTY_BOT_STRATEGIES below.
+export const DIFFICULTIES = ["easy", "moderate", "hard"] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+
+// DIFFICULTY_BOT_STRATEGIES maps each Difficulty to the three bot
+// strategies assigned to that game's bot seats (specs/bots.md).
+export const DIFFICULTY_BOT_STRATEGIES: Record<Difficulty, [BotName, BotName, BotName]> = {
+  easy: ["easy", "regular", "regular"],
+  moderate: ["regular", "regular", "difficult"],
+  hard: ["difficult", "difficult", "difficult"],
+};
+
 // MIN_BOT_THINK_TIME/MAX_BOT_THINK_TIME bound the random pause used to
 // simulate a bot thinking before it decides, in milliseconds.
 export const MIN_BOT_THINK_TIME = 500;
