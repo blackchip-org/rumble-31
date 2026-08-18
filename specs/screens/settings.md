@@ -49,3 +49,10 @@ that screen. If this screen was entered using a URL parameter, it shows
 the "Main Menu" button.
 
 These settings should be saved and retrieved from local storage.
+
+## Mobile
+
+In landscape orientation, on a narrow enough (phone-sized) viewport,
+the settings list is arranged into two side-by-side groups of three
+label/control pairs each, instead of one column of six, so the whole
+panel fits the shorter viewport height.
