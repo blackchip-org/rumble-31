@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseCard } from "../card/card.ts";
-import { tilePosition } from "./cardSheet.ts";
+import { setSuitColor, tilePosition } from "./cardSheet.ts";
 
-test("tilePosition", () => {
+test("tilePosition defaults to the four-color deck", () => {
   const cases: Array<{ name: string; card: string; wantRow: number; wantCol: number }> = [
     { name: "ace is column 1, not the last column", card: "Ah", wantRow: 3, wantCol: 1 },
     { name: "spades use the black row", card: "7s", wantRow: 2, wantCol: 7 },
@@ -18,5 +18,25 @@ test("tilePosition", () => {
   for (const { name, card, wantRow, wantCol } of cases) {
     const got = tilePosition(parseCard(card));
     assert.deepEqual(got, { row: wantRow, col: wantCol }, name);
+  }
+});
+
+test("tilePosition follows setSuitColor", () => {
+  const cases: Array<{ name: string; suitColor: "four" | "two"; card: string; wantRow: number }> = [
+    { name: "four: diamonds use the blue row", suitColor: "four", card: "9d", wantRow: 6 },
+    { name: "four: clubs use the green row", suitColor: "four", card: "9c", wantRow: 7 },
+    { name: "two: diamonds use the red row", suitColor: "two", card: "9d", wantRow: 4 },
+    { name: "two: clubs use the black row", suitColor: "two", card: "9c", wantRow: 5 },
+    { name: "two: spades still use the black row", suitColor: "two", card: "9s", wantRow: 2 },
+    { name: "two: hearts still use the red row", suitColor: "two", card: "9h", wantRow: 3 },
+  ];
+
+  try {
+    for (const { name, suitColor, card, wantRow } of cases) {
+      setSuitColor(suitColor);
+      assert.equal(tilePosition(parseCard(card)).row, wantRow, name);
+    }
+  } finally {
+    setSuitColor("four");
   }
 });

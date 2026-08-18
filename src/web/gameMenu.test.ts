@@ -18,7 +18,7 @@ function params(strikesRaw: string): DebugParams {
   };
 }
 
-const settings: Settings = { soundsEnabled: true, difficulty: "moderate", swapConfirmCancel: false };
+const settings: Settings = { soundsEnabled: true, difficulty: "moderate", swapConfirmCancel: false, suitColor: "four" };
 
 const cases = [
   {

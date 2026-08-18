@@ -10,12 +10,34 @@ export const SHEET_ROWS = 11;
 
 // assets/cards-highlight.png (see specs/assets.md) mirrors cards.png's
 // geometry exactly -- same row/column layout and same tile size -- so
-// SUIT_ROW/RANK_COL and every constant above apply to both sheets
+// SUIT_ROWS/RANK_COL and every constant above apply to both sheets
 // unchanged.
 
-// SUIT_ROW picks the tile sheet's own "4-color deck" rows (2, 3, 6, 7):
-// spades black, hearts red, diamonds blue, clubs green.
-const SUIT_ROW: Record<Suit, number> = { s: 2, h: 3, d: 6, c: 7 };
+// SUIT_COLORS/SuitColor are the Settings Screen's "Suit Color" option
+// (specs/screens/settings.md), each selecting one row set from
+// SUIT_ROWS below.
+export const SUIT_COLORS = ["four", "two"] as const;
+export type SuitColor = (typeof SUIT_COLORS)[number];
+
+// SUIT_ROWS maps each SuitColor to the tile sheet's own rows for that
+// deck (assets/cards.md): "four" picks the 4-color deck's rows (2, 3,
+// 6, 7) -- spades black, hearts red, diamonds blue, clubs green;
+// "two" picks the 2-color deck's rows (2, 3, 4, 5) -- spades black,
+// hearts red, diamonds red, clubs black.
+const SUIT_ROWS: Record<SuitColor, Record<Suit, number>> = {
+  four: { s: 2, h: 3, d: 6, c: 7 },
+  two: { s: 2, h: 3, d: 4, c: 5 },
+};
+
+// currentSuitColor is set once per game start (setSuitColor, called
+// alongside initCardSheetVars) rather than threaded as a parameter
+// through every render.ts call site.
+let currentSuitColor: SuitColor = "four";
+
+// setSuitColor selects which SUIT_ROWS row set tilePosition uses.
+export function setSuitColor(suitColor: SuitColor): void {
+  currentSuitColor = suitColor;
+}
 
 // RANK_COL maps this 32-card deck's ranks (7 8 9 T J Q K A, per
 // card.ts's RANKS) to their 1-based column. The sheet orders every row
@@ -38,7 +60,7 @@ export interface TilePosition {
 }
 
 export function tilePosition(c: Card): TilePosition {
-  return { row: SUIT_ROW[c.suit], col: RANK_COL[c.rank] };
+  return { row: SUIT_ROWS[currentSuitColor][c.suit], col: RANK_COL[c.rank] };
 }
 
 // BACK_TILE is the sheet's light-red card back (row 1, column 8 per

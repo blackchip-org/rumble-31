@@ -2,6 +2,7 @@
 // to a Storage (localStorage in the browser) as a single JSON blob.
 
 import { DIFFICULTIES, type Difficulty } from "../config.ts";
+import { SUIT_COLORS, type SuitColor } from "./cardSheet.ts";
 
 const STORAGE_KEY = "rumble31.settings";
 
@@ -13,12 +14,24 @@ export interface Settings {
   // used to a Nintendo-style layout instead of the default W3C
   // Standard Gamepad one.
   swapConfirmCancel: boolean;
+  // suitColor picks how many colors distinguish the four suits when
+  // rendering cards (specs/screens/settings.md).
+  suitColor: SuitColor;
 }
 
-export const defaultSettings: Settings = { soundsEnabled: true, difficulty: "moderate", swapConfirmCancel: false };
+export const defaultSettings: Settings = {
+  soundsEnabled: true,
+  difficulty: "moderate",
+  swapConfirmCancel: false,
+  suitColor: "four",
+};
 
 function isDifficulty(value: unknown): value is Difficulty {
   return typeof value === "string" && (DIFFICULTIES as readonly string[]).includes(value);
+}
+
+function isSuitColor(value: unknown): value is SuitColor {
+  return typeof value === "string" && (SUIT_COLORS as readonly string[]).includes(value);
 }
 
 // loadSettings reads Settings from storage, falling back to
@@ -36,13 +49,15 @@ export function loadSettings(storage: Storage): Settings {
     }
     const p = parsed as Record<string, unknown>;
     if (typeof p.soundsEnabled === "boolean") {
-      // swapConfirmCancel and difficulty (which replaced the older
-      // bot1/bot2/bot3 fields) both postdate soundsEnabled -- a value
-      // saved before either existed falls back to its default instead
-      // of invalidating the rest of an otherwise-valid settings blob.
+      // swapConfirmCancel, difficulty (which replaced the older
+      // bot1/bot2/bot3 fields), and suitColor all postdate
+      // soundsEnabled -- a value saved before any of them existed
+      // falls back to its default instead of invalidating the rest of
+      // an otherwise-valid settings blob.
       const swapConfirmCancel = typeof p.swapConfirmCancel === "boolean" ? p.swapConfirmCancel : defaultSettings.swapConfirmCancel;
       const difficulty = isDifficulty(p.difficulty) ? p.difficulty : defaultSettings.difficulty;
-      return { soundsEnabled: p.soundsEnabled, difficulty, swapConfirmCancel };
+      const suitColor = isSuitColor(p.suitColor) ? p.suitColor : defaultSettings.suitColor;
+      return { soundsEnabled: p.soundsEnabled, difficulty, swapConfirmCancel, suitColor };
     }
   } catch {
     // Falls through to the default below.

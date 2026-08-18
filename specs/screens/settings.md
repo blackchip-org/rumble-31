@@ -10,6 +10,7 @@ settings are:
 
 - Sounds
 - Difficulty
+- Suit Color
 - Confirm/Cancel
 - Reset
 
@@ -23,6 +24,12 @@ the three bot strategies (specs/bots.md) seated for the game's three bot
 seats, per the mapping configured in config.ts. Changing the difficulty
 takes effect starting with the next game; it has no effect on a game
 already in progress.
+
+Suit Color is a button that by default reads "Four". Clicking on it
+toggles to "Two". "Four" renders each suit's cards in a different
+color: spades black, hearts red, diamonds blue, clubs green. "Two"
+renders cards using only black and red: spades and clubs black,
+hearts and diamonds red.
 
 Confirm/Cancel is a button that by default reads "Standard". Clicking
 on it toggles to "Swapped". This controls which controller face
@@ -53,6 +60,7 @@ These settings should be saved and retrieved from local storage.
 ## Mobile
 
 In landscape orientation, on a narrow enough (phone-sized) viewport,
-the settings list is arranged into two side-by-side groups of two
-label/control pairs each, instead of one column of four, so the whole
-panel fits the shorter viewport height.
+the settings list is arranged into two side-by-side groups (Sounds,
+Difficulty, and Suit Color on the left; Confirm/Cancel and Reset on
+the right), instead of one column of five, so the whole panel fits the
+shorter viewport height.

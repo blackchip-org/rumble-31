@@ -1682,22 +1682,22 @@ body {
     width: auto;
   }
 
-  /* Settings' four label/control rows (see index.html's .settings-grid
-     markup -- 8 children in label, control, label, control... order),
+  /* Settings' five label/control rows (see index.html's .settings-grid
+     markup -- 10 children in label, control, label, control... order),
      stacked in a single column at every other breakpoint, don't fit
      this breakpoint's shortest phones alongside the fixed 2.25rem
      title (.settings-title doesn't scale with the viewport -- see the
      main/game-over/appinfo comment above). Widening the grid to 4
-     columns and explicitly placing each child repacks the same 8
-     items into two side-by-side label/control groups of 2 rows each
-     (Sounds/Difficulty on the left, Confirm-Cancel/Reset on the
-     right) instead of one column of 4, roughly halving the grid's
-     height. Plain grid-auto-flow: column doesn't work here -- it
-     fills each column top to bottom before moving to the next, so
-     with 2-row columns it'd split each label/control *pair* across
-     two different columns instead of keeping pairs together. Explicit
-     placement below assumes exactly 4 settings rows in that DOM
-     order -- if one is ever added, removed, or reordered, these
+     columns and explicitly placing each child repacks the same 10
+     items into two side-by-side label/control groups (Sounds/
+     Difficulty/Suit Color on the left, 3 rows; Confirm-Cancel/Reset on
+     the right, 2 rows) instead of one column of 5, roughly halving the
+     grid's height. Plain grid-auto-flow: column doesn't work here --
+     it fills each column top to bottom before moving to the next, so
+     with uneven-length columns it'd split each label/control *pair*
+     across two different columns instead of keeping pairs together.
+     Explicit placement below assumes exactly 5 settings rows in that
+     DOM order -- if one is ever added, removed, or reordered, these
      nth-child rules need updating to match. */
   .settings-panel {
     gap: 1rem;
@@ -1709,37 +1709,44 @@ body {
   }
 
   .settings-grid > *:nth-child(1),
-  .settings-grid > *:nth-child(3) {
+  .settings-grid > *:nth-child(3),
+  .settings-grid > *:nth-child(5) {
     grid-column: 1;
   }
 
   .settings-grid > *:nth-child(2),
-  .settings-grid > *:nth-child(4) {
+  .settings-grid > *:nth-child(4),
+  .settings-grid > *:nth-child(6) {
     grid-column: 2;
   }
 
-  .settings-grid > *:nth-child(5),
-  .settings-grid > *:nth-child(7) {
+  .settings-grid > *:nth-child(7),
+  .settings-grid > *:nth-child(9) {
     grid-column: 3;
   }
 
-  .settings-grid > *:nth-child(6),
-  .settings-grid > *:nth-child(8) {
+  .settings-grid > *:nth-child(8),
+  .settings-grid > *:nth-child(10) {
     grid-column: 4;
   }
 
   .settings-grid > *:nth-child(1),
   .settings-grid > *:nth-child(2),
-  .settings-grid > *:nth-child(5),
-  .settings-grid > *:nth-child(6) {
+  .settings-grid > *:nth-child(7),
+  .settings-grid > *:nth-child(8) {
     grid-row: 1;
   }
 
   .settings-grid > *:nth-child(3),
   .settings-grid > *:nth-child(4),
-  .settings-grid > *:nth-child(7),
-  .settings-grid > *:nth-child(8) {
+  .settings-grid > *:nth-child(9),
+  .settings-grid > *:nth-child(10) {
     grid-row: 2;
+  }
+
+  .settings-grid > *:nth-child(5),
+  .settings-grid > *:nth-child(6) {
+    grid-row: 3;
   }
 
   .settings-screen {

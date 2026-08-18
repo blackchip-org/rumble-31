@@ -28,18 +28,18 @@ test("loadSettings", () => {
     { name: "nothing stored: falls back to defaults", stored: {}, want: defaultSettings },
     {
       name: "valid stored value",
-      stored: { "rumble31.settings": '{"soundsEnabled":false,"difficulty":"hard","swapConfirmCancel":true}' },
-      want: { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: true },
+      stored: { "rumble31.settings": '{"soundsEnabled":false,"difficulty":"hard","swapConfirmCancel":true,"suitColor":"two"}' },
+      want: { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: true, suitColor: "two" },
     },
     {
-      name: "value saved before swapConfirmCancel existed: falls back to its default, keeps the rest",
+      name: "value saved before swapConfirmCancel and suitColor existed: falls back to their defaults, keeps the rest",
       stored: { "rumble31.settings": '{"soundsEnabled":false,"difficulty":"hard"}' },
-      want: { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: false },
+      want: { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: false, suitColor: defaultSettings.suitColor },
     },
     {
       name: "value saved before difficulty existed (old bot1/2/3 fields): falls back to default difficulty, keeps the rest",
       stored: { "rumble31.settings": '{"soundsEnabled":false,"bot1":"regular","bot2":"difficult","bot3":"easy","swapConfirmCancel":true}' },
-      want: { soundsEnabled: false, difficulty: defaultSettings.difficulty, swapConfirmCancel: true },
+      want: { soundsEnabled: false, difficulty: defaultSettings.difficulty, swapConfirmCancel: true, suitColor: defaultSettings.suitColor },
     },
     { name: "malformed JSON: falls back to defaults", stored: { "rumble31.settings": "not json" }, want: defaultSettings },
     { name: "JSON missing soundsEnabled: falls back to defaults", stored: { "rumble31.settings": '{"difficulty":"easy"}' }, want: defaultSettings },
@@ -47,7 +47,12 @@ test("loadSettings", () => {
     {
       name: "JSON with invalid difficulty value: falls back to default difficulty, keeps the rest",
       stored: { "rumble31.settings": '{"soundsEnabled":true,"difficulty":"nightmare"}' },
-      want: { soundsEnabled: true, difficulty: defaultSettings.difficulty, swapConfirmCancel: defaultSettings.swapConfirmCancel },
+      want: { soundsEnabled: true, difficulty: defaultSettings.difficulty, swapConfirmCancel: defaultSettings.swapConfirmCancel, suitColor: defaultSettings.suitColor },
+    },
+    {
+      name: "JSON with invalid suitColor value: falls back to default suit color, keeps the rest",
+      stored: { "rumble31.settings": '{"soundsEnabled":true,"suitColor":"three"}' },
+      want: { soundsEnabled: true, difficulty: defaultSettings.difficulty, swapConfirmCancel: defaultSettings.swapConfirmCancel, suitColor: defaultSettings.suitColor },
     },
   ];
 
@@ -59,7 +64,7 @@ test("loadSettings", () => {
 
 test("saveSettings round-trips through loadSettings", () => {
   const storage = memoryStorage();
-  const settings: Settings = { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: true };
+  const settings: Settings = { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: true, suitColor: "two" };
   saveSettings(settings, storage);
   assert.deepEqual(loadSettings(storage), settings);
 

@@ -33,6 +33,7 @@ import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
 import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
+import { setSuitColor, SUIT_COLORS, type SuitColor } from "./cardSheet.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 import { licenses } from "./licensesData.ts";
 import { defaultLicense, sortedLicenses } from "./licensesScreen.ts";
@@ -305,6 +306,7 @@ const htpMainMenuBtn = must<HTMLButtonElement>("htp-main-menu-btn");
 const settingsScreenEl = must<HTMLElement>("settings-screen");
 const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
 const difficultyToggleBtn = must<HTMLButtonElement>("difficulty-toggle-btn");
+const suitColorToggleBtn = must<HTMLButtonElement>("suit-color-toggle-btn");
 const confirmCancelToggleBtn = must<HTMLButtonElement>("confirm-cancel-toggle-btn");
 const settingsBackBtn = must<HTMLButtonElement>("settings-back-btn");
 const resetBtn = must<HTMLButtonElement>("reset-btn");
@@ -703,6 +705,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
 
   initCardSheetVars();
   initStrikeBlinkVar();
+  setSuitColor(settings.suitColor);
 
   const seed = Date.now();
   const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn, signal);
@@ -1150,6 +1153,16 @@ function syncDifficultyToggleBtn(): void {
   difficultyToggleBtn.textContent = DIFFICULTY_LABELS[settings.difficulty];
 }
 
+// SUIT_COLOR_LABELS maps a SuitColor to its Settings Screen button
+// label (specs/screens/settings.md: "Four", "Two").
+const SUIT_COLOR_LABELS: Record<SuitColor, string> = { four: "Four", two: "Two" };
+
+// syncSuitColorToggleBtn sets the suit color toggle button's label to
+// match settings.suitColor.
+function syncSuitColorToggleBtn(): void {
+  suitColorToggleBtn.textContent = SUIT_COLOR_LABELS[settings.suitColor];
+}
+
 // showSettingsScreen swaps whichever screen is up for the settings
 // screen (per specs/gui.md's Main Screen and Game Menu Screen
 // sections' "Settings" buttons), and persists it -- together with
@@ -1161,6 +1174,7 @@ function showSettingsScreen(origin: SettingsOrigin): void {
   currentSettingsOrigin = origin;
   syncSoundsToggleBtn();
   syncDifficultyToggleBtn();
+  syncSuitColorToggleBtn();
   syncConfirmCancelToggleBtn();
   const fromMenu = origin.from === "menu";
   difficultyToggleBtn.disabled = fromMenu;
@@ -1394,6 +1408,18 @@ difficultyToggleBtn.addEventListener("click", () => {
   settings = { ...settings, difficulty: nextDifficulty(settings.difficulty) };
   saveSettings(settings, localStorage);
   syncDifficultyToggleBtn();
+});
+
+// nextSuitColor cycles a SuitColor through SUIT_COLORS's order
+// (specs/screens/settings.md: "Four", "Two").
+function nextSuitColor(suitColor: SuitColor): SuitColor {
+  return SUIT_COLORS[(SUIT_COLORS.indexOf(suitColor) + 1) % SUIT_COLORS.length] as SuitColor;
+}
+
+suitColorToggleBtn.addEventListener("click", () => {
+  settings = { ...settings, suitColor: nextSuitColor(settings.suitColor) };
+  saveSettings(settings, localStorage);
+  syncSuitColorToggleBtn();
 });
 
 newGameBtn.addEventListener("click", () => showGameScreen());
