@@ -10,8 +10,9 @@ settings are:
 
 - Sounds
 - Difficulty
-- Suit Color
+- Suit Colors
 - Confirm/Cancel
+- Focus First
 - Reset
 
 Sounds is a button that by default reads "Enabled". Clicking on it toggles
@@ -25,7 +26,7 @@ seats, per the mapping configured in config.ts. Changing the difficulty
 takes effect starting with the next game; it has no effect on a game
 already in progress.
 
-Suit Color is a button that by default reads "Four". Clicking on it
+Suit Colors is a button that by default reads "Four". Clicking on it
 toggles to "Two". "Four" renders each suit's cards in a different
 color: spades black, hearts red, diamonds blue, clubs green. "Two"
 renders cards using only black and red: spades and clubs black,
@@ -36,6 +37,12 @@ on it toggles to "Swapped". This controls which controller face
 button confirms vs. cancels during controller navigation
 (specs/controller.md); "Standard" follows the W3C Standard Gamepad
 layout, "Swapped" reverses it for a Nintendo-style layout.
+
+Focus First is a button that by default reads "Pot". Clicking on it
+toggles to "Hand". This controls which card receives focus
+automatically when it becomes the player's turn and trading is
+available (specs/controller.md's "Selection Focus"): the pot's center
+card, or the hand's center card.
 
 Reset is a button that reads "Confirm", using a reddish fill color to
 distinguish it from the other settings' buttons. Clicking on it shows a
@@ -61,6 +68,6 @@ These settings should be saved and retrieved from local storage.
 
 In landscape orientation, on a narrow enough (phone-sized) viewport,
 the settings list is arranged into two side-by-side groups (Sounds,
-Difficulty, and Suit Color on the left; Confirm/Cancel and Reset on
-the right), instead of one column of five, so the whole panel fits the
-shorter viewport height.
+Difficulty, and Suit Colors on the left; Confirm/Cancel, Focus First,
+and Reset on the right), instead of one column of six, so the whole
+panel fits the shorter viewport height.

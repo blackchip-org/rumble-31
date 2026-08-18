@@ -1,7 +1,7 @@
 import { score } from "../card/score.ts";
 import type { Action, PlayerView, Strategy } from "../game/types.ts";
 import { exchange, knock } from "../game/types.ts";
-import { clearFocus, focusHandCenter, focusKnockButton, focusPotCenter } from "./focusNav.ts";
+import { clearFocus, type FocusFirst, focusHandCenter, focusKnockButton, focusPotCenter } from "./focusNav.ts";
 import { setScore } from "./panels.ts";
 import { renderBacks, renderCards, setBackHighlight } from "./render.ts";
 import { TradeSelection } from "./tradeSelection.ts";
@@ -27,14 +27,24 @@ export class DomActionPrompt implements Strategy {
   private scoreEl: HTMLElement;
   private takePotBtn: HTMLButtonElement;
   private knockBtn: HTMLButtonElement;
+  private getFocusFirst: () => FocusFirst;
   private signal: AbortSignal;
 
-  constructor(potEl: HTMLElement, handEl: HTMLElement, scoreEl: HTMLElement, takePotBtn: HTMLButtonElement, knockBtn: HTMLButtonElement, signal: AbortSignal) {
+  constructor(
+    potEl: HTMLElement,
+    handEl: HTMLElement,
+    scoreEl: HTMLElement,
+    takePotBtn: HTMLButtonElement,
+    knockBtn: HTMLButtonElement,
+    getFocusFirst: () => FocusFirst,
+    signal: AbortSignal,
+  ) {
     this.potEl = potEl;
     this.handEl = handEl;
     this.scoreEl = scoreEl;
     this.takePotBtn = takePotBtn;
     this.knockBtn = knockBtn;
+    this.getFocusFirst = getFocusFirst;
     this.signal = signal;
   }
 
@@ -158,7 +168,11 @@ export class DomActionPrompt implements Strategy {
         // belong in the controller/keyboard focus grid.
         this.handEl.classList.add("is-tradeable");
         this.potEl.classList.add("is-tradeable");
-        focusHandCenter();
+        if (this.getFocusFirst() === "pot") {
+          focusPotCenter();
+        } else {
+          focusHandCenter();
+        }
 
         handCards.forEach((el, i) => {
           el.addEventListener("click", () => {

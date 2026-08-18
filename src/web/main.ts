@@ -42,7 +42,7 @@ import { buildDebugMenuGameState } from "./gameMenu.ts";
 import { detectPlatform, INSTALL_INSTRUCTIONS } from "./installPrompt.ts";
 import { startGamepadInput } from "./gamepadInput.ts";
 import { startKeyboardNav } from "./keyboardNav.ts";
-import { focusScreenDefault, handleAction, registerCancelFallback } from "./focusNav.ts";
+import { focusScreenDefault, handleAction, registerCancelFallback, FOCUS_FIRSTS, type FocusFirst } from "./focusNav.ts";
 import { handleScrollEvent } from "./scrollNav.ts";
 import { SoundEffect, resumeSoundsOnFirstGesture } from "./sound.ts";
 
@@ -308,6 +308,7 @@ const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
 const difficultyToggleBtn = must<HTMLButtonElement>("difficulty-toggle-btn");
 const suitColorToggleBtn = must<HTMLButtonElement>("suit-color-toggle-btn");
 const confirmCancelToggleBtn = must<HTMLButtonElement>("confirm-cancel-toggle-btn");
+const focusFirstToggleBtn = must<HTMLButtonElement>("focus-first-toggle-btn");
 const settingsBackBtn = must<HTMLButtonElement>("settings-back-btn");
 const resetBtn = must<HTMLButtonElement>("reset-btn");
 
@@ -708,7 +709,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   setSuitColor(settings.suitColor);
 
   const seed = Date.now();
-  const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn, signal);
+  const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn, () => settings.focusFirst, signal);
   const botRng = new Rng(seed);
   // A resumed game keeps the bot/seat pairing it started with instead
   // of reshuffling (specs/state.md); a brand new game shuffles the
@@ -1163,6 +1164,16 @@ function syncSuitColorToggleBtn(): void {
   suitColorToggleBtn.textContent = SUIT_COLOR_LABELS[settings.suitColor];
 }
 
+// FOCUS_FIRST_LABELS maps a FocusFirst to its Settings Screen button
+// label (specs/screens/settings.md: "Pot", "Hand").
+const FOCUS_FIRST_LABELS: Record<FocusFirst, string> = { pot: "Pot", hand: "Hand" };
+
+// syncFocusFirstToggleBtn sets the focus first toggle button's label to
+// match settings.focusFirst.
+function syncFocusFirstToggleBtn(): void {
+  focusFirstToggleBtn.textContent = FOCUS_FIRST_LABELS[settings.focusFirst];
+}
+
 // showSettingsScreen swaps whichever screen is up for the settings
 // screen (per specs/gui.md's Main Screen and Game Menu Screen
 // sections' "Settings" buttons), and persists it -- together with
@@ -1176,6 +1187,7 @@ function showSettingsScreen(origin: SettingsOrigin): void {
   syncDifficultyToggleBtn();
   syncSuitColorToggleBtn();
   syncConfirmCancelToggleBtn();
+  syncFocusFirstToggleBtn();
   const fromMenu = origin.from === "menu";
   difficultyToggleBtn.disabled = fromMenu;
   settingsBackBtn.textContent = fromMenu ? "Game Menu" : "Main Menu";
@@ -1420,6 +1432,18 @@ suitColorToggleBtn.addEventListener("click", () => {
   settings = { ...settings, suitColor: nextSuitColor(settings.suitColor) };
   saveSettings(settings, localStorage);
   syncSuitColorToggleBtn();
+});
+
+// nextFocusFirst cycles a FocusFirst through FOCUS_FIRSTS's order
+// (specs/screens/settings.md: "Pot", "Hand").
+function nextFocusFirst(focusFirst: FocusFirst): FocusFirst {
+  return FOCUS_FIRSTS[(FOCUS_FIRSTS.indexOf(focusFirst) + 1) % FOCUS_FIRSTS.length] as FocusFirst;
+}
+
+focusFirstToggleBtn.addEventListener("click", () => {
+  settings = { ...settings, focusFirst: nextFocusFirst(settings.focusFirst) };
+  saveSettings(settings, localStorage);
+  syncFocusFirstToggleBtn();
 });
 
 newGameBtn.addEventListener("click", () => showGameScreen());

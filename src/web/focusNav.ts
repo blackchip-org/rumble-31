@@ -434,6 +434,12 @@ function focusContainerCenter(containerId: string): void {
   focusOn(grid, row, Math.floor((grid[row]?.length ?? 1) / 2));
 }
 
+// FOCUS_FIRSTS/FocusFirst are the Settings Screen's "Focus First"
+// option (specs/screens/settings.md): which of focusPotCenter/
+// focusHandCenter below domActionPrompt.ts calls when a turn starts.
+export const FOCUS_FIRSTS = ["pot", "hand"] as const;
+export type FocusFirst = (typeof FOCUS_FIRSTS)[number];
+
 // focusPotCenter/focusHandCenter move focus to the pot's/hand's middle
 // card, per specs/controller.md's "Selection Focus" rules --
 // domActionPrompt.ts calls these directly at the moments those rules
