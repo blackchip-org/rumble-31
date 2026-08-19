@@ -50,4 +50,4 @@ export const KNOCK_SOUND_WAIT = 256 + 200;
 // ROUND_END_PAUSE is how long, in milliseconds, the round-end recap
 // is shown before the next round starts automatically (clicking the
 // round-end button ends the pause early).
-export const ROUND_END_PAUSE = 5000;
+export const ROUND_END_PAUSE = 6000;
