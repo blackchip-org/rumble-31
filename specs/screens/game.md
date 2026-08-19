@@ -220,14 +220,14 @@ A panel in the bottom-right corner of the screen shows a running,
 chronological text log of what has happened: turns taken, end-of-round
 recaps, and errors.
 
-Between rounds, play pauses for three seconds before the next round
-starts automatically. The log panel notes the pause. For its duration,
-the Take Pot / Knock buttons are hidden and replaced by a single
-button spanning the same width the pair took up, labeled "Next
-Round", or "End Game" if this round's outcome ended the game.
-Clicking it skips the remainder of the wait; the Take Pot / Knock
-buttons reappear once the next round's first turn begins (or, if the
-game ended, stay hidden along with the rest of the game screen).
+Between rounds, play pauses for ROUND_END_PAUSE milliseconds (see
+specs/config.md) before the next round starts automatically. The log panel
+notes the pause. For its duration, the Take Pot / Knock buttons are hidden and
+replaced by a single button spanning the same width the pair took up, labeled
+"Next Round", or "End Game" if this round's outcome ended the game. Clicking it
+skips the remainder of the wait; the Take Pot / Knock buttons reappear once the
+next round's first turn begins (or, if the game ended, stay hidden along with
+the rest of the game screen).
 
 The game ends immediately the moment South is eliminated -- the rest of
 the bots' contest is never played out.

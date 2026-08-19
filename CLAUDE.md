@@ -46,4 +46,9 @@ actual commit once that message is approved.
 
 Use nvm to install and use node.
 
+When a spec describes a value that's actually a config.ts constant
+(specs/config.md), reference the constant by name (e.g. "pauses for
+ROUND_END_PAUSE milliseconds") instead of hardcoding its current
+value in prose -- the value can change without the spec going stale.
+
 
