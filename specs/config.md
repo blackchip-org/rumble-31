@@ -16,4 +16,6 @@ each card dealt during the round-start dealing animation.
 card's trade animation (hand to pot, then pot to hand). Exchanging a
 whole hand plays this animation once per card, in sequence, not once
 for all three.
+- ROUND_END_PAUSE: The number of milliseconds the round-end recap is
+shown before the next round starts automatically.
 

@@ -5,7 +5,7 @@
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { createBot, snapshotBot, type BotMemory, type BotName } from "../bot/factory.ts";
-import { DEAL_ANIMATION_DELAY, DIFFICULTIES, DIFFICULTY_BOT_STRATEGIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, type Difficulty } from "../config.ts";
+import { DEAL_ANIMATION_DELAY, DIFFICULTIES, DIFFICULTY_BOT_STRATEGIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
@@ -329,6 +329,7 @@ const potEl = must<HTMLElement>("pot");
 const logEl = must<HTMLElement>("log");
 const takePotBtn = must<HTMLButtonElement>("take-pot-btn");
 const knockBtn = must<HTMLButtonElement>("knock-btn");
+const roundEndBtn = must<HTMLButtonElement>("round-end-btn");
 
 const firstTurnDialogEl = must<HTMLElement>("first-turn-dialog");
 const firstTurnPotEl = must<HTMLElement>("first-turn-pot");
@@ -418,35 +419,35 @@ function withTurnUi(seat: number, inner: Strategy, signal: AbortSignal): Strateg
   };
 }
 
-// pauseBetweenRounds resolves after ms, as soon as the player clicks
-// anywhere on the page, or as soon as signal aborts (Menu/Abandon
-// mid-pause, specs/gui.md's Game Menu Screen), whichever comes first.
-function pauseBetweenRounds(ms: number, signal: AbortSignal): Promise<void> {
+// pauseBetweenRounds swaps the Take Pot/Knock buttons out for
+// roundEndBtn -- labeled "Next Round", or "End Game" if gameOver --
+// spanning the same width the pair did. It resolves after ms, as soon
+// as the player clicks roundEndBtn, or as soon as signal aborts
+// (Menu/Abandon mid-pause, specs/gui.md's Game Menu Screen), whichever
+// comes first, restoring Take Pot/Knock and hiding roundEndBtn again
+// before resolving either way.
+function pauseBetweenRounds(ms: number, gameOver: boolean, signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
+    takePotBtn.hidden = true;
+    knockBtn.hidden = true;
+    roundEndBtn.textContent = gameOver ? "End Game" : "Next Round";
+    roundEndBtn.disabled = false;
+    roundEndBtn.hidden = false;
+
     const finish = () => {
       clearTimeout(timer);
-      document.removeEventListener("click", onClick);
+      roundEndBtn.removeEventListener("click", onClick);
       signal.removeEventListener("abort", finish);
+      roundEndBtn.disabled = true;
+      roundEndBtn.hidden = true;
+      takePotBtn.hidden = false;
+      knockBtn.hidden = false;
       resolve();
     };
     const onClick = () => finish();
     const timer = setTimeout(finish, ms);
     signal.addEventListener("abort", finish);
-    // Attaching this listener is deferred to a fresh task rather than
-    // done immediately: when South's own action ends the round (only
-    // possible when West is the knocker, since turn order wraps
-    // South-West-North-East-South), the click that resolves South's
-    // DomActionPrompt promise is still bubbling up through `document`
-    // at this exact point — browsers run a microtask checkpoint after
-    // each listener invocation during a single event's dispatch, which
-    // is what lets this whole call chain (Round.run -> Game.playRound
-    // -> this function) run to completion *before* that same click
-    // finishes bubbling. Attaching synchronously here would let that
-    // stale click immediately satisfy the listener and skip the pause
-    // before the player ever sees it. A deferred setTimeout(0) only
-    // attaches once the click's dispatch (and everything chained off
-    // it) has fully finished, so only a genuinely new click can match.
-    setTimeout(() => document.addEventListener("click", onClick), 0);
+    roundEndBtn.addEventListener("click", onClick);
   });
 }
 
@@ -1022,7 +1023,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       saveGameState({ strikes: g.strikes, eliminated: g.eliminated, secondChance: g.secondChance, roundNum: roundNum + 1, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
     }
 
-    await pauseBetweenRounds(3000, signal);
+    await pauseBetweenRounds(ROUND_END_PAUSE, gameOver, signal);
 
     if (signal.aborted) {
       return;

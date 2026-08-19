@@ -140,6 +140,15 @@ function buildGameScreenGrid(screen: HTMLElement): FocusGrid {
     rows.push(turnButtons);
   }
 
+  // roundEndBtn ("Next Round"/"End Game") replaces the row above for
+  // the pause between rounds (main.ts's pauseBetweenRounds) -- never
+  // enabled at the same time as Take Pot/Knock, so at most one of
+  // these two rows is ever added.
+  const roundEndBtn = screen.querySelector<HTMLButtonElement>("#round-end-btn");
+  if (roundEndBtn && !roundEndBtn.disabled) {
+    rows.push([roundEndBtn]);
+  }
+
   if (tradeable && hand) {
     rows.push(Array.from(hand.querySelectorAll<HTMLElement>(".card")));
   }
