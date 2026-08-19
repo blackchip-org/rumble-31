@@ -965,14 +965,14 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       setStruck(seatOf(seat).panel, true);
       // A struck seat that this same strike eliminated already got the
       // "eliminated" tag above (g.eliminated is updated inside
-      // playRound, before outcome is returned) — "strike"/"second-chance"
-      // only tag a seat that survives the strike. A seat in
-      // secondChanceGranted just reached three strikes and was granted
-      // its one-time reprieve instead of being eliminated (specs/rules.md)
-      // — same red highlight as a plain strike, distinguished only by
-      // its tag text.
+      // playRound, before outcome is returned) — "strike" only tags a
+      // seat that survives the strike, including one in
+      // secondChanceGranted, which just reached three strikes and was
+      // granted its one-time reprieve instead of being eliminated
+      // (specs/rules.md) — same red highlight and tag as a plain
+      // strike.
       if (!g.eliminated[seat]) {
-        setPanelState(seatOf(seat).panel, outcome.secondChanceGranted.includes(seat) ? "second-chance" : "strike");
+        setPanelState(seatOf(seat).panel, "strike");
       }
     }
     for (let seat = 0; seat < 4; seat++) {

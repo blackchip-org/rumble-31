@@ -47,19 +47,17 @@ export function setDealer(el: HTMLElement, isDealer: boolean): void {
   el.textContent = isDealer ? "D" : "";
 }
 
-export type PanelState = "turn" | "first" | "eliminated" | "knocked" | "strike" | "second-chance" | "winner" | "none";
+export type PanelState = "turn" | "first" | "eliminated" | "knocked" | "strike" | "winner" | "none";
 
 // STATE_TAG_TEXT maps each state to its tag's display text -- "none"
 // to a lone non-breaking space (see the comment in setPanelState
-// below) and "second-chance" to a spaced label rather than its
-// hyphenated class-name form.
+// below).
 const STATE_TAG_TEXT: Record<PanelState, string> = {
   turn: "turn",
   first: "first",
   eliminated: "eliminated",
   knocked: "knocked",
   strike: "strike",
-  "second-chance": "2nd chance",
   winner: "winner",
   none: " ",
 };
@@ -82,20 +80,21 @@ export function setStruck(panelEl: HTMLElement, struck: boolean): void {
 }
 
 // setPanelState toggles a seat panel's turn/first/eliminated/knocked/
-// strike/second-chance/winner visuals and its state tag's text; only
-// one state applies at a time. is-strike/is-second-chance (these tags)
-// are distinct from is-struck (setStruck's own, independent end-of-round
-// border blink) — a struck seat gets both. Likewise is-winner (this
-// tag) is distinct from is-won (setWon's own border/glow). "first" is a
-// distinct look from "turn" (its own highlight color), used instead of
-// "turn" for whichever seat is deciding the round's first turn.
+// strike/winner visuals and its state tag's text; only one state
+// applies at a time. is-strike (this tag) is distinct from is-struck
+// (setStruck's own, independent end-of-round border blink) — a struck
+// seat gets both, including one granted a second chance (specs/
+// rules.md), which is tagged "strike" same as a plain strike. Likewise
+// is-winner (this tag) is distinct from is-won (setWon's own border/
+// glow). "first" is a distinct look from "turn" (its own highlight
+// color), used instead of "turn" for whichever seat is deciding the
+// round's first turn.
 export function setPanelState(panelEl: HTMLElement, state: PanelState): void {
   panelEl.classList.toggle("is-turn", state === "turn");
   panelEl.classList.toggle("is-first", state === "first");
   panelEl.classList.toggle("is-eliminated", state === "eliminated");
   panelEl.classList.toggle("is-knocked", state === "knocked");
   panelEl.classList.toggle("is-strike", state === "strike");
-  panelEl.classList.toggle("is-second-chance", state === "second-chance");
   panelEl.classList.toggle("is-winner", state === "winner");
   const tag = panelEl.querySelector<HTMLElement>(".state-tag");
   if (tag) {
