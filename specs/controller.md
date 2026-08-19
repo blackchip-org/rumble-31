@@ -8,8 +8,7 @@ mouse/touch.
 
 Exactly one button, list box, or card on the current screen is
 "focused" at a time, shown with a colored outline distinct from any
-other highlight (such as a selected card, or the hand/pot's first-turn
-Keep highlight).
+other highlight (such as a selected card).
 Most screens are a single column, where any direction moves to the
 next or previous item, wrapping back around at either end. The Game
 Screen is arranged in rows instead (Menu; the pot's cards; Take
@@ -74,9 +73,10 @@ specs/screens/game.md's "To trade a card..." behavior: activating a
 card picks or un-picks it exactly like clicking it does, and a trade
 completes once a card in each row is picked, in either order. On the
 round's first turn, cards aren't part of the focus order at all --
-only Menu and Take Pot/Knock (reading "Take Pot"/"Keep Hand") are
-navigable, matching that turn's mouse/touch behavior of cards being
-unclickable.
+only Menu and Take Pot/Knock (reading "Take Pot"/"Keep", and
+relocated into the round's-first-turn dialog while South is acting --
+specs/screens/game.md) are navigable, matching that turn's mouse/touch
+behavior of cards being unclickable.
 
 Cancel never undoes a half-made pick (a card chosen in only one row so
 far) -- it always does what it does everywhere else, opening the Game

@@ -66,9 +66,3 @@ export function tilePosition(c: Card): TilePosition {
 // BACK_TILE is the sheet's light-red card back (row 1, column 8 per
 // assets/cards.md), used wherever a card's identity must stay private.
 export const BACK_TILE: TilePosition = { row: 1, col: 8 };
-
-// HIGHLIGHT_BACK_TILE is the sheet's light-yellow card back (row 1,
-// column 10 per assets/cards.md), used to highlight the round's still-
-// private first-turn pot as a group (specs/screens/game.md) in place
-// of the highlighted card art used for visible cards.
-export const HIGHLIGHT_BACK_TILE: TilePosition = { row: 1, col: 10 };

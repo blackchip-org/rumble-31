@@ -492,7 +492,7 @@ function focusElementById(id: string): void {
 }
 
 // focusKnockButton focuses the Take Pot/Knock row's Knock button
-// (labeled "Keep Hand" on the round's first turn) -- domActionPrompt.ts
+// (labeled "Keep" on the round's first turn) -- domActionPrompt.ts
 // calls this at the start of a first-turn decide(), since cards aren't
 // part of the focus order at all that turn (specs/controller.md).
 export function focusKnockButton(): void {

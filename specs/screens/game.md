@@ -112,24 +112,30 @@ On the round's first turn, the pot is private (see "Dealing" below),
 and whichever seat acts first (South or a bot) has its panel tagged
 "First" instead of "turn", with its own distinct highlight color,
 separate from the ordinary yellowish turn highlight. When it is
-South's first turn, the "Knock" button reads "Keep Hand" instead --
+South's first turn, the "Knock" button reads "Keep" instead --
 same position and style, but clicking it leaves South's hand untouched
 instead of knocking (see specs/rules.md: neither Take Pot nor Keep
 counts as a knock on this turn); "Take Pot" keeps its usual label,
 since it's the same blind gamble every other seat faces on their own
 first turn. Clicking a hand or pot card has no effect on this turn --
 trading a single card isn't available until the round's second turn.
-On South's first turn, South's hand cards highlight as a group by
-default, signaling that "all" of South's cards are being considered
-rather than one; hovering or focusing "Take Pot" switches the
-highlight to the pot's cards instead, and hovering or focusing "Keep
-Hand" switches it back to the hand. Since the pot is still private at
-this point, its cards are shown as face-down card backs (see "Dealing"
-below), so this highlight swaps their card back to the light-yellow
-design (assets/cards.md) rather than the highlighted card art used for
-the hand's group highlight. The Knock button reverts to reading
-"Knock", and card-clicking to trade resumes working, from South's
-second turn on.
+
+On South's first turn, a dialog box appears over the board, containing,
+top to bottom: three face-down cards, the text "You are first this
+round. For your hand, choose to either keep the cards dealt to you or
+to take the cards dealt to the pot.", South's actual hand (its real
+cards, not backs), and the Take Pot/Keep buttons (relocated into the
+dialog for as long as it's shown). This replaces highlighting either
+the hand or the pot as a group -- the dialog states the choice
+directly instead. South's hand behind the dialog, on the board itself,
+stays face-down for as long as the dialog is showing (see "Dealing"
+below) -- the dialog is the only place it's actually shown. The Menu
+button remains visible and clickable while the dialog is shown. The
+dialog closes the moment Take Pot or Keep is clicked, at which point
+South's hand turns face-up on the board too, Take Pot/Keep move back
+to their usual place above South's panel, and the Knock button
+reverts to reading "Knock" and card-clicking to trade resumes working,
+from South's second turn on.
 
 To trade a card from a player's hand with one from the pot, the player:
 
@@ -152,12 +158,21 @@ player in turn, starting with South and proceeding clockwise (South,
 West, North, East), repeated three times so each player ends up with
 three cards -- matching the actual deal order in specs/rules.md --
 followed by the three pot cards, one at a time. An eliminated player
-is skipped. South's own cards show their real face as dealt; every
-other player's card shows the light red card back tile. A short,
-fixed delay separates each card as it's dealt, so the whole animation
-takes about one second with all four players still in the game, and
-proportionally less once players have been eliminated (fewer cards
-left to deal).
+is skipped. Every card, South's own included, shows the light red card
+back tile as it's dealt -- nobody's hand is shown face-up during the
+deal itself. A short, fixed delay separates each card as it's dealt,
+so the whole animation takes about one second with all four players
+still in the game, and proportionally less once players have been
+eliminated (fewer cards left to deal).
+
+Once dealing finishes, South's own hand turns face-up on the board and
+its score box fills in, the same as ever, since both are always public
+-- unless South is also the round's first player to act, in which case
+both stay hidden instead: the first-turn dialog above is where they're
+actually shown, not the board, so nothing on the board itself gives
+them away early. They turn face-up on the board (and the score box
+fills in) the moment that dialog's decision resolves, the same instant
+the Take Pot/Keep buttons move back out of it.
 
 The pot is private to everyone, including the round's first player to
 act (specs/rules.md) -- its three cards are always dealt showing the
@@ -217,7 +232,9 @@ to fit the screen. The top bar should be removed as this takes up much
 needed space. The log panel is hidden in this layout. Fit in the menu
 button wherever there is space. Bot hands (West, North, East) are
 shown smaller than South's, since they're mostly card backs and
-secondary information even once revealed.
+secondary information even once revealed. The floating menu button
+stays above the round's-first-turn dialog here too, same as on desktop
+-- it's still clickable regardless of which layout put it where.
 
 In landscape orientation, the main board is arranged into two columns.
 The left column has player seats in the following top-down order:

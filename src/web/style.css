@@ -572,17 +572,16 @@ body {
 }
 
 /* Swaps in cards-highlight.png's own pre-rendered highlighted art for
-   .is-selected and .is-keep-highlight, instead of washing cards.png's
-   tile with a tint overlay. Overrides the --card-img custom property
-   .card's own rule reads (see render.ts's tileEl()) with a plain
-   background-image: a stylesheet rule can out-specificity another
-   stylesheet rule, but never an inline style, which is why tileEl()
-   sets --card-img rather than background-image directly.
-   background-size/-position are left inherited from .card's own rule
-   above -- cards-highlight.png shares cards.png's exact tile geometry
-   (cardSheet.ts), so no adjustment is needed to line up. */
-.card.is-selected,
-.card.is-keep-highlight {
+   .is-selected, instead of washing cards.png's tile with a tint
+   overlay. Overrides the --card-img custom property .card's own rule
+   reads (see render.ts's tileEl()) with a plain background-image: a
+   stylesheet rule can out-specificity another stylesheet rule, but
+   never an inline style, which is why tileEl() sets --card-img rather
+   than background-image directly. background-size/-position are left
+   inherited from .card's own rule above -- cards-highlight.png shares
+   cards.png's exact tile geometry (cardSheet.ts), so no adjustment is
+   needed to line up. */
+.card.is-selected {
   background-image: url("../../assets/cards-highlight.png");
 }
 
@@ -1259,6 +1258,66 @@ body {
 
 .menu-buttons button.menu-abandon-btn:hover {
   background: var(--menu-abandon-bg-hover);
+}
+
+/* ---------- round's first-turn dialog ---------- */
+
+/* Positioned above .first-turn-dialog's own z-index so Menu stays
+   clickable while the dialog is shown -- unlike the abandon/reset
+   dialogs below, this one is a plain overlay (not a native <dialog>
+   opened with showModal()), specifically so it never makes the rest
+   of the page inert. Matches the z-index the mobile breakpoints below
+   already give #header (its own position: fixed there, floating the
+   button over the table) rather than a bigger number of its own, so
+   this stays correct there without having to repeat it in each
+   mobile-specific #header rule -- .first-turn-dialog just has to stay
+   under 10 instead. */
+#header {
+  position: relative;
+  z-index: 10;
+}
+
+.first-turn-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Same [hidden]-specificity-tie reasoning as .game-over-screen above:
+   display must be gated on :not([hidden]), not the bare selector. */
+.first-turn-dialog:not([hidden]) {
+  display: flex;
+}
+
+.first-turn-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  /* Never blocks clicks -- nothing behind the panel needs to stay
+     reachable except Menu, which sits above this via #header's own
+     z-index rather than needing a hole punched in the scrim. */
+  pointer-events: none;
+}
+
+.first-turn-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.75rem 2rem;
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.first-turn-text {
+  margin: 0;
+  max-width: 22rem;
+  text-align: center;
 }
 
 /* ---------- abandon confirmation dialog ---------- */

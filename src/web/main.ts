@@ -32,7 +32,7 @@ import { renderStrikes, setDealer, setPanelState, setScore, setStruck, setWon } 
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
-import { appendLogLine, backEl, cardEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
+import { appendLogLine, backEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
 import { setSuitColor, SUIT_COLORS, type SuitColor } from "./cardSheet.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 import { licenses } from "./licensesData.ts";
@@ -330,6 +330,11 @@ const logEl = must<HTMLElement>("log");
 const takePotBtn = must<HTMLButtonElement>("take-pot-btn");
 const knockBtn = must<HTMLButtonElement>("knock-btn");
 
+const firstTurnDialogEl = must<HTMLElement>("first-turn-dialog");
+const firstTurnPotEl = must<HTMLElement>("first-turn-pot");
+const firstTurnHandEl = must<HTMLElement>("first-turn-hand");
+const firstTurnActionsEl = must<HTMLElement>("first-turn-actions");
+
 // seatEls[seat] holds the DOM for that seat's panel — indices line up
 // with seatName's own South/West/North/East order.
 const seatEls: [SeatEls, SeatEls, SeatEls, SeatEls] = [0, 1, 2, 3].map((seat) => {
@@ -524,12 +529,16 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 }
 
 // animateDeal clears every active seat's hand and the pot, then deals
-// them back out one card at a time per dealOrder() — South's own real
-// card faces, every other seat's card backs, then the pot — pausing
+// them back out one card at a time per dealOrder() — every seat's
+// cards as backs, South's own included, then the pot — pausing
 // DEAL_ANIMATION_DELAY between each. Game.playRound awaits onDeal, so
 // the round's first turn doesn't begin until this finishes. Per
 // specs/gui.md. The pot is private (dealt as card backs) to everyone,
 // including the round's first player to act, until that turn resolves.
+// southHidden is true when South is that first player to act: South's
+// hand stays face-down once dealing finishes too (see below), since
+// DomActionPrompt's first-turn dialog (specs/screens/game.md) is where
+// it's actually revealed, not the board.
 //
 // signal aborting mid-animation (Menu/Abandon, specs/gui.md's Game
 // Menu Screen) stops the per-card loop outright, not just its sound:
@@ -538,7 +547,7 @@ async function renderTurn(rec: TurnRecord): Promise<void> {
 // stale iteration still appending cards after the player has already
 // navigated away (and possibly Resumed into a new deal of its own)
 // would corrupt what's on screen.
-async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, dealerSeat: number, signal: AbortSignal): Promise<void> {
+async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, dealerSeat: number, signal: AbortSignal, southHidden: boolean): Promise<void> {
   const southHand = hands.get(0);
   for (const line of roundStartLines(roundNum, southHand, dealerSeat)) {
     appendLogLine(logEl, line);
@@ -560,9 +569,7 @@ async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, d
 
   const activeSeats = [0, 1, 2, 3].filter((seat) => hands.has(seat));
   for (const seat of activeSeats) {
-    if (seat !== 0) {
-      setScore(seatOf(seat).score, null);
-    }
+    setScore(seatOf(seat).score, null);
   }
   potEl.replaceChildren();
 
@@ -570,7 +577,7 @@ async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, d
     if (signal.aborted) {
       return;
     }
-    const el = step.kind === "hand" && step.seat === 0 ? cardEl((southHand as Hand)[step.cardIndex] as Card) : backEl();
+    const el = backEl();
     el.classList.add("card--deal-in");
     if (step.kind === "hand") {
       seatOf(step.seat).hand.appendChild(el);
@@ -581,11 +588,15 @@ async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, d
     await sleep(DEAL_ANIMATION_DELAY);
   }
 
-  // South's own hand and score are always public, so they're revealed
-  // as soon as they're dealt rather than waiting for South's first
-  // turn (turn order varies by round). South may already be
+  // Every hand deals face-down, South's own included; South's hand and
+  // score are then revealed immediately once dealing finishes (turn
+  // order varies by round, so this doesn't wait for South's first
+  // turn) -- unless South is also the round's first turn's own actor,
+  // in which case both stay hidden until the first-turn dialog's own
+  // decision resolves (see southHidden above). South may already be
   // eliminated and thus never dealt a hand this round.
-  if (southHand !== undefined) {
+  if (southHand !== undefined && !southHidden) {
+    renderCards(seatOf(0).hand, southHand);
     setScore(seatOf(0).score, score(southHand));
   }
 }
@@ -595,8 +606,8 @@ async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, d
 // when specs/params.md's north/south/east/west/pot debug params
 // pre-populate the deal, per its "dealing is not animated" note. The
 // pot is private (rendered as card backs) to everyone, same as
-// animateDeal.
-function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, dealerSeat: number): void {
+// animateDeal; southHidden has the same meaning as animateDeal's own.
+function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number, Hand>, dealerSeat: number, southHidden: boolean): void {
   const southHand = hands.get(0);
   for (const line of roundStartLines(roundNum, southHand, dealerSeat)) {
     appendLogLine(logEl, line);
@@ -609,7 +620,7 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   }
 
   for (const [seat, hand] of hands) {
-    if (seat === 0) {
+    if (seat === 0 && !southHidden) {
       renderCards(seatOf(0).hand, hand);
     } else {
       renderBacks(seatOf(seat).hand, hand.length);
@@ -617,7 +628,7 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   }
   renderBacks(potEl, pot.length);
 
-  if (southHand !== undefined) {
+  if (southHand !== undefined && !southHidden) {
     setScore(seatOf(0).score, score(southHand));
   }
 }
@@ -630,11 +641,13 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
 // already restored before the round loop began. potPrivate is true
 // only if the checkpoint was taken before the round's first turn
 // resolved -- the pot is private to everyone until then, regardless of
-// who acts first.
-function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>, potPrivate: boolean): void {
+// who acts first. southHidden has the same meaning as animateDeal's
+// own, additionally scoped to potPrivate: once the first turn has
+// resolved, South's hand is never hidden regardless of who acted first.
+function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>, potPrivate: boolean, southHidden: boolean): void {
   const southHand = hands.get(0);
   for (const [seat, hand] of hands) {
-    if (seat === 0) {
+    if (seat === 0 && !southHidden) {
       renderCards(seatOf(0).hand, hand);
     } else {
       renderBacks(seatOf(seat).hand, hand.length);
@@ -646,7 +659,7 @@ function renderResumedRound(pot: Pot, hands: ReadonlyMap<number, Hand>, potPriva
     renderCards(potEl, pot);
   }
 
-  if (southHand !== undefined) {
+  if (southHand !== undefined && !southHidden) {
     setScore(seatOf(0).score, score(southHand));
   }
 }
@@ -709,7 +722,19 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   setSuitColor(settings.suitColor);
 
   const seed = Date.now();
-  const human = new DomActionPrompt(potEl, seatEls[0].hand, seatEls[0].score, takePotBtn, knockBtn, () => settings.focusFirst, signal);
+  const human = new DomActionPrompt(
+    potEl,
+    seatEls[0].hand,
+    seatEls[0].score,
+    takePotBtn,
+    knockBtn,
+    firstTurnDialogEl,
+    firstTurnPotEl,
+    firstTurnHandEl,
+    firstTurnActionsEl,
+    () => settings.focusFirst,
+    signal,
+  );
   const botRng = new Rng(seed);
   // A resumed game keeps the bot/seat pairing it started with instead
   // of reshuffling (specs/state.md); a brand new game shuffles the
@@ -815,11 +840,11 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       roundHands = new Map(hands);
       roundPot = pot;
       if (roundNum === startRoundNum && resume?.checkpoint) {
-        renderResumedRound(pot, hands, resume.checkpoint.turnIndex === 0);
+        renderResumedRound(pot, hands, resume.checkpoint.turnIndex === 0, firstSeat === 0 && resume.checkpoint.turnIndex === 0);
       } else if (roundNum === startRoundNum && params.skipDealAnimation) {
-        renderDealInstant(roundNum, pot, hands, g.dealerSeat as number);
+        renderDealInstant(roundNum, pot, hands, g.dealerSeat as number, firstSeat === 0);
       } else {
-        await animateDeal(roundNum, hands, g.dealerSeat as number, signal);
+        await animateDeal(roundNum, hands, g.dealerSeat as number, signal, firstSeat === 0);
       }
       // A deal animation in flight when the game was aborted mid-way
       // must not still persist this round's checkpoint afterwards --
