@@ -35,17 +35,17 @@ border (see Colors below) rather than a separate mark color.
 ## Colors
 
 Each file's border color is one of the theme's strike colors
-(src/web/theme.css: `--good`, `--bad`, `--second-chance`), and its
+(src/web/theme.css: `--good`, `--bad-tag`, `--second-chance`), and its
 fill color is that same color at 40% brightness (each RGB channel
 multiplied by 0.4 and rounded) -- a bolder border over a muted fill.
 
-| File                      | Border (theme var)            | Fill      |
-|---------------------------|--------------------------------|-----------|
-| strike-ok.svg             | `#4caf7d` (`--good`)           | `#1e4632` |
-| strike-hit.svg            | `#e5484d` (`--bad`)            | `#5c1d1f` |
-| strike-second-chance.svg  | `#e0c040` (`--second-chance`)  | `#5a4d1a` |
+| File                      | Border (theme var)             | Fill      |
+|---------------------------|---------------------------------|-----------|
+| strike-ok.svg             | `#4caf7d` (`--good`)            | `#1e4632` |
+| strike-hit.svg            | `#f2989b` (`--bad-tag`)         | `#613d3e` |
+| strike-second-chance.svg  | `#e0c040` (`--second-chance`)   | `#5a4d1a` |
 
-If `--good`, `--bad`, or `--second-chance` in src/web/theme.css ever
-change, recompute the matching fill (border RGB x 0.4, rounded) and
-update these SVGs by hand -- they are plain checked-in files, not
+If `--good`, `--bad-tag`, or `--second-chance` in src/web/theme.css
+ever change, recompute the matching fill (border RGB x 0.4, rounded)
+and update these SVGs by hand -- they are plain checked-in files, not
 generated from the theme at build time.

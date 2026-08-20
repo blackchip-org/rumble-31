@@ -66,20 +66,28 @@
                        disabled action buttons */
   --ink-faint: #666; /* reserved for a third, even-dimmer text tier
                          (currently unused) */
-  --accent: #f2c45a; /* highlight color: active-turn state tag, action
-                         buttons */
-  --accent-dim: #6b5628; /* dimmer accent: active-turn panel border/glow,
-                             active-turn state tag border, action button
-                             border */
+  --accent: #f2c45a; /* highlight color: active-turn state tag, panel
+                         border/glow, action buttons */
+  --accent-glow: rgba(242, 196, 90, 0.35); /* glow behind the
+                                                active-turn panel
+                                                border, matching
+                                                --accent */
   --good: #4caf7d; /* "strike avoided" indicator color -- source of
                        truth for assets/strike-ok.svg's border color,
                        kept in sync by hand (assets/
                        strike-indicators.md) since the SVG can't read
                        this variable */
-  --bad: #e5484d; /* "strike hit"/eliminated indicator, struck-panel
-                      border and eliminated state tag */
-  --bad-glow: rgba(229, 72, 77, 0.4); /* glow behind a struck panel's
-                                          border */
+  --bad: #e5484d; /* Abandon button fill */
+  --bad-tag: #f2989b; /* strike/eliminated state tag background,
+                          struck-panel border, and source of truth for
+                          assets/strike-hit.svg's border/mark color
+                          (kept in sync by hand, see assets/
+                          strike-indicators.md) -- a lighter tint of
+                          --bad; --bad itself is too dark for the tag's
+                          --bg text to read clearly */
+  --bad-tag-glow: rgba(242, 152, 155, 0.4); /* glow behind a struck
+                                                panel's border, matching
+                                                --bad-tag */
   --second-chance: #e0c040; /* "second chance" (XX/) strike indicator
                                 color -- source of truth for assets/
                                 strike-second-chance.svg's border
@@ -90,9 +98,15 @@
   --win-glow: rgba(255, 255, 255, 0.35); /* glow behind a winning
                                              panel's border */
   --knock: #7fa8d9; /* knocked state tag color/border */
-  --first: #a67fd9; /* first-turn state tag color and panel border/glow */
-  --first-glow: rgba(166, 127, 217, 0.35); /* glow behind the first-turn
-                                                panel border */
+  --first: #a67fd9; /* first-turn seat-label text color */
+  --first-tag: #c9a8f0; /* first-turn state tag background and panel
+                            border/glow -- a lighter tint of --first;
+                            --first itself is too dark for the tag's
+                            --bg text to read clearly */
+  --first-tag-glow: rgba(201, 168, 240, 0.35); /* glow behind the
+                                                    first-turn panel
+                                                    border, matching
+                                                    --first-tag */
   --focus-ring: #4fc3f7; /* controller/keyboard focus outline
                              (specs/controller.md), distinct from
                              --accent/--first so it's visible layered
