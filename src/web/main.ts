@@ -32,7 +32,16 @@ import { renderStrikes, setDealer, setPanelState, setScore, setStruck, setWon } 
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
-import { appendLogLine, backEl, initCardSheetVars, initStrikeBlinkVar, logText, renderBacks, renderCards } from "./render.ts";
+import {
+  appendLogLine,
+  backEl,
+  initCardSheetVars,
+  initStrikeBlinkVar,
+  logText,
+  preloadCardHighlightSheet,
+  renderBacks,
+  renderCards,
+} from "./render.ts";
 import { setSuitColor, SUIT_COLORS, type SuitColor } from "./cardSheet.ts";
 import { animateCardTrade } from "./tradeAnim.ts";
 import { licenses } from "./licensesData.ts";
@@ -85,6 +94,11 @@ const loseAudio = new SoundEffect(loseSoundUrl);
 // needs a prior gesture to unlock per resumeSoundsOnFirstGesture's own
 // comment.
 resumeSoundsOnFirstGesture();
+
+// Registered at module load, once, rather than inside main() — a card
+// can be selected on the very first round, so the fetch needs a head
+// start regardless of how the game screen was reached.
+preloadCardHighlightSheet();
 
 // settings holds the user's persisted preferences (specs/gui.md's
 // Settings Screen), loaded once at startup and kept in sync with

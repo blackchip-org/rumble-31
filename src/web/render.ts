@@ -1,4 +1,5 @@
 import type { Card, Rank, Suit } from "../card/card.ts";
+import cardsHighlightUrl from "../../assets/images/cards-highlight.png";
 import cardsUrl from "../../assets/images/cards.png";
 import { STRIKE_HIGHLIGHT_BLINK_INTERVAL } from "../config.ts";
 import { BACK_TILE, SHEET_COLS, SHEET_ROWS, TILE_H, TILE_W, tilePosition, type TilePosition } from "./cardSheet.ts";
@@ -32,6 +33,15 @@ export function initCardSheetVars(): void {
 // sync with the configurable constant. Call once at startup.
 export function initStrikeBlinkVar(): void {
   document.documentElement.style.setProperty("--strike-blink-interval", `${STRIKE_HIGHLIGHT_BLINK_INTERVAL}ms`);
+}
+
+// preloadCardHighlightSheet fetches cards-highlight.png ahead of time.
+// It's only referenced from style.css's .is-selected rule, so without
+// this the browser wouldn't fetch it until the player selects their
+// first card, showing a brief flash where the ring appears before the
+// highlighted tile art does. Call once at startup.
+export function preloadCardHighlightSheet(): void {
+  new Image().src = cardsHighlightUrl;
 }
 
 // tileEl builds one card-sized div showing the sheet's tile at
