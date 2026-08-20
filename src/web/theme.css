@@ -146,7 +146,6 @@
   --font-size-label: 0.68rem; /* seat label, pot label */
   --font-size-tag: 0.62rem; /* turn/eliminated/knocked/strike state tag */
   --font-size-score: 0.95rem; /* score box and action buttons */
-  --font-size-strike: 0.6rem; /* dealer-button letter ('D') */
   --font-size-title: clamp(3rem, 8vw + 1rem, 6.5rem); /* main screen
                                                             title */
 

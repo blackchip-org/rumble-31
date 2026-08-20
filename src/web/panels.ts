@@ -2,6 +2,8 @@
 // indicators, and turn/eliminated state — mirroring render.ts's plain,
 // element-in/DOM-out style.
 
+import dealerButtonEmptyUrl from "../../assets/images/dealer-button-empty.svg";
+import dealerButtonUrl from "../../assets/images/dealer-button.svg";
 import strikeHitUrl from "../../assets/images/strike-hit.svg";
 import strikeOkUrl from "../../assets/images/strike-ok.svg";
 import strikeSecondChanceUrl from "../../assets/images/strike-second-chance.svg";
@@ -46,11 +48,15 @@ export function setScore(el: HTMLElement, value: number | null): void {
   el.textContent = value === null ? "" : formatScore(value);
 }
 
-// setDealer toggles a seat's dealer-button circle between empty
-// (outline only) and filled with 'D', per gui.md.
+// setDealer fills el with the dealer-button icon (assets/images/
+// dealer-button.md): dealer-button.svg for the seat holding the
+// button, dealer-button-empty.svg for every other seat, per
+// specs/screens/game.md.
 export function setDealer(el: HTMLElement, isDealer: boolean): void {
-  el.classList.toggle("is-dealer", isDealer);
-  el.textContent = isDealer ? "D" : "";
+  const img = document.createElement("img");
+  img.src = isDealer ? dealerButtonUrl : dealerButtonEmptyUrl;
+  img.alt = isDealer ? "dealer" : "";
+  el.replaceChildren(img);
 }
 
 export type PanelState = "turn" | "first" | "eliminated" | "knocked" | "strike" | "winner" | "none";

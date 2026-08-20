@@ -642,27 +642,20 @@ body {
   display: block;
 }
 
-/* Always rendered as a circle, dark-gray-filled to mark where the
-   button goes; .is-dealer fills it white with 'D' for whichever seat
-   currently holds it (see panels.ts's setDealer). Colors are literal
-   per gui.md, not theme variables -- the button's look doesn't change
-   with theme. */
+/* Holds the dealer-button icon (panels.ts's setDealer): dealer-
+   button.svg for whichever seat currently holds the button,
+   dealer-button-empty.svg for every other seat -- marking where the
+   button would go. Colors are baked into the SVGs, not theme
+   variables -- the button's look doesn't change with theme. */
 .dealer-button {
   width: 1.05rem;
   height: 1.05rem;
-  border-radius: 50%;
-  border: 1px solid #000;
-  background: #555;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-strike);
-  line-height: 1;
-  color: #000;
 }
 
-.dealer-button.is-dealer {
-  background: #fff;
+.dealer-button img {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* ---------- actions ---------- */
