@@ -2,14 +2,14 @@
 // indicators, and turn/eliminated state — mirroring render.ts's plain,
 // element-in/DOM-out style.
 
-import strikeHitUrl from "../../assets/strike-hit.svg";
-import strikeOkUrl from "../../assets/strike-ok.svg";
-import strikeSecondChanceUrl from "../../assets/strike-second-chance.svg";
+import strikeHitUrl from "../../assets/images/strike-hit.svg";
+import strikeOkUrl from "../../assets/images/strike-ok.svg";
+import strikeSecondChanceUrl from "../../assets/images/strike-second-chance.svg";
 
 const STRIKE_COUNT = 3;
 
 // renderStrikes fills el with STRIKE_COUNT indicator icons (assets/
-// strike-indicators.md): the first `strikes` show strike-hit.svg, the
+// images/strike-indicators.md): the first `strikes` show strike-hit.svg, the
 // rest strike-ok.svg, per gui.md's OOO/XOO/XXO/XXX table.
 // hasSecondChance seats holding an unused second chance (specs/
 // rules.md) at exactly 3 strikes show strike-second-chance.svg for

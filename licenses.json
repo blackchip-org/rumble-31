@@ -2,42 +2,42 @@
   {
     "name": "Bebas Neue Font",
     "license": "OFL-1.1",
-    "text": "assets/BebasNeue.OFL.txt"
+    "text": "assets/fonts/BebasNeue.OFL.txt"
   },
   {
     "name": "Comic Neue Font",
     "license": "OFL-1.1",
-    "text": "assets/ComicNeue.OFL.txt"
-  },
-  {
-    "name": "GitHub Icon (Simple Icons)",
-    "license": "CC0-1.0",
-    "text": "assets/GithubMark.md"
+    "text": "assets/fonts/ComicNeue.OFL.txt"
   },
   {
     "name": "Inconsolata Font",
     "license": "OFL-1.1",
-    "text": "assets/Inconsolata.OFL.txt"
+    "text": "assets/fonts/Inconsolata.OFL.txt"
   },
   {
     "name": "Inter Font",
     "license": "OFL-1.1",
-    "text": "assets/Inter.OFL.txt"
+    "text": "assets/fonts/Inter.OFL.txt"
   },
   {
     "name": "Lora Font",
     "license": "OFL-1.1",
-    "text": "assets/Lora.OFL.txt"
+    "text": "assets/fonts/Lora.OFL.txt"
   },
   {
     "name": "New Rocker Font",
     "license": "OFL-1.1",
-    "text": "assets/NewRocker.OFL.txt"
+    "text": "assets/fonts/NewRocker.OFL.txt"
+  },
+  {
+    "name": "GitHub Icon (Simple Icons)",
+    "license": "CC0-1.0",
+    "text": "assets/images/GithubMark.md"
   },
   {
     "name": "Sound Effects (ChipTone)",
     "license": "CC0-1.0",
-    "text": "assets/SoundEffects.md"
+    "text": "assets/sounds/SoundEffects.md"
   },
   {
     "name": "Rumble 31",

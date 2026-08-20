@@ -1,8 +1,9 @@
 # assets
 
-Assets are stored in the assets directory. It contains:
+Assets are stored in the assets directory, grouped into subdirectories
+by type: images, sounds, and fonts.
 
-## Images
+## Images (assets/images/)
 
 - cards.png: A tile sheet containing card images. The file, cards.md,
 describes the layout of the tile sheet.
@@ -10,7 +11,7 @@ describes the layout of the tile sheet.
 variants of the same cards, sharing cards.png's exact layout and tile
 size (see cards.md).
 
-## Sound Effects
+## Sounds (assets/sounds/)
 
 - 31.wav: Round ends with a player winning with a 31
 - 32.wav: Round ends with a player winning with a 32
@@ -25,7 +26,7 @@ screen is restored from state on load (see state.md).
 - turn.wav: Human player's turn 
 - win.wav: Same as lose.wav, but with the human winning
 
-## Fonts
+## Fonts (assets/fonts/)
 
 - ComicNeue-Bold.ttf (from Google Fonts)
 - Inconsolata-Regular.ttf (from Google Fonts)

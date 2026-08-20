@@ -1,6 +1,6 @@
 import type { Card, Rank, Suit } from "../card/card.ts";
 
-// assets/cards.md describes the tile sheet's layout: an 11x13 grid of
+// assets/images/cards.md describes the tile sheet's layout: an 11x13 grid of
 // 120x169px tiles. Row 1 holds special tiles (unused here); every
 // other row is one suit's A,2..9,T,J,Q,K across all 13 columns.
 export const TILE_W = 120;
@@ -8,7 +8,7 @@ export const TILE_H = 169;
 export const SHEET_COLS = 13;
 export const SHEET_ROWS = 11;
 
-// assets/cards-highlight.png (see specs/assets.md) mirrors cards.png's
+// assets/images/cards-highlight.png (see specs/assets.md) mirrors cards.png's
 // geometry exactly -- same row/column layout and same tile size -- so
 // SUIT_ROWS/RANK_COL and every constant above apply to both sheets
 // unchanged.
@@ -20,7 +20,7 @@ export const SUIT_COLORS = ["four", "two"] as const;
 export type SuitColor = (typeof SUIT_COLORS)[number];
 
 // SUIT_ROWS maps each SuitColor to the tile sheet's own rows for that
-// deck (assets/cards.md): "four" picks the 4-color deck's rows (2, 3,
+// deck (assets/images/cards.md): "four" picks the 4-color deck's rows (2, 3,
 // 6, 7) -- spades black, hearts red, diamonds blue, clubs green;
 // "two" picks the 2-color deck's rows (2, 3, 4, 5) -- spades black,
 // hearts red, diamonds red, clubs black.
@@ -64,5 +64,5 @@ export function tilePosition(c: Card): TilePosition {
 }
 
 // BACK_TILE is the sheet's light-blue card back (row 1, column 6 per
-// assets/cards.md), used wherever a card's identity must stay private.
+// assets/images/cards.md), used wherever a card's identity must stay private.
 export const BACK_TILE: TilePosition = { row: 1, col: 6 };

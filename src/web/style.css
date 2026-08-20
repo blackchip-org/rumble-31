@@ -572,7 +572,7 @@ body {
    cards.png's exact tile geometry (cardSheet.ts), so no adjustment is
    needed to line up. */
 .card.is-selected {
-  background-image: url("../../assets/cards-highlight.png");
+  background-image: url("../../assets/images/cards-highlight.png");
 }
 
 /* Controller/keyboard focus ring (specs/controller.md, focusNav.ts):

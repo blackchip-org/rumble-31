@@ -10,7 +10,7 @@ Produce `licenses.json` at the repository root: a JSON array of
 license file found in the repo, where `name` is a human-readable name for
 the thing the license covers, `license` is the license type (e.g. `"MIT"`,
 `"OFL-1.1"`, `"GPL-3.0"`), and `text` is the license file's path relative
-to the repo root (e.g. `"assets/ComicNeue.OFL.txt"`).
+to the repo root (e.g. `"assets/fonts/ComicNeue.OFL.txt"`).
 
 This only covers **dedicated license files** — a standalone file whose
 content *is* a license (LICENSE, COPYING, NOTICE, an OFL file, etc.). It
@@ -91,7 +91,7 @@ three fields, in this order:
 {
   "name": "Comic Neue Font",
   "license": "OFL-1.1",
-  "text": "assets/ComicNeue.OFL.txt"
+  "text": "assets/fonts/ComicNeue.OFL.txt"
 }
 ```
 

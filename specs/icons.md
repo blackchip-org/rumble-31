@@ -3,13 +3,13 @@
 The app's home-screen/PWA icons (favicon, Android home-screen icon,
 Android adaptive icon, iOS home-screen icon) are rasterized PNGs
 checked into `src/web/public/`. Their source of truth is a pair of
-reference SVGs in `assets/`.
+reference SVGs in `assets/images/`.
 
 ## Source files
 
-- `assets/icon-source.svg` — the "any purpose" icon: a rounded
+- `assets/images/icon-source.svg` — the "any purpose" icon: a rounded
   square with a border inset from the edge.
-- `assets/icon-source-maskable.svg` — the maskable variant for
+- `assets/images/icon-source-maskable.svg` — the maskable variant for
   Android adaptive icons. The background fills the full 512x512
   canvas edge-to-edge, and the border/wordmark are kept inside the
   safe zone (an 80%-diameter circle centered on the icon) so
@@ -19,8 +19,9 @@ Both are 512x512 `viewBox` SVGs with the same design:
 
 - Background: `#1b5e3a` (the felt-green theme background).
 - Border: a rounded-rect stroke in `#d9a441` (the gold accent color).
-- Wordmark: "31" set in New Rocker (`assets/NewRocker-Regular.ttf`),
-  the same display font used for headings in the app.
+- Wordmark: "31" set in New Rocker
+  (`assets/fonts/NewRocker-Regular.ttf`), the same display font used
+  for headings in the app.
 - Drop shadow: a `feDropShadow` filter on the text matching the
   `--heading-text-shadow` custom property in `src/web/theme.css`
   (`0 2px 4px rgba(0, 0, 0, 0.5)`), so the wordmark reads consistently
@@ -54,7 +55,7 @@ it in both places.
 These PNGs are ordinary checked-in files, not build output — nothing
 regenerates them automatically. Edit them by editing the source SVG
 and re-rasterizing by hand (below), the same way `cards.png` or the
-other files in `assets/` are maintained.
+other files in `assets/images/` are maintained.
 
 ## Regenerating the PNGs
 
@@ -68,8 +69,8 @@ rasterize with an actual browser, which loads the font via
 1. Take the SVG text (`icon-source.svg` or `icon-source-maskable.svg`)
    and inject a `<style>` block into its `<defs>` that `@font-face`
    registers New Rocker from a base64 data URI (read
-   `assets/NewRocker-Regular.ttf`, base64-encode it, and embed it —
-   this keeps the SVG self-contained so it can be loaded from a
+   `assets/fonts/NewRocker-Regular.ttf`, base64-encode it, and embed
+   it — this keeps the SVG self-contained so it can be loaded from a
    `Blob` URL without a network fetch).
 2. In a real browser tab, load that self-contained SVG as an
    `Image` (`new Image(); img.src = URL.createObjectURL(blob)`).

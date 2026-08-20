@@ -3,7 +3,7 @@
 
 @font-face {
   font-family: "Comic Neue";
-  src: url("../../assets/ComicNeue-Bold.ttf") format("truetype");
+  src: url("../../assets/fonts/ComicNeue-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -11,7 +11,7 @@
 
 @font-face {
   font-family: "Inconsolata";
-  src: url("../../assets/Inconsolata-Regular.ttf") format("truetype");
+  src: url("../../assets/fonts/Inconsolata-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -19,7 +19,7 @@
 
 @font-face {
   font-family: "New Rocker";
-  src: url("../../assets/NewRocker-Regular.ttf") format("truetype");
+  src: url("../../assets/fonts/NewRocker-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -27,7 +27,7 @@
 
 @font-face {
   font-family: "Bebas Neue";
-  src: url("../../assets/BebasNeue-Regular.ttf") format("truetype");
+  src: url("../../assets/fonts/BebasNeue-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -37,7 +37,7 @@
   /* Variable font (weights 100-900 in one file) -- Google Fonts no
      longer ships static per-weight Inter TTFs. */
   font-family: "Inter";
-  src: url("../../assets/Inter-Regular.ttf") format("truetype");
+  src: url("../../assets/fonts/Inter-Regular.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -47,7 +47,7 @@
   /* Variable font (weights 400-700 in one file) -- Google Fonts no
      longer ships static per-weight Lora TTFs. */
   font-family: "Lora";
-  src: url("../../assets/Lora-Regular.ttf") format("truetype");
+  src: url("../../assets/fonts/Lora-Regular.ttf") format("truetype");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
@@ -73,16 +73,16 @@
                                                 border, matching
                                                 --accent */
   --good: #4caf7d; /* "strike avoided" indicator color -- source of
-                       truth for assets/strike-ok.svg's border color,
+                       truth for assets/images/strike-ok.svg's border color,
                        kept in sync by hand (assets/
-                       strike-indicators.md) since the SVG can't read
+                       images/strike-indicators.md) since the SVG can't read
                        this variable */
   --bad: #e5484d; /* Abandon button fill */
   --bad-tag: #f2989b; /* strike/eliminated state tag background,
                           struck-panel border, and source of truth for
-                          assets/strike-hit.svg's border/mark color
+                          assets/images/strike-hit.svg's border/mark color
                           (kept in sync by hand, see assets/
-                          strike-indicators.md) -- a lighter tint of
+                          images/strike-indicators.md) -- a lighter tint of
                           --bad; --bad itself is too dark for the tag's
                           --bg text to read clearly */
   --bad-tag-glow: rgba(242, 152, 155, 0.4); /* glow behind a struck
@@ -90,9 +90,9 @@
                                                 --bad-tag */
   --second-chance: #e0c040; /* "second chance" (XX/) strike indicator
                                 color -- source of truth for assets/
-                                strike-second-chance.svg's border
+                                images/strike-second-chance.svg's border
                                 color, kept in sync by hand (assets/
-                                strike-indicators.md) since the SVG
+                                images/strike-indicators.md) since the SVG
                                 can't read this variable */
   --win: #ffffff; /* winning panel's border color */
   --win-glow: rgba(255, 255, 255, 0.35); /* glow behind a winning
@@ -113,7 +113,7 @@
                              alongside .is-selected */
 
   /* ---------- main screen (independently restylable) ---------- */
-  --main-bg: #1b5e3a url("../../assets/felt.svg") repeat; /* felt-green
+  --main-bg: #1b5e3a url("../../assets/images/felt.svg") repeat; /* felt-green
     main screen background, tiled with a felt texture */
   --main-title-color: #fff; /* main screen title color */
 

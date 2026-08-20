@@ -25,7 +25,7 @@ Leave two things alone:
   are deliberately terse — "Keep Hand", "Game Over" — not prose, and
   grammar rules for sentences don't apply to them. Proofreading them
   produces false positives, not fixes.
-- **The embedded CC0 license text in `assets/SoundEffects.md`**. It's
+- **The embedded CC0 license text in `assets/sounds/SoundEffects.md`**. It's
   third-party legal boilerplate copied verbatim from Creative Commons —
   don't "fix" its wording even if something reads oddly, since altering
   license text changes its legal meaning.
@@ -59,9 +59,10 @@ Read each file in full and look for what a wordlist can't catch:
   semicolon or period where a spec lists "X depending on Y these are:"
   without anything joining the two clauses.
 - **Internal data inconsistencies** — this repo's specs and assets docs
-  describe layouts, tables, and enumerated lists (e.g. `assets/cards.md`'s
-  tile-sheet column descriptions). Read these for self-consistency, not
-  just wording: if a list pairs "filled/outlined" with "light/dark" and
+  describe layouts, tables, and enumerated lists (e.g.
+  `assets/images/cards.md`'s tile-sheet column descriptions). Read
+  these for self-consistency, not just wording: if a list pairs
+  "filled/outlined" with "light/dark" and
   one row breaks the pattern with no explanation, that's very likely a
   transcription error worth flagging even though it isn't a spelling or
   grammar issue. Use judgment here — only flag a break in a clear,

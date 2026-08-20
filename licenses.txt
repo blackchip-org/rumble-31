@@ -1,6 +1,6 @@
 Bebas Neue Font
 License: OFL-1.1
-Source: assets/BebasNeue.OFL.txt
+Source: assets/fonts/BebasNeue.OFL.txt
 
 Copyright © 2010 by Dharma Type.
 
@@ -100,7 +100,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 Comic Neue Font
 License: OFL-1.1
-Source: assets/ComicNeue.OFL.txt
+Source: assets/fonts/ComicNeue.OFL.txt
 
 Copyright 2014 The Comic Neue Project Authors (https://github.com/crozynski/comicneue)
 
@@ -200,7 +200,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 GitHub Icon (Simple Icons)
 License: CC0-1.0
-Source: assets/GithubMark.md
+Source: assets/images/GithubMark.md
 
 The GitHub icon (github-mark.svg) was taken from the Simple Icons project:
 
@@ -334,7 +334,7 @@ express Statement of Purpose.
 
 Inconsolata Font
 License: OFL-1.1
-Source: assets/Inconsolata.OFL.txt
+Source: assets/fonts/Inconsolata.OFL.txt
 
 Copyright 2006 The Inconsolata Project Authors
 
@@ -434,7 +434,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 Inter Font
 License: OFL-1.1
-Source: assets/Inter.OFL.txt
+Source: assets/fonts/Inter.OFL.txt
 
 Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
 
@@ -534,7 +534,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 Lora Font
 License: OFL-1.1
-Source: assets/Lora.OFL.txt
+Source: assets/fonts/Lora.OFL.txt
 
 Copyright 2011 The Lora Project Authors (https://github.com/cyrealtype/Lora-Cyrillic), with Reserved Font Name "Lora".
 
@@ -634,7 +634,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 New Rocker Font
 License: OFL-1.1
-Source: assets/NewRocker.OFL.txt
+Source: assets/fonts/NewRocker.OFL.txt
 
 Copyright (c) 2011, Pablo Impallari (www.impallari.com|impallari@gmail.com),
 Copyright (c) 2011, Brenda Gallo (gbrenda1987@gmail.com),
@@ -765,7 +765,7 @@ SOFTWARE.
 
 Sound Effects (ChipTone)
 License: CC0-1.0
-Source: assets/SoundEffects.md
+Source: assets/sounds/SoundEffects.md
 
 Sound effects were generated using:
 

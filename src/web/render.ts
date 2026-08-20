@@ -1,5 +1,5 @@
 import type { Card, Rank, Suit } from "../card/card.ts";
-import cardsUrl from "../../assets/cards.png";
+import cardsUrl from "../../assets/images/cards.png";
 import { STRIKE_HIGHLIGHT_BLINK_INTERVAL } from "../config.ts";
 import { BACK_TILE, SHEET_COLS, SHEET_ROWS, TILE_H, TILE_W, tilePosition, type TilePosition } from "./cardSheet.ts";
 
