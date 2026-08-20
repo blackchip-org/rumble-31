@@ -639,13 +639,7 @@ body {
 .strike {
   width: 1.05rem;
   height: 1.05rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-strike-mark);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
+  display: block;
 }
 
 /* Always rendered as a circle, dark-gray-filled to mark where the
@@ -669,25 +663,6 @@ body {
 
 .dealer-button.is-dealer {
   background: #fff;
-}
-
-.strike.ok {
-  background: rgba(76, 175, 125, 0.22);
-  color: var(--good);
-  border: 1px solid rgba(76, 175, 125, 0.65);
-}
-
-.strike.hit {
-  background: rgba(229, 72, 77, 0.22);
-  color: var(--bad);
-  border: 1px solid rgba(229, 72, 77, 0.75);
-}
-
-.strike.second-chance {
-  background: rgba(224, 192, 64, 0.22);
-  color: var(--second-chance);
-  border: 1px solid rgba(224, 192, 64, 0.75);
-  font-size: var(--font-size-strike-slash);
 }
 
 /* ---------- actions ---------- */

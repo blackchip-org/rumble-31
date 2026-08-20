@@ -71,13 +71,21 @@
   --accent-dim: #6b5628; /* dimmer accent: active-turn panel border/glow,
                              active-turn state tag border, action button
                              border */
-  --good: #4caf7d; /* "strike avoided" indicator color */
+  --good: #4caf7d; /* "strike avoided" indicator color -- source of
+                       truth for assets/strike-ok.svg's border color,
+                       kept in sync by hand (assets/
+                       strike-indicators.md) since the SVG can't read
+                       this variable */
   --bad: #e5484d; /* "strike hit"/eliminated indicator, struck-panel
                       border and eliminated state tag */
   --bad-glow: rgba(229, 72, 77, 0.4); /* glow behind a struck panel's
                                           border */
   --second-chance: #e0c040; /* "second chance" (XX/) strike indicator
-                                color */
+                                color -- source of truth for assets/
+                                strike-second-chance.svg's border
+                                color, kept in sync by hand (assets/
+                                strike-indicators.md) since the SVG
+                                can't read this variable */
   --win: #ffffff; /* winning panel's border color */
   --win-glow: rgba(255, 255, 255, 0.35); /* glow behind a winning
                                              panel's border */
@@ -125,15 +133,6 @@
   --font-size-tag: 0.62rem; /* turn/eliminated/knocked/strike state tag */
   --font-size-score: 0.95rem; /* score box and action buttons */
   --font-size-strike: 0.6rem; /* dealer-button letter ('D') */
-  --font-size-strike-mark: 1.1rem; /* strike indicator X -- larger than
-                                        the dealer button's letter so it
-                                        reads clearly at a glance */
-  --font-size-strike-slash: 0.52rem; /* second-chance strike indicator's
-                                          "/" -- smaller than the X
-                                          (--font-size-strike-mark) so it
-                                          reads as the same size missing
-                                          one stroke, while still fitting
-                                          inside the circle */
   --font-size-title: clamp(3rem, 8vw + 1rem, 6.5rem); /* main screen
                                                             title */
 

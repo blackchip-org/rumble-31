@@ -2,28 +2,34 @@
 // indicators, and turn/eliminated state — mirroring render.ts's plain,
 // element-in/DOM-out style.
 
+import strikeHitUrl from "../../assets/strike-hit.svg";
+import strikeOkUrl from "../../assets/strike-ok.svg";
+import strikeSecondChanceUrl from "../../assets/strike-second-chance.svg";
+
 const STRIKE_COUNT = 3;
 
-// renderStrikes fills el with STRIKE_COUNT indicators: the first
-// `strikes` show as a red hit, the rest as a green ok, per gui.md's
-// OOO/XOO/XXO/XXX table. hasSecondChance seats holding an unused
-// second chance (specs/rules.md) at exactly 3 strikes show XX/
-// instead of XXX, with the third indicator yellow — reverting to
-// plain XXX once strikes reaches 4 (true elimination).
+// renderStrikes fills el with STRIKE_COUNT indicator icons (assets/
+// strike-indicators.md): the first `strikes` show strike-hit.svg, the
+// rest strike-ok.svg, per gui.md's OOO/XOO/XXO/XXX table.
+// hasSecondChance seats holding an unused second chance (specs/
+// rules.md) at exactly 3 strikes show strike-second-chance.svg for
+// the third indicator instead of strike-hit.svg — reverting to a
+// plain hit once strikes reaches 4 (true elimination).
 export function renderStrikes(el: HTMLElement, strikes: number, hasSecondChance: boolean): void {
-  const spans = Array.from({ length: STRIKE_COUNT }, (_, i) => {
-    const span = document.createElement("span");
+  const imgs = Array.from({ length: STRIKE_COUNT }, (_, i) => {
+    const img = document.createElement("img");
+    img.className = "strike";
     if (hasSecondChance && strikes === 3 && i === STRIKE_COUNT - 1) {
-      span.className = "strike second-chance";
-      span.textContent = "/";
-      return span;
+      img.src = strikeSecondChanceUrl;
+      img.alt = "second chance";
+      return img;
     }
     const hit = i < strikes;
-    span.className = `strike ${hit ? "hit" : "ok"}`;
-    span.textContent = hit ? "×" : "";
-    return span;
+    img.src = hit ? strikeHitUrl : strikeOkUrl;
+    img.alt = hit ? "strike" : "no strike";
+    return img;
   });
-  el.replaceChildren(...spans);
+  el.replaceChildren(...imgs);
 }
 
 // formatScore renders value with no decimal point: half-point scores
