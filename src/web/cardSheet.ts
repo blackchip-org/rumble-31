@@ -63,6 +63,6 @@ export function tilePosition(c: Card): TilePosition {
   return { row: SUIT_ROWS[currentSuitColor][c.suit], col: RANK_COL[c.rank] };
 }
 
-// BACK_TILE is the sheet's light-red card back (row 1, column 8 per
+// BACK_TILE is the sheet's light-blue card back (row 1, column 6 per
 // assets/cards.md), used wherever a card's identity must stay private.
-export const BACK_TILE: TilePosition = { row: 1, col: 8 };
+export const BACK_TILE: TilePosition = { row: 1, col: 6 };
