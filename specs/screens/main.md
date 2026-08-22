@@ -19,10 +19,12 @@ in white.
 blue and the text is white:
     - New Game
     - How to Play
+    - Stats
     - Settings
     - About
 
 Clicking on the "New Game" button navigates to the Game Screen.
 Clicking on the "How to Play" button navigates to the How to Play screen.
+Clicking on the "Stats" button navigates to the Stats Screen.
 Clicking on the "Settings" button navigates to the Settings Screen.
 Clicking on the "About" button navigates to the About Screen.

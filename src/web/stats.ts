@@ -138,6 +138,14 @@ function statsFor(store: StatsStore, botVersion: string): BotVersionStats {
   return created;
 }
 
+// viewStats is statsFor's read-only counterpart, for the Stats screen
+// (specs/screens/stats.md): looking at a bot version's stats -- even
+// one never recorded a game under -- must never itself create or save
+// a store entry the way recording an event does.
+export function viewStats(store: StatsStore, botVersion: string): BotVersionStats {
+  return store.byBotVersion[botVersion] ?? emptyBotVersionStats();
+}
+
 // recordGameStarted increments Games played (specs/stats.md's Global
 // Stats), called once per freshly-started (not resumed) game.
 export function recordGameStarted(store: StatsStore, botVersion: string): void {
@@ -230,6 +238,30 @@ export function ratingFor(dStats: DifficultyStats): number {
   }
   const avgPlaceValue = (first * 3 + second * 2 + third * 1 + fourth * 0) / total;
   return Math.round((avgPlaceValue / 3) * 1000);
+}
+
+// totalWinLossTie sums a skill-keyed set of records into one overall
+// WinLossTie -- the Stats screen's headline Wins/Losses/Ties counters
+// (specs/screens/stats.md), derived rather than separately tracked,
+// same as ratingFor above.
+export function totalWinLossTie(records: Record<BotSkillLevel, WinLossTie>): WinLossTie {
+  return BOT_SKILL_LEVELS.reduce<WinLossTie>(
+    (total, skill) => {
+      const rec = records[skill];
+      return { wins: total.wins + rec.wins, losses: total.losses + rec.losses, ties: total.ties + rec.ties };
+    },
+    { wins: 0, losses: 0, ties: 0 },
+  );
+}
+
+// gamesPlayedFor sums a DifficultyStats' winsPerPlace into that
+// difficulty's own games-played count -- specs/stats.md tracks Games
+// played only globally, so the Stats screen's per-difficulty counter
+// (specs/screens/stats.md) derives it from the one per-difficulty
+// count that's always in lockstep with it: every game ends with South
+// placed somewhere.
+export function gamesPlayedFor(dStats: DifficultyStats): number {
+  return dStats.winsPerPlace.reduce((sum, count) => sum + count, 0);
 }
 
 // todayDateString returns now's local calendar date as YYYY-MM-DD, for

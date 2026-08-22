@@ -19,7 +19,7 @@ import type { NavAction } from "./gamepadInput.ts";
 // id (rather than importing main.ts's private element consts) so this
 // module stays a self-contained, DOM-id-based dependency of main.ts,
 // not the other way around.
-const SCREEN_IDS = ["main-screen", "appinfo-screen", "game-screen", "menu-screen", "about-screen", "licenses-screen", "htp-screen", "settings-screen", "game-over-screen", "error-screen"];
+const SCREEN_IDS = ["main-screen", "appinfo-screen", "game-screen", "menu-screen", "about-screen", "licenses-screen", "htp-screen", "stats-screen", "settings-screen", "game-over-screen", "error-screen"];
 
 // DIALOG_IDS are the app's native <dialog> elements. An open dialog is
 // its own focus scope -- the screen behind it is already inert to
@@ -54,6 +54,7 @@ const SCREEN_DEFAULTS: Readonly<Record<string, { id: string; sticky: boolean }>>
   "settings-screen": { id: "settings-back-btn", sticky: false },
   "about-screen": { id: "about-main-menu-btn", sticky: false },
   "licenses-screen": { id: "licenses-main-menu-btn", sticky: false },
+  "stats-screen": { id: "stats-main-menu-btn", sticky: false },
   "game-over-screen": { id: "play-again-btn", sticky: false },
 };
 

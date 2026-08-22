@@ -214,6 +214,28 @@
   --font-size-htp-title: 2.25rem; /* how to play screen "How to Play"
                                       heading */
 
+  /* ---------- stats screen (independently restylable) ---------- */
+  --stats-bg: var(--main-bg); /* stats screen background */
+  --stats-title-color: #fff; /* "Stats" heading color */
+  --stats-text-color: var(--ink); /* stat label/value text color */
+  --font-size-stats-title: 2.25rem; /* stats screen "Stats" heading */
+  --stats-table-rule: rgba(238, 238, 238, 0.18); /* lighter than
+                                                      --panel-border so
+                                                      the skill table's
+                                                      row dividers stay
+                                                      visible against
+                                                      the dark green
+                                                      --panel background */
+  --stats-rating-low: #6b5636; /* muted brass -- the low end of the
+                                    Rating gauge's fill gradient,
+                                    ramping up to --accent gold */
+  /* Wins-per-place medal tiers: gold/silver/bronze/dim, a real medal
+     read rather than an arbitrary 4-color scale. */
+  --stats-place-first: var(--accent);
+  --stats-place-second: #cbd2dc;
+  --stats-place-third: #cf9a5c;
+  --stats-place-fourth: var(--ink-dim);
+
   /* ---------- game menu screen (independently restylable) ---------- */
   --menu-bg: var(--main-bg); /* game menu screen background */
   --menu-title-color: #fff; /* "Game Menu" heading color */

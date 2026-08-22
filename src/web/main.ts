@@ -33,7 +33,8 @@ import { renderStrikes, setDealer, setPanelState, setScore, setStruck, setWon } 
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
-import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordGamePlace, todayDateString, type StatsStore } from "./stats.ts";
+import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordGamePlace, todayDateString, viewStats, type StatsStore } from "./stats.ts";
+import { initStatsTabs, renderStatsScreen, resetStatsToOverallTab } from "./statsScreen.ts";
 import {
   appendLogLine,
   backEl,
@@ -268,6 +269,7 @@ const gameScreenEl = must<HTMLElement>("game-screen");
 const menuBtn = must<HTMLButtonElement>("menu-btn");
 const newGameBtn = must<HTMLButtonElement>("new-game-btn");
 const htpBtn = must<HTMLButtonElement>("htp-btn");
+const statsBtn = must<HTMLButtonElement>("stats-btn");
 const settingsBtn = must<HTMLButtonElement>("settings-btn");
 const aboutBtn = must<HTMLButtonElement>("about-btn");
 
@@ -324,6 +326,10 @@ const licensesMainMenuBtn = must<HTMLButtonElement>("licenses-main-menu-btn");
 const htpScreenEl = must<HTMLElement>("htp-screen");
 const htpTextEl = must<HTMLTextAreaElement>("htp-text");
 const htpMainMenuBtn = must<HTMLButtonElement>("htp-main-menu-btn");
+
+const statsScreenEl = must<HTMLElement>("stats-screen");
+const statsCardEl = must<HTMLElement>("stats-card");
+const statsMainMenuBtn = must<HTMLButtonElement>("stats-main-menu-btn");
 
 const settingsScreenEl = must<HTMLElement>("settings-screen");
 const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
@@ -1110,6 +1116,7 @@ function hideAllScreens(): void {
   aboutScreenEl.hidden = true;
   licensesScreenEl.hidden = true;
   htpScreenEl.hidden = true;
+  statsScreenEl.hidden = true;
   settingsScreenEl.hidden = true;
   gameOverScreenEl.hidden = true;
   errorScreenEl.hidden = true;
@@ -1250,6 +1257,21 @@ const FOCUS_FIRST_LABELS: Record<FocusFirst, string> = { pot: "Pot", hand: "Hand
 // match settings.focusFirst.
 function syncFocusFirstToggleBtn(): void {
   focusFirstToggleBtn.textContent = FOCUS_FIRST_LABELS[settings.focusFirst];
+}
+
+// showStatsScreen swaps whichever screen is up for the stats screen
+// (per specs/screens/stats.md, reached from the Main Screen's "Stats"
+// button), rendering the current bot version's stats (stats.ts's
+// viewStats -- a read-only lookup, so just viewing this screen never
+// creates or saves a stats entry) and resetting to its Overall tab, and
+// persists it as the screen to resume (specs/state.md).
+function showStatsScreen(): void {
+  resetStatsToOverallTab(statsScreenEl, statsCardEl);
+  renderStatsScreen(statsScreenEl, viewStats(stats, botVersion));
+  hideAllScreens();
+  statsScreenEl.hidden = false;
+  saveState({ screen: "stats" }, localStorage);
+  focusScreenDefault();
 }
 
 // showSettingsScreen swaps whichever screen is up for the settings
@@ -1415,6 +1437,9 @@ aboutMainMenuBtn.addEventListener("click", showMainScreen);
 licensesMainMenuBtn.addEventListener("click", showMainScreen);
 licensesBtn.addEventListener("click", showLicensesScreen);
 htpMainMenuBtn.addEventListener("click", showMainScreen);
+statsBtn.addEventListener("click", showStatsScreen);
+statsMainMenuBtn.addEventListener("click", showMainScreen);
+initStatsTabs(statsScreenEl, statsCardEl);
 htpBtn.addEventListener("click", showHtpScreen);
 
 // settingsBackBtn returns to wherever Settings was entered from
@@ -1571,6 +1596,9 @@ switch (initialScreen) {
     break;
   case "htp":
     showHtpScreen();
+    break;
+  case "stats":
+    showStatsScreen();
     break;
   case "over":
     if (savedState?.screen === "over") {

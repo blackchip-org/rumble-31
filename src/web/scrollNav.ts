@@ -4,8 +4,9 @@
 // currently visible, independent of focusNav.ts's button/select focus
 // grid -- these panels (the game log, license/how-to-play text, the
 // about screen's credits, the application info screen's instructions,
-// the error screen's stack trace) were never part of that grid, so
-// there's no separate "focus the panel" step.
+// the stats screen's stat panel, the error screen's stack trace) were
+// never part of that grid, so there's no separate "focus the panel"
+// step.
 
 import type { ScrollEvent } from "./gamepadInput.ts";
 
@@ -18,6 +19,7 @@ const SCROLL_TARGETS: Readonly<Record<string, string>> = {
   "licenses-screen": "licenses-text",
   "htp-screen": "htp-text",
   "about-screen": "about-body",
+  "stats-screen": "stats-card",
   "error-screen": "error-stack",
 };
 

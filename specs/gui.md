@@ -28,6 +28,8 @@ the phone in landscape mode.
   log.
 - [Error Screen](screens/error.md) (error) — Shown on an unhandled
   exception.
+- [Stats Screen](screens/stats.md) (stats) — Gameplay stats
+  (specs/stats.md), tabbed by Overall and each difficulty.
 - [Settings Screen](screens/settings.md) (settings) — Sound and bot
   difficulty settings, persisted to local storage.
 - [Game Menu Screen](screens/menu.md) (menu) — In-game pause menu

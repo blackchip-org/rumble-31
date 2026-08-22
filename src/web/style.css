@@ -131,7 +131,9 @@ body {
 .abandon-dialog-buttons button,
 .appinfo-buttons button,
 .licenses-buttons button,
-.htp-buttons button {
+.htp-buttons button,
+.stats-buttons button,
+.stats-tabs button {
   border: 1px solid var(--panel-border);
   border-radius: 6px;
   background: var(--button-bg);
@@ -165,7 +167,9 @@ body {
 .abandon-dialog-buttons button:hover:not(:disabled),
 .appinfo-buttons button:hover:not(:disabled),
 .licenses-buttons button:hover:not(:disabled),
-.htp-buttons button:hover:not(:disabled) {
+.htp-buttons button:hover:not(:disabled),
+.stats-buttons button:hover:not(:disabled),
+.stats-tabs button:hover:not(:disabled) {
   background: var(--button-bg-hover);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
@@ -185,7 +189,9 @@ body {
 .abandon-dialog-buttons button:active:not(:disabled),
 .appinfo-buttons button:active:not(:disabled),
 .licenses-buttons button:active:not(:disabled),
-.htp-buttons button:active:not(:disabled) {
+.htp-buttons button:active:not(:disabled),
+.stats-buttons button:active:not(:disabled),
+.stats-tabs button:active:not(:disabled) {
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
   transform: translateY(1px);
 }
@@ -1170,6 +1176,372 @@ body {
 
 .settings-grid button.settings-reset-btn:hover {
   background: var(--menu-abandon-bg-hover);
+}
+
+/* ---------- stats screen ---------- */
+
+.stats-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--stats-bg);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Same [hidden]-specificity-tie reasoning as .settings-screen above:
+   display must be gated on :not([hidden]), not the bare selector. */
+.stats-screen:not([hidden]) {
+  display: flex;
+}
+
+.stats-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: min(94vw, 640px);
+  color: var(--stats-text-color);
+}
+
+.stats-title {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-stats-title);
+  color: var(--stats-title-color);
+  text-shadow: var(--heading-text-shadow);
+}
+
+.stats-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  width: 100%;
+  gap: 0.4rem;
+}
+
+.stats-tabs button {
+  padding: 0.6rem 0.5rem;
+  color: var(--ink-dim);
+  font-size: 0.95rem;
+}
+
+.stats-tab.active {
+  background: var(--panel);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* .stats-card is a fixed height (not max-height) so switching tabs
+   never resizes it -- the title/tabs above and Main Menu button below
+   stay put; a short pane (Overall) leaves blank space below it
+   instead of shrinking the card, a tall one scrolls inside it instead
+   of growing the card. */
+.stats-card {
+  width: 100%;
+  height: min(64vh, 560px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* padding-bottom lives on .stats-pane itself, not .stats-card -- a
+   scrolling flex container's own bottom padding gets clipped once its
+   content overflows, so the space has to come from the content side
+   instead. No flex-grow on .active either: a grown flex item's box
+   stays clamped to the space .stats-card has left even once its
+   content overflows, which would cut .stats-pane's padding-bottom off
+   at that clamped edge instead of after its real last child. */
+.stats-pane {
+  display: none;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 1.25rem;
+}
+
+.stats-pane.active {
+  display: flex;
+}
+
+.stats-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.stats-block h2 {
+  margin: 0;
+  font-family: var(--font-button);
+  font-weight: 400;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+/* ---- headline counters (Games played/Wins/Losses/Ties) ---- */
+.stats-counters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+}
+
+.stats-counter {
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.stats-counter .value {
+  font-family: var(--font-score);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+.stats-counter.wins .value {
+  color: var(--good);
+}
+
+.stats-counter.losses .value {
+  color: var(--bad-tag);
+}
+
+.stats-counter.ties .value {
+  color: var(--ink);
+}
+
+.stats-counter .label {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+.stats-footnote {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+}
+
+/* ---- rating ---- */
+.stats-rating-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.stats-rating-row .value {
+  font-family: var(--font-score);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 2.2rem;
+  color: var(--accent);
+}
+
+.stats-rating-row .of {
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+}
+
+.stats-gauge {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  overflow: hidden;
+}
+
+.stats-gauge .fill {
+  display: block;
+  height: 100%;
+  /* A single hue (muted brass to --accent gold) instead of a second,
+     unrelated color -- reads as "filling up with gold," reusing the
+     color that already means highlight/positive everywhere else in
+     the app (active-turn glow, action buttons). */
+  background: linear-gradient(90deg, var(--stats-rating-low), var(--accent));
+  border-radius: 999px;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+/* ---- wins per place: medal tiles, not bars -- place is a rank, not
+   a quantity best compared by length, and this reuses the counters'
+   tile language above it. ---- */
+.stats-places {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+}
+
+.place-tile {
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-top: 3px solid var(--tier-color);
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.place-tile .value {
+  font-family: var(--font-score);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
+  color: var(--tier-color);
+}
+
+.place-tile .label {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+.place-tile.first {
+  --tier-color: var(--stats-place-first);
+}
+
+.place-tile.second {
+  --tier-color: var(--stats-place-second);
+}
+
+.place-tile.third {
+  --tier-color: var(--stats-place-third);
+}
+
+.place-tile.fourth {
+  --tier-color: var(--stats-place-fourth);
+}
+
+/* ---- record vs. bot skill ---- */
+.stats-skill-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.stats-skill-table th,
+.stats-skill-table td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--stats-table-rule);
+  width: auto;
+}
+
+.stats-skill-table th {
+  color: var(--ink-dim);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+}
+
+.stats-skill-table th.num {
+  text-align: right;
+}
+
+.stats-skill-table td.num {
+  font-family: var(--font-score);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.stats-skill-table th.num,
+.stats-skill-table td.num {
+  width: 4.5rem;
+}
+
+.stats-skill-table tr.unseated td {
+  color: var(--ink-dim);
+  opacity: 0.55;
+}
+
+/* ---- streaks ---- */
+.stats-streak-head {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr 1fr;
+  gap: 0.6rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.stats-streaks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stats-streak-row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr 1fr;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.stats-streak-row .label {
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.pill {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+}
+
+.pill .n {
+  font-family: var(--font-score);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+}
+
+.pill.current.live .n {
+  color: var(--good);
+}
+
+.pill.current:not(.live) .n {
+  color: var(--ink-dim);
+}
+
+.pill.best .n {
+  color: var(--accent);
+}
+
+.pill .meta {
+  font-size: 0.66rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.03em;
+}
+
+.stats-buttons {
+  display: flex;
+  flex-direction: column;
+  width: min(60vw, 260px);
+}
+
+.stats-buttons button {
+  padding: 0.75rem 1rem;
 }
 
 /* ---------- game menu screen ---------- */

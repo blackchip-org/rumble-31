@@ -8,6 +8,9 @@ import {
   recordRoundElimination,
   recordGamePlace,
   ratingFor,
+  totalWinLossTie,
+  gamesPlayedFor,
+  viewStats,
   type StatsStore,
   type WinLossTie,
   type DifficultyStats,
@@ -245,4 +248,47 @@ test("abandoning a game scores like South being eliminated right now", () => {
   assert.deepEqual(bvStats.global.recordsBySkill.advanced, wlt(0, 1, 0), "still-active bot gets a loss, never a tie");
   assert.deepEqual(bvStats.global.recordsBySkill.expert, wlt(0, 1, 0));
   assert.deepEqual(bvStats.perDifficulty.easy.winsPerPlace, [0, 1, 0, 0]);
+});
+
+test("viewStats reads without creating or saving a store entry", () => {
+  const storage = memoryStorage();
+  const store = loadStats(storage);
+
+  const seen = viewStats(store, "2");
+  assert.equal(seen.global.gamesPlayed, 0);
+  assert.equal(store.byBotVersion["2"], undefined, "an unseen version must not be inserted into the store");
+
+  recordGameStarted(store, "2");
+  assert.equal(viewStats(store, "2").global.gamesPlayed, 1, "a real entry is still visible once one exists");
+});
+
+test("totalWinLossTie sums every skill's record", () => {
+  const cases: Array<{ name: string; records: Record<BotSkillLevel, WinLossTie>; want: WinLossTie }> = [
+    { name: "all empty", records: emptyRecords(), want: wlt(0, 0, 0) },
+    {
+      name: "mixed records",
+      records: { novice: wlt(38, 10, 2), advanced: wlt(51, 33, 6), expert: wlt(19, 21, 4) },
+      want: wlt(108, 64, 12),
+    },
+  ];
+  for (const { name, records, want } of cases) {
+    assert.deepEqual(totalWinLossTie(records), want, name);
+  }
+});
+
+test("gamesPlayedFor sums winsPerPlace", () => {
+  const cases: Array<{ name: string; winsPerPlace: [number, number, number, number]; want: number }> = [
+    { name: "no games", winsPerPlace: [0, 0, 0, 0], want: 0 },
+    { name: "some of each place", winsPerPlace: [28, 9, 3, 1], want: 41 },
+  ];
+  for (const { name, winsPerPlace, want } of cases) {
+    const dStats: DifficultyStats = {
+      winsPerPlace,
+      recordsBySkill: emptyRecords(),
+      firstPlaceStreak: { current: { count: 0 }, best: { count: 0 } },
+      topTwoStreak: { current: { count: 0 }, best: { count: 0 } },
+      notLastStreak: { current: { count: 0 }, best: { count: 0 } },
+    };
+    assert.equal(gamesPlayedFor(dStats), want, name);
+  }
 });

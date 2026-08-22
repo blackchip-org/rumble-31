@@ -20,5 +20,7 @@
 - [rules.md](rules.md) — Rules of the Rumble 31 card game itself.
 - [state.md](state.md) — What state the web GUI persists to local
   storage and when.
+- [stats.md](stats.md) — Gameplay stats tracked and stored in local
+  storage.
 - [version.md](version.md) — The current version number and build
   timestamp generation.
