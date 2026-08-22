@@ -646,10 +646,11 @@ body {
    button.svg for whichever seat currently holds the button,
    dealer-button-empty.svg for every other seat -- marking where the
    button would go. Colors are baked into the SVGs, not theme
-   variables -- the button's look doesn't change with theme. */
+   variables -- the button's look doesn't change with theme. Sized to
+   match .score-box's height, the tallest thing in the row. */
 .dealer-button {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .dealer-button img {

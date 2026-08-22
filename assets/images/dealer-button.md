@@ -15,9 +15,9 @@ with radius `10` and a `stroke-width` of `2`, matching the strike
 indicators (strike-indicators.md) so the two sit the same size in the
 seat panel row.
 
-dealer-button.svg's 'D' is a `<text>` element at `(12, 13)`,
+dealer-button.svg's 'D' is a `<text>` element at `(12, 12)`,
 `text-anchor="middle"`, `dominant-baseline="central"`,
-`font-family="sans-serif"`, `font-weight="bold"`, `font-size="11"`.
+`font-family="sans-serif"`, `font-weight="bold"`, `font-size="18"`.
 
 ## Colors
 
