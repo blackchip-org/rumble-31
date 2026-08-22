@@ -33,6 +33,7 @@ import { renderStrikes, setDealer, setPanelState, setScore, setStruck, setWon } 
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
+import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordGamePlace, todayDateString, type StatsStore } from "./stats.ts";
 import {
   appendLogLine,
   backEl,
@@ -105,6 +106,11 @@ preloadCardHighlightSheet();
 // Settings Screen), loaded once at startup and kept in sync with
 // localStorage as the player changes them.
 let settings: Settings = loadSettings(localStorage);
+
+// stats holds the gameplay stats (specs/stats.md), loaded once at
+// startup and kept in sync with localStorage as games are played,
+// abandoned, and won or lost.
+let stats: StatsStore = loadStats(localStorage);
 
 // currentGameAbort controls whichever game main() is currently
 // running (if any). Opening the Game Menu, abandoning, or starting
@@ -830,6 +836,8 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     for (const line of gameStartLines(seed, version, botVersion, DIFFICULTY_LABELS[settings.difficulty])) {
       appendLogLine(logEl, line);
     }
+    recordGameStarted(stats, botVersion);
+    saveStats(stats, localStorage);
   }
 
   const startRoundNum = resume?.roundNum ?? 1;
@@ -956,12 +964,19 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     // South) were still active going into it, i.e. South's placement
     // (specs/log.md) if the game ends here.
     const activeSeatsBeforeRound = g.eliminated.filter((e) => !e).length;
+    // eliminatedBeforeRound is the fuller, per-seat form of the above,
+    // needed by recordRoundElimination (specs/stats.md) to tell a bot
+    // newly eliminated this round from one already gone.
+    const eliminatedBeforeRound = [...g.eliminated];
 
     const outcome = await g.playRound();
 
     if (signal.aborted) {
       return;
     }
+
+    recordRoundElimination(stats, botVersion, settings.difficulty, botSeats, eliminatedBeforeRound, outcome.eliminated);
+    saveStats(stats, localStorage);
 
     // The round's over, so nobody's "on turn" or "knocked" anymore —
     // clear both before applying this round's win/strike highlights, or
@@ -1034,6 +1049,8 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       for (const line of gameEndLines(g, southPlace, botSeats.map((n) => BOT_LABELS[n]))) {
         appendLogLine(logEl, line);
       }
+      recordGamePlace(stats, botVersion, settings.difficulty, southPlace as 1 | 2 | 3 | 4, todayDateString());
+      saveStats(stats, localStorage);
       saveState(
         {
           screen: "over",
@@ -1446,6 +1463,15 @@ menuAbandonBtn.addEventListener("click", () => abandonDialogEl.showModal());
 // it like "No" with no extra wiring needed here.
 abandonNoBtn.addEventListener("click", () => abandonDialogEl.close());
 abandonYesBtn.addEventListener("click", () => {
+  // specs/stats.md: abandoning scores exactly like South being
+  // eliminated right now, against whichever bots are still active.
+  const game = currentMenuGame as GameState;
+  const place = game.eliminated.filter((e) => !e).length as 1 | 2 | 3 | 4;
+  recordRoundElimination(stats, botVersion, settings.difficulty, game.botSeats, game.eliminated, [0]);
+  recordGameAbandoned(stats, botVersion);
+  recordGamePlace(stats, botVersion, settings.difficulty, place, todayDateString());
+  saveStats(stats, localStorage);
+
   abortCurrentGame();
   clearState(localStorage);
   abandonDialogEl.close();
