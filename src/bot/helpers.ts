@@ -1,12 +1,13 @@
 // Shared logic for the bot strategies described in specs/bots.md: swap
 // enumeration, randomized [lo-hi] rolls, opponent-adjacency discovery,
-// and the incomplete-hand scoring rules Regular and Difficult use to
+// and the incomplete-hand scoring rules Advanced and Expert use to
 // judge whether a card would help a neighbor.
 
 import type { Card, Suit } from "../card/card.ts";
 import { rankValue } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import type { Action, Hand, PlayerView, PublicTurn } from "../game/types.ts";
+import { exchange, knock, trade } from "../game/types.ts";
 import type { Rng } from "../rng.ts";
 
 export interface CandidateSwap {
@@ -51,6 +52,23 @@ export function bestImprovingSwap(v: PlayerView): CandidateSwap | undefined {
   return improving.find((s) => s.score === best);
 }
 
+// bestImprovingSwapDenying is bestImprovingSwap, but among swaps tied
+// for the best improving score, prefers one whose pot card would also
+// improve upstream's known hand (denying it to upstream on their next
+// turn) over one that wouldn't -- falling back to bestImprovingSwap's
+// own lowest-(potIdx, handIdx) tie-break within whichever subset applies.
+export function bestImprovingSwapDenying(v: PlayerView, upstreamKnown: readonly Card[]): CandidateSwap | undefined {
+  const current = score(v.hand);
+  const improving = candidateSwaps(v).filter((s) => s.score > current);
+  if (improving.length === 0) {
+    return undefined;
+  }
+  const best = Math.max(...improving.map((s) => s.score));
+  const tied = improving.filter((s) => s.score === best);
+  const denying = tied.filter((s) => improvesKnownHand(upstreamKnown, v.pot[s.potIdx] as Card));
+  return (denying[0] ?? tied[0]) as CandidateSwap;
+}
+
 // resultingScore returns the score the hand would have after taking
 // action, without mutating v.
 export function resultingScore(v: PlayerView, action: Action): number {
@@ -88,6 +106,14 @@ export function unnecessaryIndices(hand: Hand): number[] {
   }, []);
 }
 
+// allDifferentSuits reports whether a hand's three cards each belong
+// to a distinct suit -- the weakest possible hand shape, since no two
+// cards can share a suit to sum together (specs/bots.md, Novice's
+// first-turn take-pot-or-keep rule).
+export function allDifferentSuits(hand: Hand): boolean {
+  return new Set(hand.map((c) => c.suit)).size === 3;
+}
+
 // choosePairMaker looks for a pot card that would give an unnecessary
 // hand card's slot a rank matching some other card already in hand
 // (specs/bots.md: "Trade an unnecessary card for one that makes a
@@ -106,7 +132,7 @@ export function choosePairMaker(v: PlayerView, unnecessary: readonly number[]): 
   return undefined;
 }
 
-// chooseFavorableBySuit implements Regular's "Trade an unnecessary card
+// chooseFavorableBySuit implements Advanced's "Trade an unnecessary card
 // for a favorable one": a favorable pot card isn't collectingSuit; among
 // favorable candidates, one matching discardedSuit is more favorable.
 // Returns undefined (bullet doesn't apply) with no unnecessary card, no
@@ -129,7 +155,7 @@ export function chooseFavorableBySuit(
   return { potIdx: Math.min(...chosen), handIdx: Math.min(...unnecessary) };
 }
 
-// chooseSafeBySuit implements Regular's "Trade a safe card for a random
+// chooseSafeBySuit implements Advanced's "Trade a safe card for a random
 // card": a safe hand card isn't collectingSuit. Returns undefined if
 // collectingSuit isn't known yet, or no hand card qualifies.
 export function chooseSafeBySuit(v: PlayerView, collectingSuit: Suit | undefined): number | undefined {
@@ -181,7 +207,59 @@ export function improvesKnownHand(known: readonly Card[], candidate: Card): bool
   return false;
 }
 
-// chooseFavorableByKnownHand implements Difficult's "Trade an
+// hasConfirmedEdge reports whether the hand's current score already
+// beats a fully-known neighbor's exact score (per applyPublicTurn's
+// "3 known cards means fully known" convention) by at least margin.
+// Unlike the stagnation bullet's [3-5]-turn wait -- which is guessing
+// whether the hand is likely to still be ahead once the round ends --
+// this is a confirmed, not probabilistic, edge: there's nothing left to
+// discover about a fully-known neighbor's score, so no wait is needed.
+export function hasConfirmedEdge(v: PlayerView, upstreamKnown: readonly Card[], downstreamKnown: readonly Card[], margin: number): boolean {
+  const handScore = score(v.hand);
+  const beats = (known: readonly Card[]) => known.length === 3 && handScore - score(known as [Card, Card, Card]) >= margin;
+  return beats(upstreamKnown) || beats(downstreamKnown);
+}
+
+// downstreamRiskAdjustedKnockScore lowers the score-threshold-knock bar
+// by discount once downstream's known (possibly incomplete) hand gets
+// within margin points of knockScore itself -- downstream is already
+// dangerous regardless of how much longer the hand is developed, so
+// locking in a slightly lower score sooner beats risking downstream
+// knocking first. Returns knockScore unchanged with nothing known yet
+// about downstream, or when they're not yet a close threat.
+export function downstreamRiskAdjustedKnockScore(downstreamKnown: readonly Card[], knockScore: number, margin: number, discount: number): number {
+  if (downstreamKnown.length === 0 || partialScore(downstreamKnown) < knockScore - margin) {
+    return knockScore;
+  }
+  return knockScore - discount;
+}
+
+// chooseDenialTrade implements Expert's denial trade: when no swap
+// would improve the bot's own hand, but some pot card would improve
+// upstream's known hand, trade an unnecessary hand card for it anyway
+// -- purely to keep it away from upstream, not because it helps the
+// bot. Prefers the lowest (potIdx, handIdx) match, matching the other
+// trade-selection helpers' tie-break convention. Returns undefined if
+// there's no unnecessary card to spare, upstream isn't known yet
+// (improvesKnownHand is vacuously true with nothing known, which would
+// otherwise "deny" every card for no real reason), or no pot card would
+// actually help upstream.
+export function chooseDenialTrade(
+  v: PlayerView,
+  unnecessary: readonly number[],
+  upstreamKnown: readonly Card[],
+): { potIdx: number; handIdx: number } | undefined {
+  if (unnecessary.length === 0 || upstreamKnown.length === 0) {
+    return undefined;
+  }
+  const denying = [0, 1, 2].filter((p) => improvesKnownHand(upstreamKnown, v.pot[p] as Card));
+  if (denying.length === 0) {
+    return undefined;
+  }
+  return { potIdx: Math.min(...denying), handIdx: Math.min(...unnecessary) };
+}
+
+// chooseFavorableByKnownHand implements Expert's "Trade an
 // unnecessary card for a favorable one": a favorable pot card is one
 // that does not improve known (specs/bots.md). With known empty,
 // improvesKnownHand is always true, so nothing reads as favorable and
@@ -202,7 +280,7 @@ export function chooseFavorableByKnownHand(
   return { potIdx: Math.min(...favorable), handIdx: Math.min(...unnecessary) };
 }
 
-// chooseSafeByKnownHand implements Difficult's "Trade a safe card for a
+// chooseSafeByKnownHand implements Expert's "Trade a safe card for a
 // random card": a safe hand card is one that does not improve known.
 // Same "no information" fallthrough as chooseFavorableByKnownHand.
 export function chooseSafeByKnownHand(v: PlayerView, known: readonly Card[]): number | undefined {
@@ -212,7 +290,7 @@ export function chooseSafeByKnownHand(v: PlayerView, known: readonly Card[]): nu
 
 // dominantSuit returns whichever suit sums highest among cards (ties
 // break toward the first card's suit encountered). Used to collapse an
-// exchange's 3 given/taken cards down to "the" suit for Regular's
+// exchange's 3 given/taken cards down to "the" suit for Advanced's
 // last-suit-took/discarded tracking, the same way a single-card trade
 // already yields one unambiguous suit.
 export function dominantSuit(cards: readonly Card[]): Suit {
@@ -235,6 +313,13 @@ export function dominantSuit(cards: readonly Card[]): Suit {
 // specs/bots.md's "[18-20]" notation.
 export function randInt(rng: Rng, lo: number, hi: number): number {
   return lo + rng.intn(hi - lo + 1);
+}
+
+// chance reports true with the given probability (0-1), per specs/bots.md's
+// coin-flip bullets -- e.g. Advanced only sometimes acting on a pair-maker
+// hit rather than always taking it.
+export function chance(rng: Rng, probability: number): boolean {
+  return rng.next() < probability;
 }
 
 // applyKnownCards replays a single PublicTurn against a seat's
@@ -342,4 +427,164 @@ export class NeighborTracker {
     }
     this.lastTurn = turn;
   }
+}
+
+// bestLastTurnAction implements the last-turn bullet shared by Advanced
+// and Expert (specs/bots.md): with another player already having
+// knocked, there's no more hand to develop before the round ends, so
+// the only goal left is the best score reachable this turn. Compares
+// the hand's own score (knock), the whole pot (exchange), and the best
+// single-card swap, preferring knock and then exchange on a tie.
+export function bestLastTurnAction(v: PlayerView): Action {
+  const handScore = score(v.hand);
+  const potScore = score(v.pot);
+  const bestTrade = bestSwaps(v)[0] as CandidateSwap;
+
+  if (handScore >= potScore && handScore >= bestTrade.score) {
+    return knock();
+  }
+  if (potScore >= bestTrade.score) {
+    return exchange();
+  }
+  return trade(bestTrade.potIdx, bestTrade.handIdx);
+}
+
+// BestScoreState is a bot's "best score and turn" tracking (specs/bots.md:
+// reset to 0 at the start of every round, updated with the bot's own turn
+// number whenever its score reaches a new best within that round), read
+// by chooseSkeletonAction's stagnation-knock bullet.
+export interface BestScoreState {
+  score: number;
+  turn: number;
+}
+
+// SkeletonConfig parameterizes chooseSkeletonAction with the constants
+// and hooks that differ between Advanced and Expert (specs/bots.md):
+// their distinct tuned thresholds, and each bot's own way (if any) of
+// picking a favorable pickup, a pair-maker trade, or a safe discard
+// using whatever it tracks about its neighbors. Leaving
+// chooseFavorable/choosePair/chooseSafe undefined (as Advanced does for
+// all three) simply skips those bullets.
+export interface SkeletonConfig {
+  // takePotScoreRange feeds the default first-turn blind-gamble bullet
+  // below. Unused, and may be omitted, when chooseFirstTurn overrides
+  // that bullet entirely.
+  takePotScoreRange?: [number, number];
+  knockTurnRange: [number, number];
+  bestScoreTurnsAgoRange: [number, number];
+  // knockScore is either a fixed threshold (Advanced, Expert) or a
+  // [lo-hi] range (Novice) rolled once per turn and shared by every
+  // bullet below that reads it -- specs/bots.md's "generate a random
+  // number at the beginning of the turn... and use that number".
+  knockScore: number | [number, number];
+  // chooseFirstTurn, if provided, replaces the default first-turn
+  // blind-gamble bullet entirely -- e.g. Novice's suit-shape rule (see
+  // allDifferentSuits), which doesn't roll a random score threshold at
+  // all. Leaving it undefined (as Advanced and Expert do) keeps the
+  // default takePotScoreRange gamble.
+  chooseFirstTurn?: (v: PlayerView) => Action;
+  // confirmedEdge overrides the stagnation bullet's [3-5]-turn wait: if
+  // true, knock immediately regardless of turns-since-best (see
+  // hasConfirmedEdge).
+  confirmedEdge?: (v: PlayerView) => boolean;
+  // riskAdjustedKnockScore, if provided, overrides knockScore just for
+  // the score-threshold-knock bullet below (not exchange-all) -- e.g.
+  // Expert's downstream-risk discount
+  // (see downstreamRiskAdjustedKnockScore).
+  riskAdjustedKnockScore?: (v: PlayerView) => number;
+  // chooseImproving overrides the plain bestImprovingSwap used by the
+  // trade-to-improve bullet -- e.g. Expert's denial tie-break
+  // (bestImprovingSwapDenying), which prefers denying upstream a card
+  // among swaps otherwise tied for the best improving score.
+  chooseImproving?: (v: PlayerView) => CandidateSwap | undefined;
+  // chooseDeny overrides/precedes the favorable-pickup bullet: taking a
+  // card purely to deny it to upstream, even though it wouldn't help
+  // the bot's own hand (see chooseDenialTrade).
+  chooseDeny?: (v: PlayerView, unnecessary: number[]) => { potIdx: number; handIdx: number } | undefined;
+  chooseFavorable?: (v: PlayerView, unnecessary: number[]) => { potIdx: number; handIdx: number } | undefined;
+  // choosePair, if provided, runs the pair-maker bullet (see
+  // choosePairMaker) -- e.g. Expert's. Leaving it undefined (as
+  // Advanced does) skips the bullet entirely.
+  choosePair?: (v: PlayerView, unnecessary: number[]) => { potIdx: number; handIdx: number } | undefined;
+  chooseSafe?: (v: PlayerView) => number | undefined;
+}
+
+// chooseSkeletonAction implements the full decision skeleton shared by
+// Advanced and Expert (specs/bots.md), bullet by bullet: first-turn
+// blind gamble, last-turn best-action, turn-limit knock, exchange-all
+// (gated on knock-worthiness, not just "better than my hand"), stagnation
+// knock, trade-to-improve, score-threshold knock, an optional
+// favorable-pickup trade, an optional pair-maker trade, an optional
+// safe-discard trade, and finally a fully random trade. Keeping this in
+// one place means a bullet change (e.g. the last-turn bullet) applies to
+// every bot that calls it, by construction, instead of needing to be
+// hand-ported.
+export function chooseSkeletonAction(v: PlayerView, rng: Rng, cfg: SkeletonConfig, best: BestScoreState): Action {
+  if (v.isFirstTurnOfRound) {
+    if (cfg.chooseFirstTurn) {
+      return cfg.chooseFirstTurn(v);
+    }
+    return score(v.hand) < randInt(rng, ...(cfg.takePotScoreRange as [number, number])) ? exchange() : knock();
+  }
+
+  if (v.isLastTurn) {
+    return bestLastTurnAction(v);
+  }
+
+  if (v.ownTurnNumber >= randInt(rng, ...cfg.knockTurnRange)) {
+    return knock();
+  }
+
+  const knockScore = typeof cfg.knockScore === "number" ? cfg.knockScore : randInt(rng, ...cfg.knockScore);
+
+  // Exchanging is itself a knock from the round's second turn on
+  // (specs/rules.md), so the bar for taking the pot outright must be
+  // the same one used to knock with your own hand -- not merely "the
+  // pot beats my hand" (a pot of 11 beating a hand of 9 would
+  // otherwise knock with an 11, almost always a losing score).
+  if (score(v.pot) >= knockScore && score(v.pot) > score(v.hand)) {
+    return exchange();
+  }
+  if (
+    score(v.hand) === best.score &&
+    v.ownTurnNumber - best.turn > randInt(rng, ...cfg.bestScoreTurnsAgoRange)
+  ) {
+    return knock();
+  }
+  if (cfg.confirmedEdge?.(v)) {
+    return knock();
+  }
+
+  const improving = cfg.chooseImproving ? cfg.chooseImproving(v) : bestImprovingSwap(v);
+  if (improving) {
+    return trade(improving.potIdx, improving.handIdx);
+  }
+
+  if (score(v.hand) >= (cfg.riskAdjustedKnockScore?.(v) ?? knockScore)) {
+    return knock();
+  }
+
+  const unnecessary = unnecessaryIndices(v.hand);
+
+  const denial = cfg.chooseDeny?.(v, unnecessary);
+  if (denial) {
+    return trade(denial.potIdx, denial.handIdx);
+  }
+
+  const favorable = cfg.chooseFavorable?.(v, unnecessary);
+  if (favorable) {
+    return trade(favorable.potIdx, favorable.handIdx);
+  }
+
+  const pair = cfg.choosePair?.(v, unnecessary);
+  if (pair) {
+    return trade(pair.potIdx, pair.handIdx);
+  }
+
+  const safeHandIdx = cfg.chooseSafe?.(v);
+  if (safeHandIdx !== undefined) {
+    return trade(randInt(rng, 0, 2), safeHandIdx);
+  }
+
+  return trade(randInt(rng, 0, 2), randInt(rng, 0, 2));
 }

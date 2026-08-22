@@ -21,10 +21,10 @@ not emit any sounds.
 
 Difficulty is a button that by default reads "Moderate". Clicking on it
 cycles through "Easy", "Moderate", "Hard". Each difficulty determines
-the three bot strategies (specs/bots.md) seated for the game's three bot
-seats, per the mapping configured in config.ts. Changing the difficulty
-takes effect starting with the next game; it has no effect on a game
-already in progress.
+the three bot skill levels (specs/bots.md) seated for the game's three
+bot seats, per the mapping configured in config.ts. Changing the
+difficulty takes effect starting with the next game; it has no effect
+on a game already in progress.
 
 Suit Colors is a button that by default reads "Four". Clicking on it
 toggles to "Two". "Four" renders each suit's cards in a different

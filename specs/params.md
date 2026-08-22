@@ -111,6 +111,15 @@ for example "?platform=ios&screen=appinfo". platform=other never
 shows the screen through normal navigation, same as a desktop
 browser.
 
+## showBots
+
+Value should be "true" or "false" (default "false" if omitted).
+showBots=true shows each bot seat's skill level (specs/bots.md) next to
+its seat name on the Game screen, as a parenthesized initial: " (N)" for
+Novice, " (A)" for Advanced, " (E)" for Expert -- for example "West
+(A)". South's seat label is never affected, since South is always the
+human player.
+
 ## age
 
 Value should be a non-negative number of minutes. Pretends that saved

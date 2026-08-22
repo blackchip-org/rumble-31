@@ -58,6 +58,11 @@ export interface PlayerView {
   // ownTurnNumber is the 1-based count of this seat's own turns so far,
   // including the current one.
   ownTurnNumber: number;
+
+  // isLastTurn is true when another player has already knocked (or
+  // exchanged past the round's first turn) this round, making this the
+  // acting player's own final turn before the round ends.
+  isLastTurn: boolean;
 }
 
 // PublicTurn is the publicly-observable outcome of one player's turn:

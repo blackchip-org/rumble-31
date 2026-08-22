@@ -2,13 +2,14 @@
 // failure throws a descriptive Error — there is no silent fallback for
 // malformed input.
 
-import { BOT_NAMES } from "./simulate.ts";
-import type { BotName, SimulationConfig } from "./simulate.ts";
+import { BOT_SKILL_LEVELS } from "./simulate.ts";
+import type { BotSkillLevel, SimulationConfig } from "./simulate.ts";
 
-// BOT_CHAR_TO_NAME maps a --strat letter to the bot difficulty it
-// selects, keyed by each BOT_NAMES entry's first letter (e/r/d — all
-// distinct, so this stays unambiguous as long as that holds).
-const BOT_CHAR_TO_NAME = new Map<string, BotName>(BOT_NAMES.map((name) => [name[0] as string, name]));
+// BOT_CHAR_TO_SKILL_LEVEL maps a --strat letter to the bot skill level
+// it selects, keyed by each BOT_SKILL_LEVELS entry's first letter
+// (n/a/e — all distinct, so this stays unambiguous as long as that
+// holds).
+const BOT_CHAR_TO_SKILL_LEVEL = new Map<string, BotSkillLevel>(BOT_SKILL_LEVELS.map((name) => [name[0] as string, name]));
 
 const DEFAULT_GAMES = 1000;
 
@@ -23,9 +24,9 @@ export type CliConfig = ({ mode: "single" } & SimulationConfig) | { mode: "all";
 //
 //   --games=N   number of games to play per combo (default 1000)
 //   --seed=N    batch seed (default derived from the clock)
-//   --strat=    four letters, one per bot under test: e (easy), r
-//               (regular), or d (difficult) -- e.g. --strat=erdr for
-//               easy, regular, difficult, regular. Each game deals the
+//   --strat=    four letters, one per bot under test: n (novice), a
+//               (advanced), or e (expert) -- e.g. --strat=naen for
+//               novice, advanced, expert, novice. Each game deals the
 //               four bots a fresh random seat, so this names which
 //               bots to test, not where they sit. If omitted, every
 //               distinct combo of 4 bots is run instead, reported as
@@ -56,21 +57,21 @@ export function parseCliArgs(argv: readonly string[], now: () => number = Date.n
   return { mode: "single", games, seed, bots: parseStrat(stratRaw) };
 }
 
-function parseStrat(value: string): [BotName, BotName, BotName, BotName] {
+function parseStrat(value: string): [BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel] {
   if (value.length !== 4) {
     throw new Error(`simulate: --strat=${value} must be exactly 4 characters, one per player`);
   }
 
   const bots = [...value].map((ch, i) => {
-    const name = BOT_CHAR_TO_NAME.get(ch);
+    const name = BOT_CHAR_TO_SKILL_LEVEL.get(ch);
     if (!name) {
-      const valid = [...BOT_CHAR_TO_NAME.keys()].join(", ");
+      const valid = [...BOT_CHAR_TO_SKILL_LEVEL.keys()].join(", ");
       throw new Error(`simulate: --strat=${value} has invalid character "${ch}" at position ${i + 1} (must be one of ${valid})`);
     }
     return name;
   });
 
-  return bots as [BotName, BotName, BotName, BotName];
+  return bots as [BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel];
 }
 
 function parsePositiveInt(flag: string, raw: string | undefined, fallback: number): number {

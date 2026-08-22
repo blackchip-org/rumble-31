@@ -3,7 +3,7 @@
 // unit-testable without a browser, same as licensesScreen.ts.
 
 import type { BotSeats } from "./botAssignment.ts";
-import { DIFFICULTY_BOT_STRATEGIES } from "../config.ts";
+import { DIFFICULTY_BOT_SKILL_LEVELS } from "../config.ts";
 import type { DebugParams } from "./params.ts";
 import type { Settings } from "./settings.ts";
 import type { GameState } from "./state.ts";
@@ -13,10 +13,10 @@ import type { GameState } from "./state.ts";
 // to fall back on -- mirroring main.ts's showDebugGameOverScreen,
 // which does the same for screen=over: strikes seed each seat's
 // elimination status, the three bot seats reflect the current
-// Settings-screen Difficulty's bot strategies, and there is no round
+// Settings-screen Difficulty's bot skill levels, and there is no round
 // in progress (no checkpoint) or log yet.
 export function buildDebugMenuGameState(params: DebugParams, settings: Settings): GameState {
-  const botSeats: BotSeats = DIFFICULTY_BOT_STRATEGIES[settings.difficulty];
+  const botSeats: BotSeats = DIFFICULTY_BOT_SKILL_LEVELS[settings.difficulty];
   return {
     strikes: params.initialStrikes.strikes,
     eliminated: params.initialStrikes.eliminated,

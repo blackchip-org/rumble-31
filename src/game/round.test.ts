@@ -564,6 +564,54 @@ test("run: isFirstTurnOfRound is true for exactly one decide call", async () => 
   assert.equal(firstTurnCalls, 1);
 });
 
+test("run: isLastTurn is false until a knock, then true for every seat's remaining turn this round", async () => {
+  const seen: Array<{ seat: number; isLastTurn: boolean }> = [];
+  const knockOnSecondTurn = (): Strategy => {
+    let n = 0;
+    return strategyFunc((v: PlayerView) => {
+      seen.push({ seat: v.seat, isLastTurn: v.isLastTurn });
+      n++;
+      if (n >= 2) {
+        return knock();
+      }
+      return v.isFirstTurnOfRound ? knock() : trade(0, 0);
+    });
+  };
+  const spy = (): Strategy =>
+    strategyFunc((v: PlayerView) => {
+      seen.push({ seat: v.seat, isLastTurn: v.isLastTurn });
+      return v.isFirstTurnOfRound ? knock() : trade(0, 0);
+    });
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Kh", "Kc", "Kd"],
+    [knockOnSecondTurn(), spy(), spy(), spy()],
+  );
+  r.firstSeat = 0;
+
+  await r.run();
+
+  // Seat 0 knocks on its own second turn (log: 0,1,2,3,0 knocks); seats
+  // 1, 2, 3 each get exactly one more turn afterward, all reporting
+  // isLastTurn true, and the round stops before seat 0 acts again.
+  assert.deepEqual(seen, [
+    { seat: 0, isLastTurn: false },
+    { seat: 1, isLastTurn: false },
+    { seat: 2, isLastTurn: false },
+    { seat: 3, isLastTurn: false },
+    { seat: 0, isLastTurn: false },
+    { seat: 1, isLastTurn: true },
+    { seat: 2, isLastTurn: true },
+    { seat: 3, isLastTurn: true },
+  ]);
+});
+
 test("run: the view passed to a strategy matches ground truth", async () => {
   const seatHands: [
     [string, string, string],

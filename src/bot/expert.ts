@@ -1,26 +1,28 @@
 import type { Card } from "../card/card.ts";
-import { score } from "../card/score.ts";
 import type { Action, PlayerView, PublicTurn, Strategy } from "../game/types.ts";
-import { exchange, knock, trade } from "../game/types.ts";
+import { exchange, knock } from "../game/types.ts";
 import {
+  allDifferentSuits,
   applyKnownCards,
-  bestImprovingSwap,
+  bestImprovingSwapDenying,
+  chooseDenialTrade,
   chooseFavorableByKnownHand,
   choosePairMaker,
   chooseSafeByKnownHand,
+  chooseSkeletonAction,
+  downstreamRiskAdjustedKnockScore,
+  hasConfirmedEdge,
   NeighborTracker,
-  randInt,
   resultingScore,
-  unnecessaryIndices,
   type NeighborSnapshot,
 } from "./helpers.ts";
 import { Rng } from "../rng.ts";
 
-// DifficultBotMemory is everything DifficultBot tracks across a round --
+// ExpertBotMemory is everything ExpertBot tracks across a round --
 // what snapshot() returns and the constructor init accepts back, so a
 // bot can be torn down and rebuilt (e.g. across a page reload,
 // specs/state.md) without losing what it's learned so far this round.
-export interface DifficultBotMemory {
+export interface ExpertBotMemory {
   bestScore: number;
   bestTurn: number;
   upstreamKnown: Card[];
@@ -29,24 +31,33 @@ export interface DifficultBotMemory {
 }
 
 // KNOCK_TURN_RANGE and BEST_SCORE_TURNS_AGO_RANGE are [lo-hi] ranges,
-// and KNOCK_SCORE is the fixed score threshold, from the Difficult
+// and KNOCK_SCORE is the fixed score threshold, from the Expert
 // strategy in specs/bots.md.
 const KNOCK_TURN_RANGE: [number, number] = [25, 30];
 const BEST_SCORE_TURNS_AGO_RANGE: [number, number] = [3, 5];
-const KNOCK_SCORE = 27;
-// TAKE_POT_SCORE_RANGE is the [lo-hi] range for the blind first-turn
-// gamble: take the unseen pot when the bot's own hand score is below a
-// number randomly rolled from this range.
-const TAKE_POT_SCORE_RANGE: [number, number] = [12, 15];
+const KNOCK_SCORE = 24;
+// CONFIRMED_EDGE_MARGIN is how much the hand's current score must beat
+// a fully-known neighbor's exact score by before that's trusted as a
+// confirmed edge worth an immediate knock (helpers.ts:hasConfirmedEdge).
+const CONFIRMED_EDGE_MARGIN = 5;
+// DOWNSTREAM_DANGER_MARGIN and DOWNSTREAM_RISK_DISCOUNT tune the
+// score-threshold-knock bar's downstream-risk discount
+// (helpers.ts:downstreamRiskAdjustedKnockScore): downstream counts as
+// dangerous once their known score is within DOWNSTREAM_DANGER_MARGIN
+// of KNOCK_SCORE, at which point the bar drops by
+// DOWNSTREAM_RISK_DISCOUNT.
+const DOWNSTREAM_DANGER_MARGIN = 4;
+const DOWNSTREAM_RISK_DISCOUNT = 3;
 
-// DifficultBot implements the Difficult strategy described in
-// specs/bots.md. It's identical in shape to RegularBot, but where
-// Regular only remembers its neighbors' most recent suit, Difficult
-// tracks their exact known-held cards (adding what they collect,
-// removing what they discard) and judges favorable/safe by whether a
-// card would actually improve that known -- possibly incomplete --
-// hand, per the incomplete-hand scoring rule in specs/bots.md.
-export class DifficultBot implements Strategy {
+// ExpertBot implements the Expert strategy described in
+// specs/bots.md, via the decision skeleton shared with AdvancedBot
+// (helpers.ts:chooseSkeletonAction). Where Advanced tracks nothing about
+// its neighbors, Expert tracks their exact known-held cards (adding
+// what they collect, removing what they discard) and judges
+// favorable/safe pot and hand cards by whether they'd actually improve
+// that known -- possibly incomplete -- hand, per the incomplete-hand
+// scoring rule in specs/bots.md.
+export class ExpertBot implements Strategy {
   private rng: Rng;
   private neighbors = new NeighborTracker();
 
@@ -88,8 +99,8 @@ export class DifficultBot implements Strategy {
   }
 
   // snapshot returns everything this bot has tracked so far this round,
-  // per DifficultBotMemory.
-  snapshot(): DifficultBotMemory {
+  // per ExpertBotMemory.
+  snapshot(): ExpertBotMemory {
     return {
       bestScore: this.bestScore,
       bestTurn: this.bestTurn,
@@ -113,7 +124,24 @@ export class DifficultBot implements Strategy {
 
   decide(v: PlayerView): Action {
     this.neighbors.setOwnSeat(v.seat);
-    const action = this.chooseAction(v);
+    const action = chooseSkeletonAction(
+      v,
+      this.rng,
+      {
+        chooseFirstTurn: (view) => (allDifferentSuits(view.hand) ? exchange() : knock()),
+        knockTurnRange: KNOCK_TURN_RANGE,
+        bestScoreTurnsAgoRange: BEST_SCORE_TURNS_AGO_RANGE,
+        knockScore: KNOCK_SCORE,
+        confirmedEdge: (view) => hasConfirmedEdge(view, this.upstreamKnown, this.downstreamKnown, CONFIRMED_EDGE_MARGIN),
+        riskAdjustedKnockScore: () => downstreamRiskAdjustedKnockScore(this.downstreamKnown, KNOCK_SCORE, DOWNSTREAM_DANGER_MARGIN, DOWNSTREAM_RISK_DISCOUNT),
+        chooseImproving: (view) => bestImprovingSwapDenying(view, this.upstreamKnown),
+        chooseDeny: (view, unnecessary) => chooseDenialTrade(view, unnecessary, this.upstreamKnown),
+        chooseFavorable: (view, unnecessary) => chooseFavorableByKnownHand(view, unnecessary, this.upstreamKnown),
+        choosePair: choosePairMaker,
+        chooseSafe: (view) => chooseSafeByKnownHand(view, this.downstreamKnown),
+      },
+      { score: this.bestScore, turn: this.bestTurn },
+    );
     this.recordBest(resultingScore(v, action), v.ownTurnNumber);
     return action;
   }
@@ -123,52 +151,5 @@ export class DifficultBot implements Strategy {
       this.bestScore = resulting;
       this.bestTurn = ownTurnNumber;
     }
-  }
-
-  private chooseAction(v: PlayerView): Action {
-    if (v.isFirstTurnOfRound) {
-      return score(v.hand) < randInt(this.rng, ...TAKE_POT_SCORE_RANGE) ? exchange() : knock();
-    }
-
-    if (v.ownTurnNumber >= randInt(this.rng, ...KNOCK_TURN_RANGE)) {
-      return knock();
-    }
-    if (score(v.pot) >= 30) {
-      return exchange();
-    }
-    if (
-      score(v.hand) === this.bestScore &&
-      v.ownTurnNumber - this.bestTurn > randInt(this.rng, ...BEST_SCORE_TURNS_AGO_RANGE)
-    ) {
-      return knock();
-    }
-
-    const improving = bestImprovingSwap(v);
-    if (improving) {
-      return trade(improving.potIdx, improving.handIdx);
-    }
-
-    if (score(v.hand) >= KNOCK_SCORE) {
-      return knock();
-    }
-
-    const unnecessary = unnecessaryIndices(v.hand);
-
-    const favorable = chooseFavorableByKnownHand(v, unnecessary, this.upstreamKnown);
-    if (favorable) {
-      return trade(favorable.potIdx, favorable.handIdx);
-    }
-
-    const pair = choosePairMaker(v, unnecessary);
-    if (pair) {
-      return trade(pair.potIdx, pair.handIdx);
-    }
-
-    const safeHandIdx = chooseSafeByKnownHand(v, this.downstreamKnown);
-    if (safeHandIdx !== undefined) {
-      return trade(randInt(this.rng, 0, 2), safeHandIdx);
-    }
-
-    return trade(randInt(this.rng, 0, 2), randInt(this.rng, 0, 2));
   }
 }

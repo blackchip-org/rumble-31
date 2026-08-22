@@ -29,7 +29,7 @@ const sampleGame: GameState = {
   secondChance: [false, false, false, false],
   roundNum: 3,
   dealerSeat: 0,
-  botSeats: ["easy", "regular", "difficult"],
+  botSeats: ["novice", "advanced", "expert"],
   log: ["", "=== Round 3 ===", "Pot is dealt [7s 8h 9c]"],
   checkpoint: {
     hands: [
@@ -42,21 +42,19 @@ const sampleGame: GameState = {
     knocked: true,
     knockerSeat: 0,
     botMemory: [
-      [1, { name: "easy" }],
+      [1, { name: "novice", bestScore: 15, bestTurn: 3 }],
       [
         2,
         {
-          name: "regular",
+          name: "advanced",
           bestScore: 20,
           bestTurn: 1,
-          lastSuitUpstreamTook: "h",
-          neighbors: { upstreamSeat: 1, downstreamSeat: 3, lastTurn: { seat: 1, type: "trade", given: [{ rank: "7", suit: "h" }], taken: [{ rank: "9", suit: "c" }] } },
         },
       ],
       [
         3,
         {
-          name: "difficult",
+          name: "expert",
           bestScore: 18,
           bestTurn: 2,
           upstreamKnown: [{ rank: "7", suit: "h" }],

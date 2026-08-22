@@ -10,11 +10,11 @@ cards for that event.
 
 When the game starts, it should write out the following by substituting
 0.0 with the actual version number, and X with the random number generator
-seed being used. "Easy" is replaced with the actual bot strategies in use. 
+seed being used. "Novice" is replaced with the actual bot skill levels in use. 
 
     Welcome to Rumble 31, v0.0
     Starting game with seed X
-    Bot strategies are Easy, Easy, Easy 
+    Bot skill levels are Novice, Novice, Novice 
 
 The log for the start of each round looks like the following. X is the round
 number. A blank line is emitted before the log message.

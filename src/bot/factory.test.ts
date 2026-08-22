@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { Action, PlayerView, Strategy } from "../game/types.ts";
 import { Rng } from "../rng.ts";
 import { parseCard } from "../card/card.ts";
-import { BOT_NAMES, createBot, snapshotBot, type BotMemory, type BotName } from "./factory.ts";
+import { BOT_SKILL_LEVELS, createBot, snapshotBot, type BotMemory, type BotSkillLevel } from "./factory.ts";
 
 // decideSync calls decide() and asserts its result is synchronous --
 // true of every bot in src/bot, unlike Strategy's own Action |
@@ -21,40 +21,36 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
     seat: 0,
     isFirstTurnOfRound: false,
     ownTurnNumber: 8,
+    isLastTurn: false,
     ...overrides,
   };
 }
 
-test("snapshotBot tags each difficulty's memory with its own name", () => {
-  for (const name of BOT_NAMES) {
-    const bot = createBot(name, new Rng(1));
-    const memory = snapshotBot(name, bot);
-    assert.equal(memory.name, name);
+test("snapshotBot tags each skill level's memory with its own name", () => {
+  for (const skillLevel of BOT_SKILL_LEVELS) {
+    const bot = createBot(skillLevel, new Rng(1));
+    const memory = snapshotBot(skillLevel, bot);
+    assert.equal(memory.name, skillLevel);
   }
 });
 
-// staleBestMemory is a bestScore/bestTurn pairing that both RegularBot
-// and DifficultBot treat as "stagnant" -- tied with the recorded best,
-// long enough after bestTurn to force a knock regardless of hand/pot --
-// so restoring it is easy to observe from decide() alone.
-// Every field is spelled out explicitly, including ones RegularBot
-// leaves undefined -- snapshot() always returns them as present-but-
-// undefined keys (never omitted), and the round-trip test below
-// compares against this object with assert.deepEqual (deepStrictEqual
-// under "node:assert/strict"), which treats a present `undefined` key
-// and an absent one as different.
-const staleBestMemory: Record<"regular" | "difficult", BotMemory> = {
-  regular: {
-    name: "regular",
+// staleBestMemory is a bestScore/bestTurn pairing that NoviceBot,
+// AdvancedBot, and ExpertBot all treat as "stagnant" -- tied with the
+// recorded best, long enough after bestTurn to force a knock regardless
+// of hand/pot -- so restoring it is easy to observe from decide() alone.
+const staleBestMemory: Record<"novice" | "advanced" | "expert", BotMemory> = {
+  novice: {
+    name: "novice",
     bestScore: 9,
     bestTurn: 1,
-    lastSuitUpstreamTook: undefined,
-    lastSuitUpstreamDiscarded: undefined,
-    lastSuitDownstreamTook: undefined,
-    neighbors: { upstreamSeat: undefined, downstreamSeat: undefined, lastTurn: undefined },
   },
-  difficult: {
-    name: "difficult",
+  advanced: {
+    name: "advanced",
+    bestScore: 9,
+    bestTurn: 1,
+  },
+  expert: {
+    name: "expert",
     bestScore: 9,
     bestTurn: 1,
     upstreamKnown: [],
@@ -64,33 +60,33 @@ const staleBestMemory: Record<"regular" | "difficult", BotMemory> = {
 };
 
 test("createBot restores matching memory, forcing the stagnation knock its bestScore/bestTurn implies", () => {
-  for (const name of ["regular", "difficult"] as const) {
-    const bot = createBot(name, new Rng(1), staleBestMemory[name]);
+  for (const skillLevel of BOT_SKILL_LEVELS) {
+    const bot = createBot(skillLevel, new Rng(1), staleBestMemory[skillLevel]);
     const v = baseView({ hand: [parseCard("7c"), parseCard("8d"), parseCard("9s")], pot: [parseCard("Kc"), parseCard("Qd"), parseCard("Js")] });
-    assert.equal(decideSync(bot, v).type, "knock", `${name}: restored bestScore=9 tied at turn 8 (>3-5 past bestTurn=1) should force a knock`);
+    assert.equal(decideSync(bot, v).type, "knock", `${skillLevel}: restored bestScore=9 tied at turn 8 (>3-5 past bestTurn=1) should force a knock`);
   }
 });
 
-test("createBot ignores memory tagged for a different difficulty", () => {
-  const mismatched: Record<BotName, BotMemory> = {
-    easy: staleBestMemory.regular,
-    regular: staleBestMemory.difficult,
-    difficult: { name: "easy" },
+test("createBot ignores memory tagged for a different skill level", () => {
+  const mismatched: Record<BotSkillLevel, BotMemory> = {
+    novice: staleBestMemory.advanced,
+    advanced: staleBestMemory.expert,
+    expert: staleBestMemory.novice,
   };
-  for (const name of BOT_NAMES) {
+  for (const skillLevel of BOT_SKILL_LEVELS) {
     // Neither hand/pot nor turn number alone would force a knock --
     // only a restored bestScore/bestTurn would, so if mismatched
     // memory were wrongly applied this would knock instead.
-    const bot = createBot(name, new Rng(1), mismatched[name]);
+    const bot = createBot(skillLevel, new Rng(1), mismatched[skillLevel]);
     const v = baseView({ ownTurnNumber: 8 });
-    assert.notEqual(decideSync(bot, v).type, "knock", `${name}: memory tagged for a different difficulty must be ignored`);
+    assert.notEqual(decideSync(bot, v).type, "knock", `${skillLevel}: memory tagged for a different skill level must be ignored`);
   }
 });
 
 test("snapshotBot/createBot round-trips a bot's tracked memory unchanged", () => {
-  for (const name of ["regular", "difficult"] as const) {
-    const bot = createBot(name, new Rng(1), staleBestMemory[name]);
-    const memory = snapshotBot(name, bot);
-    assert.deepEqual(memory, staleBestMemory[name]);
+  for (const skillLevel of BOT_SKILL_LEVELS) {
+    const bot = createBot(skillLevel, new Rng(1), staleBestMemory[skillLevel]);
+    const memory = snapshotBot(skillLevel, bot);
+    assert.deepEqual(memory, staleBestMemory[skillLevel]);
   }
 });

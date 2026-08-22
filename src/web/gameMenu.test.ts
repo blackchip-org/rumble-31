@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildDebugMenuGameState } from "./gameMenu.ts";
-import { DIFFICULTY_BOT_STRATEGIES } from "../config.ts";
+import { DIFFICULTY_BOT_SKILL_LEVELS } from "../config.ts";
 import type { DebugParams } from "./params.ts";
 import { parseStrikesDigits } from "../game/strikes.ts";
 import type { Settings } from "./settings.ts";
@@ -14,6 +14,7 @@ function params(strikesRaw: string): DebugParams {
     screen: "menu",
     clear: false,
     platform: undefined,
+    showBots: false,
     ageMinutes: undefined,
   };
 }
@@ -55,7 +56,7 @@ test("buildDebugMenuGameState strikes/eliminated/secondChance status", () => {
 
 test("buildDebugMenuGameState reflects the given Settings' Difficulty", () => {
   const got = buildDebugMenuGameState(params("0000"), settings);
-  assert.deepEqual(got.botSeats, DIFFICULTY_BOT_STRATEGIES[settings.difficulty]);
+  assert.deepEqual(got.botSeats, DIFFICULTY_BOT_SKILL_LEVELS[settings.difficulty]);
 });
 
 test("buildDebugMenuGameState has no round in progress and no log yet", () => {

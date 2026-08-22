@@ -5,10 +5,10 @@ import { seatName } from "./game/seat.ts";
 import type { Hand, TurnRecord } from "./game/types.ts";
 
 // gameStartLines is written once, at program start, per specs/log.md.
-// botStrategyLabels names the three bot seats' strategies (e.g.
-// "Easy"), in seat order.
-export function gameStartLines(seed: number, version: string, botStrategyLabels: readonly string[]): string[] {
-  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`, `Bot strategies are ${botStrategyLabels.join(", ")}`];
+// botSkillLevelLabels names the three bot seats' skill levels (e.g.
+// "Novice"), in seat order.
+export function gameStartLines(seed: number, version: string, botSkillLevelLabels: readonly string[]): string[] {
+  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`, `Bot skill levels are ${botSkillLevelLabels.join(", ")}`];
 }
 
 // roundStartLines is written once a round is dealt, before its first

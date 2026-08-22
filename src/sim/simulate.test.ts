@@ -4,7 +4,7 @@ import { allBotCombos, formatComboTable, formatReport, runAllCombos, runSimulati
 import type { ComboResult, SimulationConfig, SimulationResult } from "./simulate.ts";
 
 test("runSimulation: plays the requested number of games and tallies results", async () => {
-  const config: SimulationConfig = { seed: 1, games: 20, bots: ["easy", "regular", "difficult", "easy"] };
+  const config: SimulationConfig = { seed: 1, games: 20, bots: ["novice", "advanced", "expert", "novice"] };
   const result = await runSimulation(config);
 
   assert.equal(result.games, 20);
@@ -14,21 +14,21 @@ test("runSimulation: plays the requested number of games and tallies results", a
 });
 
 test("runSimulation: same seed reproduces the same result", async () => {
-  const config: SimulationConfig = { seed: 42, games: 10, bots: ["regular", "regular", "regular", "regular"] };
+  const config: SimulationConfig = { seed: 42, games: 10, bots: ["advanced", "advanced", "advanced", "advanced"] };
   const a = await runSimulation(config);
   const b = await runSimulation(config);
   assert.deepEqual(a, b);
 });
 
 test("runSimulation: different seeds can produce different results", async () => {
-  const bots: SimulationConfig["bots"] = ["easy", "regular", "difficult", "easy"];
+  const bots: SimulationConfig["bots"] = ["novice", "advanced", "expert", "novice"];
   const a = await runSimulation({ seed: 1, games: 30, bots });
   const b = await runSimulation({ seed: 2, games: 30, bots });
   assert.notDeepEqual(a.wins, b.wins);
 });
 
 test("runSimulation: identical bots in every slot win about equally often across seat reassignment", async () => {
-  const config: SimulationConfig = { seed: 7, games: 4000, bots: ["regular", "regular", "regular", "regular"] };
+  const config: SimulationConfig = { seed: 7, games: 4000, bots: ["advanced", "advanced", "advanced", "advanced"] };
   const result = await runSimulation(config);
 
   for (const wins of result.wins) {
@@ -37,7 +37,7 @@ test("runSimulation: identical bots in every slot win about equally often across
   }
 });
 
-test("allBotCombos: every distinct 4-bot multiset of easy/regular/difficult, no duplicates", () => {
+test("allBotCombos: every distinct 4-bot multiset of novice/advanced/expert, no duplicates", () => {
   const combos = allBotCombos();
   const labels = combos.map((bots) => [...bots].sort().join(","));
 
@@ -59,8 +59,8 @@ test("runAllCombos: plays every combo with its own result, all at the given seed
 
 test("formatComboTable", () => {
   const combos: ComboResult[] = [
-    { bots: ["easy", "easy", "regular", "difficult"], result: { games: 100, wins: [30, 20, 25, 25], ties: 4, totalRounds: 950 } },
-    { bots: ["regular", "regular", "regular", "regular"], result: { games: 100, wins: [26, 24, 25, 25], ties: 5, totalRounds: 926 } },
+    { bots: ["novice", "novice", "advanced", "expert"], result: { games: 100, wins: [30, 20, 25, 25], ties: 4, totalRounds: 950 } },
+    { bots: ["advanced", "advanced", "advanced", "advanced"], result: { games: 100, wins: [26, 24, 25, 25], ties: 5, totalRounds: 926 } },
   ];
 
   assert.deepEqual(formatComboTable(100, 3, combos), [
@@ -68,22 +68,22 @@ test("formatComboTable", () => {
     "",
     "Combo  Games  Bot 1  Bot 2  Bot 3  Bot 4  Ties  Avg Rounds",
     "-----  -----  -----  -----  -----  -----  ----  ----------",
-    "eerd   100    30.0%  20.0%  25.0%  25.0%  4.0%  9.50",
-    "rrrr   100    26.0%  24.0%  25.0%  25.0%  5.0%  9.26",
+    "nnae   100    30.0%  20.0%  25.0%  25.0%  4.0%  9.50",
+    "aaaa   100    26.0%  24.0%  25.0%  25.0%  5.0%  9.26",
   ]);
 });
 
 test("formatReport", () => {
-  const config: SimulationConfig = { seed: 7, games: 4, bots: ["easy", "regular", "difficult", "regular"] };
+  const config: SimulationConfig = { seed: 7, games: 4, bots: ["novice", "advanced", "expert", "advanced"] };
   const result: SimulationResult = { games: 4, wins: [1, 2, 1, 0], ties: 1, totalRounds: 12 };
 
   assert.deepEqual(formatReport(config, result), [
     "Played 4 game(s) with seed 7",
     "",
-    "Bot 1 (easy): 1 win(s), 25.0%",
-    "Bot 2 (regular): 2 win(s), 50.0%",
-    "Bot 3 (difficult): 1 win(s), 25.0%",
-    "Bot 4 (regular): 0 win(s), 0.0%",
+    "Bot 1 (novice): 1 win(s), 25.0%",
+    "Bot 2 (advanced): 2 win(s), 50.0%",
+    "Bot 3 (expert): 1 win(s), 25.0%",
+    "Bot 4 (advanced): 0 win(s), 0.0%",
     "",
     "Ties: 1",
     "Average rounds per game: 3.00",

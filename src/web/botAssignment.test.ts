@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { assignBotSeats } from "./botAssignment.ts";
-import { DIFFICULTY_BOT_STRATEGIES } from "../config.ts";
+import { DIFFICULTY_BOT_SKILL_LEVELS } from "../config.ts";
 import { Rng } from "../rng.ts";
 import { defaultSettings, type Settings } from "./settings.ts";
 
@@ -11,7 +11,7 @@ test("assignBotSeats is a permutation of the configured difficulty's bots", () =
 
   for (const seed of cases) {
     const got = assignBotSeats(settings, new Rng(seed));
-    assert.deepEqual([...got].sort(), [...DIFFICULTY_BOT_STRATEGIES.moderate].sort(), `seed ${seed}`);
+    assert.deepEqual([...got].sort(), [...DIFFICULTY_BOT_SKILL_LEVELS.moderate].sort(), `seed ${seed}`);
   }
 });
 

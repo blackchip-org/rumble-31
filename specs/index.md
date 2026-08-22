@@ -2,8 +2,8 @@
 
 - [assets.md](assets.md) — Contents of the assets directory: card
   images, sound effects, and fonts.
-- [bots.md](bots.md) — Bot difficulty strategies and how they are
-  assigned to seats.
+- [bots.md](bots.md) — Bot skill levels, their strategies, and how
+  they are assigned to seats.
 - [cards.md](cards.md) — Notation used to represent a card's rank
   and suit.
 - [config.md](config.md) — Developer-tunable constants in

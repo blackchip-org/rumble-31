@@ -51,7 +51,7 @@ export interface GameState {
   secondChance: [boolean, boolean, boolean, boolean];
   roundNum: number;
   dealerSeat: number;
-  // botSeats[i] is the difficulty seated at seat i+1 (specs/bots.md),
+  // botSeats[i] is the skill level seated at seat i+1 (specs/bots.md),
   // fixed for the life of the game so resuming it doesn't reshuffle
   // which bot sits where.
   botSeats: BotSeats;

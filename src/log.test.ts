@@ -15,10 +15,10 @@ function mustPot(...notation: [string, string, string]): Pot {
 }
 
 test("gameStartLines", () => {
-  assert.deepEqual(gameStartLines(42, "0.0", ["Easy", "Regular", "Difficult"]), [
+  assert.deepEqual(gameStartLines(42, "0.0", ["Novice", "Advanced", "Expert"]), [
     "Welcome to Rumble 31, v0.0",
     "Starting game with seed 42",
-    "Bot strategies are Easy, Regular, Difficult",
+    "Bot skill levels are Novice, Advanced, Expert",
   ]);
 });
 

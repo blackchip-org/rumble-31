@@ -30,6 +30,7 @@ test("parseDebugParams: valid combinations", () => {
     wantScreen?: ScreenId;
     wantClear?: boolean;
     wantPlatform?: Platform;
+    wantShowBots?: boolean;
     wantAgeMinutes?: number;
   }> = [
     {
@@ -240,6 +241,31 @@ test("parseDebugParams: valid combinations", () => {
       wantPlatform: "ios",
     },
     {
+      name: "showBots=true",
+      search: "showBots=true",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantShowBots: true,
+    },
+    {
+      name: "showBots=false",
+      search: "showBots=false",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantShowBots: false,
+    },
+    {
+      name: "showBots doesn't interfere with unrelated params",
+      search: "showBots=true&screen=main",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantScreen: "main",
+      wantShowBots: true,
+    },
+    {
       name: "age=10",
       search: "age=10",
       wantInitialStrikes: [0, 0, 0, 0],
@@ -274,6 +300,7 @@ test("parseDebugParams: valid combinations", () => {
     assert.equal(got.screen, c.wantScreen, `${c.name}: screen`);
     assert.equal(got.clear, c.wantClear ?? false, `${c.name}: clear`);
     assert.equal(got.platform, c.wantPlatform, `${c.name}: platform`);
+    assert.equal(got.showBots, c.wantShowBots ?? false, `${c.name}: showBots`);
     assert.equal(got.ageMinutes, c.wantAgeMinutes, `${c.name}: ageMinutes`);
 
     if (c.wantNoInitialDeal) {
@@ -309,6 +336,7 @@ test("parseDebugParams: invalid input throws", () => {
     { name: "screen names an unknown screen", search: "screen=bogus" },
     { name: "clear is not true or false", search: "clear=yes" },
     { name: "platform names an unknown platform", search: "platform=bogus" },
+    { name: "showBots is not true or false", search: "showBots=yes" },
     { name: "age is negative", search: "age=-1" },
     { name: "age is not a number", search: "age=soon" },
   ];

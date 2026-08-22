@@ -1,24 +1,24 @@
-// Headless bot-vs-bot game simulation, for comparing the bot difficulty
+// Headless bot-vs-bot game simulation, for comparing the bot skill-level
 // strategies described in specs/bots.md without a browser.
 
 import { newGame } from "../game/game.ts";
 import type { Strategy } from "../game/types.ts";
 import { Rng } from "../rng.ts";
-import { BOT_NAMES, createBot, type BotName } from "../bot/factory.ts";
+import { BOT_SKILL_LEVELS, createBot, type BotSkillLevel } from "../bot/factory.ts";
 
-export { BOT_NAMES, createBot, type BotName };
+export { BOT_SKILL_LEVELS, createBot, type BotSkillLevel };
 
 // SimulationConfig configures a batch of independent games. Every
 // game's seed is derived from seed, so a batch is fully reproducible.
 export interface SimulationConfig {
   seed: number;
   games: number;
-  // bots[slot] is the difficulty of the slot-th bot under test. A
+  // bots[slot] is the skill level of the slot-th bot under test. A
   // bot's slot is its stable identity across the whole batch; which
   // seat it sits in is reassigned randomly every game (see
   // runSimulation), so slot -- not seat -- is what results are tallied
   // by.
-  bots: [BotName, BotName, BotName, BotName];
+  bots: [BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel];
 }
 
 // SimulationResult tallies the outcome of a batch of games.
@@ -50,7 +50,7 @@ export async function runSimulation(config: SimulationConfig): Promise<Simulatio
 
     const botsBySeat = new Array<Strategy>(4);
     for (let slot = 0; slot < 4; slot++) {
-      botsBySeat[seatOfSlot[slot] as number] = createBot(config.bots[slot] as BotName, rng);
+      botsBySeat[seatOfSlot[slot] as number] = createBot(config.bots[slot] as BotSkillLevel, rng);
     }
     const strategies = botsBySeat as [Strategy, Strategy, Strategy, Strategy];
 
@@ -87,23 +87,23 @@ export function formatReport(config: SimulationConfig, result: SimulationResult)
   return lines;
 }
 
-// allBotCombos enumerates every distinct multiset of 4 bot
-// difficulties -- order doesn't distinguish combos (specs/bots.md
-// difficulty is the only thing that matters, and runSimulation already
-// randomizes seating), so e.g. easy/easy/regular/difficult appears
+// allBotCombos enumerates every distinct multiset of 4 bot skill
+// levels -- order doesn't distinguish combos (specs/bots.md skill
+// level is the only thing that matters, and runSimulation already
+// randomizes seating), so e.g. novice/novice/advanced/expert appears
 // once, not in every permutation. Each combo lists its bots grouped by
-// difficulty (easy, then regular, then difficult) for a stable,
+// skill level (novice, then advanced, then expert) for a stable,
 // readable label.
-export function allBotCombos(): Array<[BotName, BotName, BotName, BotName]> {
-  const combos: Array<[BotName, BotName, BotName, BotName]> = [];
-  for (let easyCount = 4; easyCount >= 0; easyCount--) {
-    for (let regularCount = 4 - easyCount; regularCount >= 0; regularCount--) {
-      const difficultCount = 4 - easyCount - regularCount;
+export function allBotCombos(): Array<[BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel]> {
+  const combos: Array<[BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel]> = [];
+  for (let noviceCount = 4; noviceCount >= 0; noviceCount--) {
+    for (let advancedCount = 4 - noviceCount; advancedCount >= 0; advancedCount--) {
+      const expertCount = 4 - noviceCount - advancedCount;
       combos.push([
-        ...Array<BotName>(easyCount).fill("easy"),
-        ...Array<BotName>(regularCount).fill("regular"),
-        ...Array<BotName>(difficultCount).fill("difficult"),
-      ] as [BotName, BotName, BotName, BotName]);
+        ...Array<BotSkillLevel>(noviceCount).fill("novice"),
+        ...Array<BotSkillLevel>(advancedCount).fill("advanced"),
+        ...Array<BotSkillLevel>(expertCount).fill("expert"),
+      ] as [BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel]);
     }
   }
   return combos;
@@ -112,7 +112,7 @@ export function allBotCombos(): Array<[BotName, BotName, BotName, BotName]> {
 // ComboResult pairs one allBotCombos() entry with its own independent
 // SimulationResult.
 export interface ComboResult {
-  bots: [BotName, BotName, BotName, BotName];
+  bots: [BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel];
   result: SimulationResult;
 }
 
@@ -131,7 +131,7 @@ export async function runAllCombos(games: number, seed: number): Promise<ComboRe
 
 // comboLabel renders a combo as the 4-letter string a --strat flag
 // would use to select it (specs match cliParams.ts's own letters).
-function comboLabel(bots: readonly BotName[]): string {
+function comboLabel(bots: readonly BotSkillLevel[]): string {
   return bots.map((b) => b[0]).join("");
 }
 
@@ -142,7 +142,7 @@ function slotWinPct(wins: readonly number[], games: number, slot: number): strin
 
 // formatComboTable renders every combo's result as a single table, one
 // row per combo, columns aligned by their widest cell. Bot N columns
-// are ordered to match comboLabel, so each cell's difficulty can be
+// are ordered to match comboLabel, so each cell's skill level can be
 // read off the Combo column's N-th letter.
 export function formatComboTable(games: number, seed: number, combos: readonly ComboResult[]): string[] {
   const headers = ["Combo", "Games", "Bot 1", "Bot 2", "Bot 3", "Bot 4", "Ties", "Avg Rounds"];

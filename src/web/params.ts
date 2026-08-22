@@ -1,6 +1,6 @@
 // Parses and validates the web GUI's debugging URL parameters, per
 // specs/params.md: strikes, north/south/east/west, pot, turn, screen,
-// clear, platform, and age. Every validation failure throws a
+// clear, platform, showBots, and age. Every validation failure throws a
 // descriptive Error — there is no silent fallback for malformed or
 // self-contradictory debug input.
 
@@ -34,6 +34,9 @@ export interface DebugParams {
   // (specs/screens/appinfo.md) iOS/Android instructions without a
   // real iOS/Android device.
   platform: Platform | undefined;
+  // showBots shows each bot seat's skill level (specs/bots.md) next to
+  // its seat name on the Game screen (specs/screens/game.md).
+  showBots: boolean;
   // ageMinutes pretends that saved state was written this many
   // minutes ago, for exercising specs/state.md's stale Over screen
   // behavior without waiting or hand-editing local storage. Unlike
@@ -134,6 +137,12 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
     platform = platformRaw as Platform;
   }
 
+  const showBotsRaw = q.get("showBots");
+  if (showBotsRaw !== null && showBotsRaw !== "true" && showBotsRaw !== "false") {
+    throw new Error(`params: showBots=${showBotsRaw} must be "true" or "false"`);
+  }
+  const showBots = showBotsRaw === "true";
+
   const ageRaw = q.get("age");
   let ageMinutes: number | undefined;
   if (ageRaw !== null) {
@@ -144,7 +153,7 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
     ageMinutes = parsed;
   }
 
-  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, ageMinutes };
+  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, showBots, ageMinutes };
 }
 
 // parseCardGroup parses paramName's raw value as exactly three

@@ -4,8 +4,8 @@
 
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
-import { createBot, snapshotBot, type BotMemory, type BotName } from "../bot/factory.ts";
-import { DEAL_ANIMATION_DELAY, DIFFICULTIES, DIFFICULTY_BOT_STRATEGIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
+import { createBot, snapshotBot, type BotMemory, type BotSkillLevel } from "../bot/factory.ts";
+import { DEAL_ANIMATION_DELAY, DIFFICULTIES, DIFFICULTY_BOT_SKILL_LEVELS, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
@@ -249,6 +249,7 @@ function must<T extends HTMLElement>(id: string): T {
 
 interface SeatEls {
   panel: HTMLElement;
+  label: HTMLElement;
   hand: HTMLElement;
   dealer: HTMLElement;
   score: HTMLElement;
@@ -356,6 +357,7 @@ const seatEls: [SeatEls, SeatEls, SeatEls, SeatEls] = [0, 1, 2, 3].map((seat) =>
   const key = seatName(seat).toLowerCase();
   return {
     panel: must<HTMLElement>(`panel-${key}`),
+    label: must<HTMLElement>(`seat-label-${key}`),
     hand: must<HTMLElement>(seat === 0 ? "hand" : `hand-${key}`),
     dealer: must<HTMLElement>(`dealer-${key}`),
     score: must<HTMLElement>(`score-${key}`),
@@ -756,6 +758,13 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   // three settings-configured bots across the three bot seats
   // (specs/bots.md).
   const botSeats: BotSeats = resume ? resume.botSeats : assignBotSeats(settings, botRng);
+  // showBots (specs/params.md) appends each bot seat's skill level
+  // initial to its seat label; botSeats[0..2] line up with seats 1-3
+  // (West, North, East) per assignBotSeats. South is always human, so
+  // its label is untouched.
+  seatOf(1).label.textContent = "West" + (params.showBots ? ` (${BOT_INITIALS[botSeats[0]]})` : "");
+  seatOf(2).label.textContent = "North" + (params.showBots ? ` (${BOT_INITIALS[botSeats[1]]})` : "");
+  seatOf(3).label.textContent = "East" + (params.showBots ? ` (${BOT_INITIALS[botSeats[2]]})` : "");
   // savedMemory carries each bot seat's tracked opponent info forward
   // from the resumed round's checkpoint (specs/state.md), if any, so
   // rebuilding the bots below doesn't lose what they'd already learned
@@ -1180,9 +1189,13 @@ function syncConfirmCancelToggleBtn(): void {
   confirmCancelToggleBtn.textContent = settings.swapConfirmCancel ? "Swapped" : "Standard";
 }
 
-// BOT_LABELS maps a BotName to its game-log label (specs/log.md: "Easy",
-// "Regular", "Difficult").
-const BOT_LABELS: Record<BotName, string> = { easy: "Easy", regular: "Regular", difficult: "Difficult" };
+// BOT_LABELS maps a BotSkillLevel to its game-log label (specs/log.md:
+// "Novice", "Advanced", "Expert").
+const BOT_LABELS: Record<BotSkillLevel, string> = { novice: "Novice", advanced: "Advanced", expert: "Expert" };
+
+// BOT_INITIALS maps a BotSkillLevel to the seat-label suffix shown by
+// the showBots debug parameter (specs/params.md).
+const BOT_INITIALS: Record<BotSkillLevel, string> = { novice: "N", advanced: "A", expert: "E" };
 
 // DIFFICULTY_LABELS maps a Difficulty to its Settings Screen button
 // label (specs/screens/settings.md: "Easy", "Moderate", "Hard").
@@ -1327,7 +1340,7 @@ function showDebugGameOverScreen(params: DebugParams): void {
         secondChance: params.initialStrikes.secondChance,
         roundNum: 1,
         dealerSeat: 0,
-        botSeats: DIFFICULTY_BOT_STRATEGIES[settings.difficulty],
+        botSeats: DIFFICULTY_BOT_SKILL_LEVELS[settings.difficulty],
         log: logLines(),
         southWon,
       },

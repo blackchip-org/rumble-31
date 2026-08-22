@@ -6,6 +6,7 @@ import { score } from "../card/score.ts";
 import { Rng } from "../rng.ts";
 import type { Hand, Pot, PlayerView, PublicTurn } from "../game/types.ts";
 import {
+  allDifferentSuits,
   applyKnownCards,
   applyPublicTurn,
   bestImprovingSwap,
@@ -16,6 +17,7 @@ import {
   choosePairMaker,
   chooseSafeByKnownHand,
   chooseSafeBySuit,
+  chooseSkeletonAction,
   dominantSuit,
   improvesKnownHand,
   NeighborTracker,
@@ -24,6 +26,23 @@ import {
   resultingScore,
   unnecessaryIndices,
 } from "./helpers.ts";
+
+// SequenceRng returns each of the given next() values in order, then
+// keeps repeating the last one -- for asserting exactly which draws a
+// call consumes (see the ranged-knockScore test below).
+class SequenceRng extends Rng {
+  private values: number[];
+  private i = 0;
+  constructor(values: number[]) {
+    super(0);
+    this.values = values;
+  }
+  next(): number {
+    const v = this.values[Math.min(this.i, this.values.length - 1)] as number;
+    this.i++;
+    return v;
+  }
+}
 
 function mustHand(...notation: [string, string, string]): Hand {
   return [parseCard(notation[0]), parseCard(notation[1]), parseCard(notation[2])];
@@ -42,6 +61,7 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
     seat: 0,
     isFirstTurnOfRound: false,
     ownTurnNumber: 1,
+    isLastTurn: false,
     ...overrides,
   };
 }
@@ -122,6 +142,17 @@ test("unnecessaryIndices", () => {
   ];
   for (const { name, hand, want } of cases) {
     assert.deepEqual(unnecessaryIndices(mustHand(...hand)), want, name);
+  }
+});
+
+test("allDifferentSuits", () => {
+  const cases: Array<{ name: string; hand: [string, string, string]; want: boolean }> = [
+    { name: "three different suits", hand: ["7c", "8d", "9s"], want: true },
+    { name: "two cards share a suit", hand: ["7c", "8c", "9s"], want: false },
+    { name: "all three cards share a suit", hand: ["7c", "8c", "9c"], want: false },
+  ];
+  for (const { name, hand, want } of cases) {
+    assert.equal(allDifferentSuits(mustHand(...hand)), want, name);
   }
 });
 
@@ -230,6 +261,38 @@ test("dominantSuit", () => {
   assert.equal(dominantSuit(mustCards("7s")), "s");
   assert.equal(dominantSuit(mustCards("7s", "8s", "9d")), "s");
   assert.equal(dominantSuit(mustCards("7s", "7d")), "s", "ties break to the first suit encountered");
+});
+
+test("chooseSkeletonAction rolls a ranged knockScore once per turn and reuses it for every bullet that reads it", () => {
+  // 7h/Th/Jh (27, hearts) has no improving swap against 7c/8d/9s, and
+  // ties nothing recorded as best (default best score 0), so this
+  // reaches the score-threshold-knock bullet with no rng draws
+  // consumed in between beyond the mandatory knockTurnRange roll and
+  // the knockScore roll itself. Its score (27) sits at the range's low
+  // end, so the assertion below only passes if the low-end roll from
+  // the exchange-all bullet is reused rather than re-rolled.
+  const hand = mustHand("7h", "Th", "Jh");
+  const pot = mustPot("7c", "8d", "9s");
+  const v = baseView({ hand, pot, ownTurnNumber: 1 });
+  assert.equal(bestImprovingSwap(v), undefined);
+  assert.equal(score(hand), 27);
+
+  // Draw order: [0] feeds knockTurnRange (irrelevant here -- turn 1 is
+  // always below [25-30]); [1] feeds the ranged knockScore, resolving
+  // to its low end (27) -- pot (score 9) is nowhere near it, so the
+  // exchange-all bullet reads but doesn't act on this roll; [2] would
+  // resolve to the range's high end (29) if drawn again -- present
+  // only to catch a bug that re-rolls knockScore for the
+  // score-threshold bullet instead of reusing [1]'s 27 (29 > 27 would
+  // then fail the hand's score, falling through to a random trade).
+  const rng = new SequenceRng([0, 0, 0.9]);
+  const action = chooseSkeletonAction(
+    v,
+    rng,
+    { knockTurnRange: [25, 30], bestScoreTurnsAgoRange: [3, 5], knockScore: [27, 29] },
+    { score: 0, turn: 0 },
+  );
+  assert.equal(action.type, "knock", "must reuse the 27 already rolled for the exchange-all bullet, not re-roll to 29");
 });
 
 test("randInt stays within [lo, hi] and lo === hi always returns lo", () => {
@@ -400,8 +463,8 @@ test("NeighborTracker.snapshot/restore round-trips discovered adjacency and turn
   // restore() only carries over adjacency/history, not the private
   // own-seat state setOwnSeat() manages -- exactly like a real bot
   // rebuilt from memory, whose very next decide() calls setOwnSeat()
-  // again before relying on observe() (src/bot/regular.ts,
-  // src/bot/difficult.ts both do this every decide()).
+  // again before relying on observe() (src/bot/advanced.ts,
+  // src/bot/expert.ts both do this every decide()).
   restored.setOwnSeat(2);
 
   // Live updates keep firing after restore, same as before it.

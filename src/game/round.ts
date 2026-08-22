@@ -159,6 +159,7 @@ export class Round {
         seat,
         isFirstTurnOfRound: isFirstTurn,
         ownTurnNumber: ownTurnNum.get(seat) as number,
+        isLastTurn: knocked,
       };
 
       const action = await player.strategy.decide(view);

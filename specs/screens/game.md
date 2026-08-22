@@ -13,6 +13,9 @@ The game screen has four panels -- one for each player.
 - West panel is by the left border of the screen, centered vertically
 - East panel is by the right border of the screen, centered vertically
 
+The showBots debug parameter (specs/params.md) appends a bot seat's
+skill level initial to its seat label, e.g. "West (A)".
+
 The player panels should contain:
 
 - The cards making up their hand arranged horizontally. If information about

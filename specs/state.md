@@ -32,7 +32,7 @@ The stored object records:
 - If the screen is `game`, `over`, or `menu`: each seat's strikes,
   elimination status, and second-chance status (specs/rules.md), the
   current round number, which seat holds
-  the dealer button (specs/rules.md), and which bot difficulty
+  the dealer button (specs/rules.md), and which bot skill level
   (specs/bots.md) is seated at each of the three bot seats. The
   latter is fixed for the life of the game: it is chosen once, when
   the game starts, and does not change even if the player changes
@@ -44,7 +44,7 @@ The stored object records:
   round's first turn) and which seat that was, and each bot seat's
   own tracked opponent information (specs/bots.md's "This bot
   tracks" sections -- best score and turn, and either tracked suits
-  or a memory map of known cards, depending on difficulty), so a
+  or a memory map of known cards, depending on skill level), so a
   reload does not reset what a bot has already learned this round.
   This checkpoint is absent between rounds, when the next round has
   not been dealt yet.
@@ -86,7 +86,7 @@ specs/params.md:
 - If that screen is `game`, the saved strikes, eliminations,
   second-chance status, round number, dealer button, and bot seat
   assignment are restored -- the
-  same three bot difficulties stay in the same seats they started the
+  same three bot skill levels stay in the same seats they started the
   game in, rather than being reshuffled per specs/bots.md's normal
   new-game behavior. If a round-in-progress
   checkpoint was saved, that round resumes from the checkpoint: hands
