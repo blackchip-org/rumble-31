@@ -5,10 +5,11 @@ import { seatName } from "./game/seat.ts";
 import type { Hand, TurnRecord } from "./game/types.ts";
 
 // gameStartLines is written once, at program start, per specs/log.md.
-// botSkillLevelLabels names the three bot seats' skill levels (e.g.
-// "Novice"), in seat order.
-export function gameStartLines(seed: number, version: string, botSkillLevelLabels: readonly string[]): string[] {
-  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`, `Bot skill levels are ${botSkillLevelLabels.join(", ")}`];
+// difficultyLabel names the game's Difficulty setting (e.g.
+// "Moderate") -- the bot seats' actual skill levels stay unannounced
+// until gameEndLines reveals them.
+export function gameStartLines(seed: number, version: string, difficultyLabel: string): string[] {
+  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`, `Difficulty level is ${difficultyLabel}`];
 }
 
 // roundStartLines is written once a round is dealt, before its first
@@ -99,13 +100,28 @@ export function roundRecapLines(outcome: RoundOutcome, strikes: readonly number[
   return lines;
 }
 
-// gameEndLines is written once the game is over.
-export function gameEndLines(g: Game): string[] {
+// PLACE_ORDINALS maps a 1-based place (South's own finish) to its
+// ordinal word for gameEndLines' "Game over: X place" line.
+const PLACE_ORDINALS = ["First", "Second", "Third", "Fourth"];
+
+// BOT_SKILL_REVEAL_SEATS is the seat order gameEndLines reveals bot
+// skill levels in: East, then clockwise (seat.ts), skipping South.
+const BOT_SKILL_REVEAL_SEATS = [3, 1, 2];
+
+// gameEndLines is written once the game is over. southPlace is South's
+// 1-based finish (1 if they won). botSkillLevelLabels names the three
+// bot seats' skill levels (e.g. "Novice"), in the same West/North/East
+// seat order gameStartLines used to take (specs/log.md), unannounced
+// until now.
+export function gameEndLines(g: Game, southPlace: number, botSkillLevelLabels: readonly string[]): string[] {
   const lines: string[] = [];
   if (g.winners().includes(0)) {
     lines.push("South wins the game");
   }
-  lines.push("Game over");
+  lines.push(`Game over: ${PLACE_ORDINALS[southPlace - 1]} place`);
+  for (const seat of BOT_SKILL_REVEAL_SEATS) {
+    lines.push(`${seatName(seat)}'s skill level was ${botSkillLevelLabels[seat - 1]}`);
+  }
   return lines;
 }
 

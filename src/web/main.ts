@@ -826,7 +826,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   potEl.replaceChildren();
 
   if (!resume) {
-    for (const line of gameStartLines(seed, version, botSeats.map((n) => BOT_LABELS[n]))) {
+    for (const line of gameStartLines(seed, version, DIFFICULTY_LABELS[settings.difficulty])) {
       appendLogLine(logEl, line);
     }
   }
@@ -950,6 +950,12 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       });
     };
 
+    // Captured before playRound() mutates g.eliminated -- if this round
+    // ends up eliminating South, this is how many seats (including
+    // South) were still active going into it, i.e. South's placement
+    // (specs/log.md) if the game ends here.
+    const activeSeatsBeforeRound = g.eliminated.filter((e) => !e).length;
+
     const outcome = await g.playRound();
 
     if (signal.aborted) {
@@ -1023,7 +1029,8 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       // finished round would call playRound() again and double-apply
       // its strikes. specs/state.md's Game Over screen state is saved
       // directly instead, so a reload during the pause resumes there.
-      for (const line of gameEndLines(g)) {
+      const southPlace = g.winners().includes(0) ? 1 : activeSeatsBeforeRound;
+      for (const line of gameEndLines(g, southPlace, botSeats.map((n) => BOT_LABELS[n]))) {
         appendLogLine(logEl, line);
       }
       saveState(

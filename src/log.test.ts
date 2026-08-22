@@ -15,11 +15,7 @@ function mustPot(...notation: [string, string, string]): Pot {
 }
 
 test("gameStartLines", () => {
-  assert.deepEqual(gameStartLines(42, "0.0", ["Novice", "Advanced", "Expert"]), [
-    "Welcome to Rumble 31, v0.0",
-    "Starting game with seed 42",
-    "Bot skill levels are Novice, Advanced, Expert",
-  ]);
+  assert.deepEqual(gameStartLines(42, "0.0", "Moderate"), ["Welcome to Rumble 31, v0.0", "Starting game with seed 42", "Difficulty level is Moderate"]);
 });
 
 test("roundStartLines", () => {
@@ -209,12 +205,25 @@ test("roundRecapLines marks a seat granted a second chance", () => {
 });
 
 test("gameEndLines", () => {
-  const cases: Array<{ name: string; eliminated: [boolean, boolean, boolean, boolean]; want: string[] }> = [
-    { name: "South among the winners", eliminated: [false, true, true, false], want: ["South wins the game", "Game over"] },
-    { name: "South not among the winners", eliminated: [true, false, false, true], want: ["Game over"] },
+  // botSkillLevelLabels is West/North/East order (matches BotSeats),
+  // revealed in gameEndLines' own East/West/North order.
+  const botSkillLevelLabels = ["Novice", "Advanced", "Expert"];
+  const cases: Array<{ name: string; eliminated: [boolean, boolean, boolean, boolean]; southPlace: number; want: string[] }> = [
+    {
+      name: "South among the winners",
+      eliminated: [false, true, true, false],
+      southPlace: 1,
+      want: ["South wins the game", "Game over: First place", "East's skill level was Expert", "West's skill level was Novice", "North's skill level was Advanced"],
+    },
+    {
+      name: "South not among the winners",
+      eliminated: [true, false, false, true],
+      southPlace: 3,
+      want: ["Game over: Third place", "East's skill level was Expert", "West's skill level was Novice", "North's skill level was Advanced"],
+    },
   ];
-  for (const { name, eliminated, want } of cases) {
+  for (const { name, eliminated, southPlace, want } of cases) {
     const g = new Game({ eliminated });
-    assert.deepEqual(gameEndLines(g), want, name);
+    assert.deepEqual(gameEndLines(g, southPlace, botSkillLevelLabels), want, name);
   }
 });

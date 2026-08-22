@@ -10,11 +10,12 @@ cards for that event.
 
 When the game starts, it should write out the following by substituting
 0.0 with the actual version number, and X with the random number generator
-seed being used. "Novice" is replaced with the actual bot skill levels in use. 
+seed being used. "Moderate" is replaced with the actual difficulty setting 
+in use. 
 
     Welcome to Rumble 31, v0.0
     Starting game with seed X
-    Bot skill levels are Novice, Novice, Novice 
+    Difficulty level is Moderate
 
 The log for the start of each round looks like the following. X is the round
 number. A blank line is emitted before the log message.
@@ -71,7 +72,7 @@ following:
 If multiple seats knocked, the log shows the first seat that knocked. Then, 
 announce the hands for each player using this format:
 
-    South has [7h 8c 9d]
+    Seat has [7h 8c 9d]
 
 When listing all seats like this, list all players still in the game starting
 with South and working clockwise.
@@ -79,14 +80,14 @@ with South and working clockwise.
 Then announce those receiving strikes using formats below. If more than one
 are receiving strikes, use the same order as above.
 
-    North receives a strike
-    North receives a strike and is eliminated
+    Seat receives a strike
+    Seat receives a strike and is eliminated
 
 The last form is used instead when the strike is the one that grants a
 player their second chance (specs/rules.md) rather than eliminating
 them:
 
-    North receives a strike and gets a second chance
+    Seat receives a strike and gets a second chance
 
 Then announce the scores for each player:
 
@@ -98,7 +99,18 @@ If the human player wins, write:
 
 When the game ends, write:
 
-    Game over
+    Game over: X place
+
+Where X is either First, Second, Third, or Fourth depending on how the 
+player placed. If there is a tie (player and other bots eliminated too), 
+then it is placed as if only the player was eliminated. 
+
+Then, the bot skill levels should be displayed starting with East and 
+moving clockwise using the following format:
+
+    Seat's skill level was Level
+
+Where "Level" is the actual skill level for the bot in that seat.
 
 Any other logging that currently exists in the code should be removed.
 
