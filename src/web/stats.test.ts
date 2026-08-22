@@ -47,6 +47,9 @@ function emptyRecords(): Record<BotSkillLevel, WinLossTie> {
   return { novice: wlt(0, 0, 0), advanced: wlt(0, 0, 0), expert: wlt(0, 0, 0) };
 }
 
+const BOT_SEATS: BotSeats = ["novice", "advanced", "expert"];
+const NOT_ELIMINATED = [false, false, false, false];
+
 test("saveStats/loadStats round-trips", () => {
   const storage = memoryStorage();
   const store = loadStats(storage);
@@ -70,6 +73,69 @@ test("loadStats falls back to an empty store", () => {
   }
 });
 
+function emptyDStats(): DifficultyStats {
+  return {
+    winsPerPlace: [0, 0, 0, 0],
+    recordsBySkill: emptyRecords(),
+    firstPlaceStreak: { current: { count: 0 }, best: { count: 0 } },
+    topTwoStreak: { current: { count: 0 }, best: { count: 0 } },
+    notLastStreak: { current: { count: 0 }, best: { count: 0 } },
+  };
+}
+
+test("loadStats normalizes a partial or malformed stored entry instead of trusting it", () => {
+  const cases: Array<{ name: string; storedEntry: unknown; want: StatsStore["byBotVersion"]["x"] }> = [
+    {
+      name: "bot version entry missing perDifficulty entirely",
+      storedEntry: { global: { gamesPlayed: 5, gamesAbandoned: 1, recordsBySkill: emptyRecords() } },
+      want: { global: { gamesPlayed: 5, gamesAbandoned: 1, recordsBySkill: emptyRecords() }, perDifficulty: { easy: emptyDStats(), moderate: emptyDStats(), hard: emptyDStats() } },
+    },
+    {
+      name: "global.recordsBySkill missing skill keys",
+      storedEntry: { global: { gamesPlayed: 0, gamesAbandoned: 0, recordsBySkill: { novice: wlt(3, 1, 0) } }, perDifficulty: {} },
+      want: {
+        global: { gamesPlayed: 0, gamesAbandoned: 0, recordsBySkill: { novice: wlt(3, 1, 0), advanced: wlt(0, 0, 0), expert: wlt(0, 0, 0) } },
+        perDifficulty: { easy: emptyDStats(), moderate: emptyDStats(), hard: emptyDStats() },
+      },
+    },
+    {
+      name: "winsPerPlace is the wrong shape",
+      storedEntry: { global: { gamesPlayed: 0, gamesAbandoned: 0, recordsBySkill: emptyRecords() }, perDifficulty: { easy: { winsPerPlace: [1, 2, 3] } } },
+      want: { global: { gamesPlayed: 0, gamesAbandoned: 0, recordsBySkill: emptyRecords() }, perDifficulty: { easy: emptyDStats(), moderate: emptyDStats(), hard: emptyDStats() } },
+    },
+    {
+      name: "non-numeric win/loss/tie fields",
+      storedEntry: { global: { gamesPlayed: "lots", gamesAbandoned: 0, recordsBySkill: { novice: { wins: "3", losses: 1, ties: null } } }, perDifficulty: {} },
+      want: {
+        global: { gamesPlayed: 0, gamesAbandoned: 0, recordsBySkill: { novice: wlt(0, 1, 0), advanced: wlt(0, 0, 0), expert: wlt(0, 0, 0) } },
+        perDifficulty: { easy: emptyDStats(), moderate: emptyDStats(), hard: emptyDStats() },
+      },
+    },
+    { name: "entry is entirely the wrong type", storedEntry: "not an object", want: { global: { gamesPlayed: 0, gamesAbandoned: 0, recordsBySkill: emptyRecords() }, perDifficulty: { easy: emptyDStats(), moderate: emptyDStats(), hard: emptyDStats() } } },
+  ];
+
+  for (const { name, storedEntry, want } of cases) {
+    const raw = JSON.stringify({ version: 1, store: { byBotVersion: { x: storedEntry } } });
+    const storage = memoryStorage({ "rumble31.stats": raw });
+    assert.deepEqual(loadStats(storage).byBotVersion.x, want, name);
+  }
+});
+
+test("a normalized malformed entry survives real use without crashing (regression)", () => {
+  // Reproduces the reported crash: a stored bot-version entry missing
+  // a skill's record entirely used to throw "Cannot read properties
+  // of undefined (reading 'losses')" the first time recordRoundElimination
+  // tried to increment it.
+  const raw = JSON.stringify({
+    version: 1,
+    store: { byBotVersion: { "2": { global: { gamesPlayed: 1, gamesAbandoned: 0, recordsBySkill: { novice: wlt(0, 0, 0) } }, perDifficulty: {} } } },
+  });
+  const store = loadStats(memoryStorage({ "rumble31.stats": raw }));
+
+  assert.doesNotThrow(() => recordRoundElimination(store, "2", "easy", BOT_SEATS, NOT_ELIMINATED, [0]));
+  assert.deepEqual(totalWinLossTie(store.byBotVersion["2"]?.global.recordsBySkill as Record<BotSkillLevel, WinLossTie>), wlt(0, 3, 0));
+});
+
 test("recordGameStarted/recordGameAbandoned increment Global Stats per bot version", () => {
   const store = loadStats(memoryStorage());
   recordGameStarted(store, "2");
@@ -82,9 +148,6 @@ test("recordGameStarted/recordGameAbandoned increment Global Stats per bot versi
   assert.equal(store.byBotVersion["3"]?.global.gamesPlayed, 1);
   assert.equal(store.byBotVersion["3"]?.global.gamesAbandoned, 0);
 });
-
-const BOT_SEATS: BotSeats = ["novice", "advanced", "expert"];
-const NOT_ELIMINATED = [false, false, false, false];
 
 test("recordRoundElimination applies specs/stats.md's win/loss/tie rule", () => {
   const cases: Array<{
@@ -144,6 +207,32 @@ test("recordRoundElimination applies specs/stats.md's win/loss/tie rule", () => 
     assert.deepEqual(bvStats.perDifficulty.easy.recordsBySkill, emptyRecords(), `${name} (easy untouched)`);
     assert.equal(store.byBotVersion["3"], undefined, `${name} (other bot version untouched)`);
   }
+});
+
+test("recordRoundElimination skips a seat whose botSeats entry isn't a recognized skill", () => {
+  // Reproduces a reported crash: abandoning a game passes a resumed
+  // GameState's botSeats straight through, and a game paused since
+  // before that field existed (or in some other now-unrecognized
+  // shape) used to throw "Cannot read properties of undefined
+  // (reading 'losses')" instead of just skipping that seat.
+  const cases: Array<{ name: string; botSeats: unknown }> = [
+    { name: "entirely missing", botSeats: undefined },
+    { name: "too short (missing indices)", botSeats: ["novice"] },
+    { name: "unrecognized skill string", botSeats: ["novice", "legendary", "expert"] },
+    { name: "null entries", botSeats: [null, null, null] },
+  ];
+
+  for (const { name, botSeats } of cases) {
+    const store = loadStats(memoryStorage());
+    assert.doesNotThrow(() => recordRoundElimination(store, "2", "easy", botSeats as BotSeats, NOT_ELIMINATED, [0]), name);
+  }
+
+  // The one recognized seat in the mixed case still gets recorded.
+  const store = loadStats(memoryStorage());
+  recordRoundElimination(store, "2", "easy", ["novice", "legendary", "expert"] as unknown as BotSeats, NOT_ELIMINATED, [0]);
+  const bvStats = store.byBotVersion["2"];
+  assert.deepEqual(bvStats?.global.recordsBySkill.novice, wlt(0, 1, 0), "recognized seat still recorded");
+  assert.deepEqual(bvStats?.global.recordsBySkill.expert, wlt(0, 1, 0), "recognized seat still recorded");
 });
 
 test("recordGamePlace tracks Wins per place and the three streaks", () => {

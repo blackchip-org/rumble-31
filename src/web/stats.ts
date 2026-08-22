@@ -95,9 +95,105 @@ function emptyStatsStore(): StatsStore {
   return { byBotVersion: {} };
 }
 
+// isRecord narrows to a plain, indexable object -- the common guard
+// every normalize* function below uses before reading a field off of
+// otherwise-unknown persisted data.
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeWinLossTie(raw: unknown): WinLossTie {
+  const r = isRecord(raw) ? raw : {};
+  return {
+    wins: typeof r.wins === "number" ? r.wins : 0,
+    losses: typeof r.losses === "number" ? r.losses : 0,
+    ties: typeof r.ties === "number" ? r.ties : 0,
+  };
+}
+
+function normalizeSkillRecords(raw: unknown): Record<BotSkillLevel, WinLossTie> {
+  const r = isRecord(raw) ? raw : {};
+  return Object.fromEntries(BOT_SKILL_LEVELS.map((skill) => [skill, normalizeWinLossTie(r[skill])])) as Record<BotSkillLevel, WinLossTie>;
+}
+
+function normalizeStreak(raw: unknown): StreakState {
+  const r = isRecord(raw) ? raw : {};
+  const current = isRecord(r.current) ? r.current : {};
+  const best = isRecord(r.best) ? r.best : {};
+  return {
+    current: {
+      count: typeof current.count === "number" ? current.count : 0,
+      ...(typeof current.startDate === "string" ? { startDate: current.startDate } : {}),
+    },
+    best: {
+      count: typeof best.count === "number" ? best.count : 0,
+      ...(typeof best.endDate === "string" ? { endDate: best.endDate } : {}),
+    },
+  };
+}
+
+function normalizeWinsPerPlace(raw: unknown): [number, number, number, number] {
+  if (Array.isArray(raw) && raw.length === 4 && raw.every((n) => typeof n === "number")) {
+    return raw as [number, number, number, number];
+  }
+  return [0, 0, 0, 0];
+}
+
+function normalizeDifficultyStats(raw: unknown): DifficultyStats {
+  const r = isRecord(raw) ? raw : {};
+  return {
+    winsPerPlace: normalizeWinsPerPlace(r.winsPerPlace),
+    recordsBySkill: normalizeSkillRecords(r.recordsBySkill),
+    firstPlaceStreak: normalizeStreak(r.firstPlaceStreak),
+    topTwoStreak: normalizeStreak(r.topTwoStreak),
+    notLastStreak: normalizeStreak(r.notLastStreak),
+  };
+}
+
+function normalizePerDifficulty(raw: unknown): Record<Difficulty, DifficultyStats> {
+  const r = isRecord(raw) ? raw : {};
+  return Object.fromEntries(DIFFICULTIES.map((difficulty) => [difficulty, normalizeDifficultyStats(r[difficulty])])) as Record<Difficulty, DifficultyStats>;
+}
+
+function normalizeGlobalStats(raw: unknown): GlobalStats {
+  const r = isRecord(raw) ? raw : {};
+  return {
+    gamesPlayed: typeof r.gamesPlayed === "number" ? r.gamesPlayed : 0,
+    gamesAbandoned: typeof r.gamesAbandoned === "number" ? r.gamesAbandoned : 0,
+    recordsBySkill: normalizeSkillRecords(r.recordsBySkill),
+  };
+}
+
+// normalizeBotVersionStats rebuilds a well-formed BotVersionStats out
+// of whatever's actually stored for one bot version, filling in any
+// missing or wrong-typed field with its empty default instead of
+// trusting the persisted shape verbatim -- see normalizeStatsStore's
+// own comment for why this matters.
+function normalizeBotVersionStats(raw: unknown): BotVersionStats {
+  const r = isRecord(raw) ? raw : {};
+  return { global: normalizeGlobalStats(r.global), perDifficulty: normalizePerDifficulty(r.perDifficulty) };
+}
+
+// normalizeStatsStore rebuilds a well-formed StatsStore, normalizing
+// every bot version entry it finds. loadStats only ever checked the
+// top-level {version, store} envelope, trusting store's own contents
+// verbatim -- a partial or differently-shaped entry (e.g. one written
+// by a since-changed build, or corrupted in storage) would otherwise
+// resurface as a crash the first time some other code reached into a
+// field it assumed was always there, rather than as a handled "not
+// present yet" case the way a wholly-missing entry already is
+// (statsFor/viewStats).
+function normalizeStatsStore(raw: unknown): StatsStore {
+  const r = isRecord(raw) ? raw : {};
+  const byBotVersion = isRecord(r.byBotVersion) ? r.byBotVersion : {};
+  return { byBotVersion: Object.fromEntries(Object.entries(byBotVersion).map(([botVersion, entry]) => [botVersion, normalizeBotVersionStats(entry)])) };
+}
+
 // loadStats reads StatsStore from storage, falling back to an empty
 // store when nothing is stored, what's stored isn't valid JSON, or its
-// schema version doesn't match.
+// schema version doesn't match -- and normalizing whatever store it
+// does find (normalizeStatsStore), so a partial or malformed entry
+// never crashes later instead of just showing up as zeroes.
 export function loadStats(storage: Storage): StatsStore {
   const raw = storage.getItem(STORAGE_KEY);
   if (raw === null) {
@@ -109,10 +205,10 @@ export function loadStats(storage: Storage): StatsStore {
       return emptyStatsStore();
     }
     const { version, store } = parsed as { version?: unknown; store?: unknown };
-    if (version !== SCHEMA_VERSION || typeof store !== "object" || store === null) {
+    if (version !== SCHEMA_VERSION) {
       return emptyStatsStore();
     }
-    return store as StatsStore;
+    return normalizeStatsStore(store);
   } catch {
     return emptyStatsStore();
   }
@@ -171,6 +267,16 @@ export function recordGameAbandoned(store: StatsStore, botVersion: string): void
 // eliminatedThisRound lists the seats newly eliminated by it. A bot
 // seat already eliminated before this round is skipped -- its
 // win/loss/tie was already recorded when it was actually eliminated.
+//
+// botSeats normally comes straight from a live Game, but the Abandon
+// path instead passes whatever GameState specs/state.md last
+// persisted -- possibly a game resumed from well before botSeats
+// existed in that shape (a long-lived PWA install can have a paused
+// game sitting in local storage across many app updates). A seat
+// whose value there isn't actually a recognized BotSkillLevel is
+// skipped rather than recorded under a bogus key, the same "missing
+// data doesn't crash the app" leniency loadStats/viewStats give a
+// missing or malformed stats entry above.
 export function recordRoundElimination(store: StatsStore, botVersion: string, difficulty: Difficulty, botSeats: BotSeats, eliminatedBeforeRound: readonly boolean[], eliminatedThisRound: readonly number[]): void {
   const bvStats = statsFor(store, botVersion);
   const southEliminated = eliminatedThisRound.includes(0);
@@ -188,7 +294,10 @@ export function recordRoundElimination(store: StatsStore, botVersion: string, di
     if (outcome === undefined) {
       continue;
     }
-    const skill = botSeats[seat - 1] as BotSkillLevel;
+    const skill = botSeats?.[seat - 1];
+    if (typeof skill !== "string" || !(BOT_SKILL_LEVELS as readonly string[]).includes(skill)) {
+      continue;
+    }
     bvStats.global.recordsBySkill[skill][outcome]++;
     bvStats.perDifficulty[difficulty].recordsBySkill[skill][outcome]++;
   }
