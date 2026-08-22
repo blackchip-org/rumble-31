@@ -1140,9 +1140,15 @@ body {
   text-shadow: var(--heading-text-shadow);
 }
 
+/* min-width reserves room for the widest toggle label ("Moderate",
+   the Difficulty button's longest state) so the auto-sized grid
+   column it shares with the other toggle buttons doesn't grow and
+   shrink -- shifting the whole settings panel -- as those buttons'
+   text changes length. */
 .settings-grid button {
   justify-self: stretch;
   padding: 0.5rem 1rem;
+  min-width: 6rem;
 }
 
 .settings-buttons {
