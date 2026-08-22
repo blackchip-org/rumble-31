@@ -8,8 +8,8 @@ import type { Hand, TurnRecord } from "./game/types.ts";
 // difficultyLabel names the game's Difficulty setting (e.g.
 // "Moderate") -- the bot seats' actual skill levels stay unannounced
 // until gameEndLines reveals them.
-export function gameStartLines(seed: number, version: string, difficultyLabel: string): string[] {
-  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`, `Difficulty level is ${difficultyLabel}`];
+export function gameStartLines(seed: number, version: string, botVersion: string, difficultyLabel: string): string[] {
+  return [`Welcome to Rumble 31, v${version}`, `Starting game with seed ${seed}`, `Bot version ${botVersion}`, `Difficulty level is ${difficultyLabel}`];
 }
 
 // roundStartLines is written once a round is dealt, before its first

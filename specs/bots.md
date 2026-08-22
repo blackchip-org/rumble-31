@@ -12,6 +12,18 @@ Each skill level follows its own strategy: the checklist of rules,
 described below, that the bot works through top to bottom to decide
 its action each turn.
 
+## Bot version
+
+The three skill levels share one bot version number, tracked in
+src/bot/version.ts. It only changes when a strategy file changes --
+src/bot/novice.ts, advanced.ts, expert.ts, helpers.ts, or factory.ts.
+The app version (specs/version.md) can bump on its own without moving
+this number, since not every app change touches bot behavior. This
+lets future stats tracking tell which games were played under which
+bot strategies.
+
+The current bot version is 2.
+
 At the start of the game, the three bots' skill levels are chosen
 according to the Settings Screen's Difficulty setting (specs/screens/
 settings.md: "Easy", "Moderate", or "Hard"), each of which maps to a

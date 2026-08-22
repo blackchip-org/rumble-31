@@ -11,10 +11,11 @@ cards for that event.
 When the game starts, it should write out the following by substituting
 0.0 with the actual version number, and X with the random number generator
 seed being used. "Moderate" is replaced with the actual difficulty setting 
-in use. 
+in use. Y is replaced with the bot version. 
 
     Welcome to Rumble 31, v0.0
     Starting game with seed X
+    Bot version Y
     Difficulty level is Moderate
 
 The log for the start of each round looks like the following. X is the round

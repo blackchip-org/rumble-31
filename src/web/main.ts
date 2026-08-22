@@ -5,6 +5,7 @@
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { createBot, snapshotBot, type BotMemory, type BotSkillLevel } from "../bot/factory.ts";
+import { botVersion } from "../bot/version.ts";
 import { DEAL_ANIMATION_DELAY, DIFFICULTIES, DIFFICULTY_BOT_SKILL_LEVELS, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
@@ -826,7 +827,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   potEl.replaceChildren();
 
   if (!resume) {
-    for (const line of gameStartLines(seed, version, DIFFICULTY_LABELS[settings.difficulty])) {
+    for (const line of gameStartLines(seed, version, botVersion, DIFFICULTY_LABELS[settings.difficulty])) {
       appendLogLine(logEl, line);
     }
   }
