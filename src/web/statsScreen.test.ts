@@ -5,15 +5,17 @@ import type { StreakState } from "./stats.ts";
 import type { Difficulty } from "../config.ts";
 import type { BotSkillLevel } from "../bot/factory.ts";
 
+// Every difficulty's three weighted options (specs/bots.md) together
+// cover all three skill levels, so every combination is seated.
 const seatedCases: Array<{ difficulty: Difficulty; skill: BotSkillLevel; want: boolean }> = [
   { difficulty: "easy", skill: "novice", want: true },
   { difficulty: "easy", skill: "advanced", want: true },
-  { difficulty: "easy", skill: "expert", want: false },
-  { difficulty: "moderate", skill: "novice", want: false },
+  { difficulty: "easy", skill: "expert", want: true },
+  { difficulty: "moderate", skill: "novice", want: true },
   { difficulty: "moderate", skill: "advanced", want: true },
   { difficulty: "moderate", skill: "expert", want: true },
-  { difficulty: "hard", skill: "novice", want: false },
-  { difficulty: "hard", skill: "advanced", want: false },
+  { difficulty: "hard", skill: "novice", want: true },
+  { difficulty: "hard", skill: "advanced", want: true },
   { difficulty: "hard", skill: "expert", want: true },
 ];
 

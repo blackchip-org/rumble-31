@@ -26,8 +26,23 @@ The current bot version is 2.
 
 At the start of the game, the three bots' skill levels are chosen
 according to the Settings Screen's Difficulty setting (specs/screens/
-settings.md: "Easy", "Moderate", or "Hard"), each of which maps to a
-tuple of three of the skill levels above, configured in config.ts.
+settings.md: "Easy", "Moderate", or "Hard"). Each difficulty maps to a
+weighted set of three-bot-skill-level combinations; one is chosen at
+random at the start of the game, with the following odds:
+
+- Easy
+  - 80% chance: Novice, Novice, Novice
+  - 15% chance: Novice, Novice, Advanced
+  - 5%  chance: Novice, Novice, Expert
+- Moderate
+  - 80% chance: Advanced, Advanced, Advanced
+  - 10% chance: Advanced, Advanced, Novice
+  - 10% chance: Advanced, Advanced, Expert
+- Hard
+  - 80% chance: Expert, Expert, Expert
+  - 15% chance: Expert, Expert, Advanced
+  - 5%  chance: Expert, Expert, Novice
+
 These three bots are then randomly assigned to the remaining seats
 (the human is always South), so which skill level ends up in which
 seat varies from game to game.

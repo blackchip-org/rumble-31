@@ -22,11 +22,12 @@ const STREAK_ACCESSORS: Readonly<Record<string, (d: DifficultyStats) => StreakSt
 
 // isSkillSeatedInDifficulty reports whether skill is ever seated at
 // difficulty (config.ts's DIFFICULTY_BOT_SKILL_LEVELS) -- a skill
-// never seated there can never have a non-zero Win/Loss/Tie record at
-// that difficulty, so the Stats screen dashes it out instead of
-// showing a permanent, meaningless 0-0-0.
+// never seated by any of that difficulty's weighted options can never
+// have a non-zero Win/Loss/Tie record at that difficulty, so the Stats
+// screen dashes it out instead of showing a permanent, meaningless
+// 0-0-0.
 export function isSkillSeatedInDifficulty(difficulty: Difficulty, skill: BotSkillLevel): boolean {
-  return (DIFFICULTY_BOT_SKILL_LEVELS[difficulty] as readonly BotSkillLevel[]).includes(skill);
+  return DIFFICULTY_BOT_SKILL_LEVELS[difficulty].some((option) => option.seats.includes(skill));
 }
 
 // formatShortDate renders an iso "YYYY-MM-DD" date (stats.ts's

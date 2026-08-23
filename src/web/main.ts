@@ -6,7 +6,7 @@ import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { createBot, snapshotBot, type BotMemory, type BotSkillLevel } from "../bot/factory.ts";
 import { botVersion } from "../bot/version.ts";
-import { DEAL_ANIMATION_DELAY, DIFFICULTIES, DIFFICULTY_BOT_SKILL_LEVELS, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
+import { DEAL_ANIMATION_DELAY, DIFFICULTIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
@@ -31,7 +31,7 @@ import { installGlobalErrorHandlers, mockError, showErrorScreen } from "./errorS
 import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
 import { renderStrikes, setDealer, setKnocker, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
-import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
+import { assignBotSeats, baselineBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
 import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordGamePlace, todayDateString, viewStats, type StatsStore } from "./stats.ts";
 import { initStatsTabs, renderStatsScreen, resetStatsToOverallTab } from "./statsScreen.ts";
@@ -1405,7 +1405,7 @@ function showDebugGameOverScreen(params: DebugParams): void {
   const southWon = !eliminated[0];
   const finalRoundEliminated = southWon ? [] : [0, 1, 2, 3].filter((seat) => eliminated[seat]);
   const botResults = computeBotResults(eliminated, finalRoundEliminated);
-  const botSeats = DIFFICULTY_BOT_SKILL_LEVELS[settings.difficulty];
+  const botSeats = baselineBotSeats(settings.difficulty);
   const botLabels = botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
   saveState(
     {

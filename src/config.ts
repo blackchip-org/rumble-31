@@ -3,18 +3,40 @@
 import type { BotSkillLevel } from "./bot/factory.ts";
 
 // DIFFICULTIES/Difficulty are the Settings Screen's "Difficulty" option
-// (specs/screens/settings.md), each mapping to the three bot skill
-// levels (specs/bots.md) seated for a game's three bot seats, per
-// DIFFICULTY_BOT_SKILL_LEVELS below.
+// (specs/screens/settings.md), each mapping to a weighted set of bot
+// skill level combinations (specs/bots.md) seated for a game's three
+// bot seats, per DIFFICULTY_BOT_SKILL_LEVELS below.
 export const DIFFICULTIES = ["easy", "moderate", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
-// DIFFICULTY_BOT_SKILL_LEVELS maps each Difficulty to the three bot
-// skill levels assigned to that game's bot seats (specs/bots.md).
-export const DIFFICULTY_BOT_SKILL_LEVELS: Record<Difficulty, [BotSkillLevel, BotSkillLevel, BotSkillLevel]> = {
-  easy: ["novice", "advanced", "advanced"],
-  moderate: ["advanced", "advanced", "expert"],
-  hard: ["expert", "expert", "expert"],
+// BotSkillLevelOption is one weighted outcome of a Difficulty's bot
+// skill level roll: seats has a `weight` percent chance (0-100) of
+// being picked; a Difficulty's options sum to 100.
+export type BotSkillLevelOption = {
+  weight: number;
+  seats: readonly [BotSkillLevel, BotSkillLevel, BotSkillLevel];
+};
+
+// DIFFICULTY_BOT_SKILL_LEVELS maps each Difficulty to the weighted bot
+// skill level options one of which is rolled for that game's bot seats
+// (specs/bots.md). The highest-weight option is always listed first --
+// src/web/botAssignment.ts's baselineBotSeats relies on that ordering.
+export const DIFFICULTY_BOT_SKILL_LEVELS: Record<Difficulty, readonly BotSkillLevelOption[]> = {
+  easy: [
+    { weight: 80, seats: ["novice", "novice", "novice"] },
+    { weight: 15, seats: ["novice", "novice", "advanced"] },
+    { weight: 5, seats: ["novice", "novice", "expert"] },
+  ],
+  moderate: [
+    { weight: 80, seats: ["advanced", "advanced", "advanced"] },
+    { weight: 10, seats: ["advanced", "advanced", "novice"] },
+    { weight: 10, seats: ["advanced", "advanced", "expert"] },
+  ],
+  hard: [
+    { weight: 80, seats: ["expert", "expert", "expert"] },
+    { weight: 15, seats: ["expert", "expert", "advanced"] },
+    { weight: 5, seats: ["expert", "expert", "novice"] },
+  ],
 };
 
 // MIN_BOT_THINK_TIME/MAX_BOT_THINK_TIME bound the random pause used to
