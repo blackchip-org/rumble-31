@@ -353,6 +353,19 @@ body {
     0 0 22px -6px var(--win-glow);
 }
 
+/* Independent of is-knocked (every seat choosing knock/exchange on its
+   own turn gets that tag, panels.ts's setPanelState/renderTurn) --
+   is-knocker instead marks only the one seat round.ts itself recorded
+   as *the* knocker, the choice that actually ended the round, so it's
+   obvious at a glance which of possibly several "knocked" tags started
+   the final lap. */
+.panel.is-knocker {
+  border-color: var(--knock);
+  box-shadow:
+    0 0 0 2px var(--knock),
+    0 0 22px -6px var(--knock-glow);
+}
+
 /* Blink stops are placed close together (49%/50% and 99%/100%) so the
    browser's default interpolation between animatable properties
    (border-color, box-shadow, opacity, filter) collapses to a near-

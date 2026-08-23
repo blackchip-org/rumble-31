@@ -97,7 +97,12 @@
   --win: #ffffff; /* winning panel's border color */
   --win-glow: rgba(255, 255, 255, 0.35); /* glow behind a winning
                                              panel's border */
-  --knock: #7fa8d9; /* knocked state tag color/border */
+  --knock: #7fa8d9; /* knocked state tag color/border, and the
+                        knocker panel highlight's border/glow color */
+  --knock-glow: rgba(127, 168, 217, 0.35); /* glow behind the actual
+                                                first knocker's panel
+                                                border, matching
+                                                --knock */
   --first: #a67fd9; /* first-turn seat-label text color */
   --first-tag: #c9a8f0; /* first-turn state tag background and panel
                             border/glow -- a lighter tint of --first;

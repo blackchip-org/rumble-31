@@ -91,6 +91,18 @@ export function setStruck(panelEl: HTMLElement, struck: boolean): void {
   panelEl.classList.toggle("is-struck", struck);
 }
 
+// setKnocker toggles the panel highlight marking the one seat that
+// actually knocked first this round (round.ts's knockerSeat), as
+// opposed to setPanelState's "knocked" state, which every seat
+// choosing knock/exchange on its own turn earns for its tag (see
+// main.ts's renderTurn). Independent of setPanelState for the same
+// reason: at most one panel ever holds this highlight, but it must
+// stay layered under whichever "knocked" tag that panel currently
+// shows rather than replace it.
+export function setKnocker(panelEl: HTMLElement, isKnocker: boolean): void {
+  panelEl.classList.toggle("is-knocker", isKnocker);
+}
+
 // setPanelState toggles a seat panel's turn/first/eliminated/knocked/
 // strike/winner visuals and its state tag's text; only one state
 // applies at a time. is-strike (this tag) is distinct from is-struck

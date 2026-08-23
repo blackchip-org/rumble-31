@@ -29,7 +29,7 @@ import { dealOrder } from "./dealOrder.ts";
 import { DomActionPrompt } from "./domActionPrompt.ts";
 import { installGlobalErrorHandlers, mockError, showErrorScreen } from "./errorScreen.ts";
 import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
-import { renderStrikes, setDealer, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
+import { renderStrikes, setDealer, setKnocker, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
@@ -586,6 +586,7 @@ async function animateDeal(roundNum: number, hands: ReadonlyMap<number, Hand>, d
   for (let seat = 0; seat < 4; seat++) {
     setWon(seatOf(seat).panel, false);
     setStruck(seatOf(seat).panel, false);
+    setKnocker(seatOf(seat).panel, false);
     setPanelState(seatOf(seat).panel, hands.has(seat) ? "none" : "eliminated");
     // Clears every seat's hand, not just this round's active ones: a
     // seat eliminated last round still shows its final revealed hand
@@ -646,6 +647,7 @@ function renderDealInstant(roundNum: number, pot: Pot, hands: ReadonlyMap<number
   for (let seat = 0; seat < 4; seat++) {
     setWon(seatOf(seat).panel, false);
     setStruck(seatOf(seat).panel, false);
+    setKnocker(seatOf(seat).panel, false);
     setPanelState(seatOf(seat).panel, hands.has(seat) ? "none" : "eliminated");
   }
 
@@ -831,6 +833,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   for (let seat = 0; seat < 4; seat++) {
     setWon(seatOf(seat).panel, false);
     setStruck(seatOf(seat).panel, false);
+    setKnocker(seatOf(seat).panel, false);
     setPanelState(seatOf(seat).panel, g.eliminated[seat] ? "eliminated" : "none");
     setScore(seatOf(seat).score, null);
     renderStrikes(seatOf(seat).strikes, g.strikes[seat] as number, g.secondChance[seat] as boolean);
@@ -897,6 +900,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       // directly so the panel matches Round's restored knocked state.
       if (roundKnocked && roundKnockerSeat >= 0) {
         setPanelState(seatOf(roundKnockerSeat).panel, "knocked");
+        setKnocker(seatOf(roundKnockerSeat).panel, true);
       }
       saveGameState({
         strikes: g.strikes,
@@ -941,6 +945,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       if (!roundKnocked && rec.turnIndex !== 0 && (rec.action.type === "knock" || rec.action.type === "exchange")) {
         roundKnocked = true;
         roundKnockerSeat = rec.seat;
+        setKnocker(seatOf(rec.seat).panel, true);
       }
       const active = [...hands.keys()].sort((a, b) => a - b);
       const nextSeat = active[(active.indexOf(rec.seat) + 1) % active.length] as number;
@@ -989,6 +994,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     // whoever last acted/knocked would keep that tag through the pause.
     for (let seat = 0; seat < 4; seat++) {
       setPanelState(seatOf(seat).panel, g.eliminated[seat] ? "eliminated" : "none");
+      setKnocker(seatOf(seat).panel, false);
     }
 
     for (const line of roundRecapLines(outcome, g.strikes)) {
