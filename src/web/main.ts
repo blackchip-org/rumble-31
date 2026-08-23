@@ -6,7 +6,7 @@ import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { createBot, snapshotBot, type BotMemory, type BotSkillLevel } from "../bot/factory.ts";
 import { botVersion } from "../bot/version.ts";
-import { DEAL_ANIMATION_DELAY, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
+import { DEAL_ANIMATION_DELAY, DIFFICULTIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
@@ -283,6 +283,7 @@ const settingsBtn = must<HTMLButtonElement>("settings-btn");
 const aboutBtn = must<HTMLButtonElement>("about-btn");
 
 const difficultyScreenEl = must<HTMLElement>("difficulty-screen");
+const difficultyRandomBtn = must<HTMLButtonElement>("difficulty-random-btn");
 const difficultyEasyBtn = must<HTMLButtonElement>("difficulty-easy-btn");
 const difficultyModerateBtn = must<HTMLButtonElement>("difficulty-moderate-btn");
 const difficultyHardBtn = must<HTMLButtonElement>("difficulty-hard-btn");
@@ -1605,6 +1606,7 @@ function startNewGame(difficulty: Difficulty): void {
   showGameScreen();
 }
 
+difficultyRandomBtn.addEventListener("click", () => startNewGame(DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] as Difficulty));
 difficultyEasyBtn.addEventListener("click", () => startNewGame("easy"));
 difficultyModerateBtn.addEventListener("click", () => startNewGame("moderate"));
 difficultyHardBtn.addEventListener("click", () => startNewGame("hard"));
