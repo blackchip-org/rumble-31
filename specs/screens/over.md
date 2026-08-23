@@ -6,8 +6,39 @@ is black.
 
 The entire contents of the screen are in a panel that is centered both
 horizontally and vertically on the screen. In big white lettering, say either
-"You Won!" or "Game Over" with each word on its own line. Below that are three
-buttons:
+"You Won!" or "Game Over" with each word on its own line.
+
+Below the title is a table of South's result against each bot seat:
+
+| Seat  | Skill    | Result |
+| ----- | -------- | ------ |
+| West  | Advanced | Win    |
+| North | Novice   | Loss   |
+| East  | Expert   | Tie    |
+
+South itself is never a row -- the table is South's result against
+each individual bot, not a bot-vs-bot ranking, so there's nothing to
+say about South's own seat. Skill is that seat's bot skill level
+(specs/bots.md). Result is one of Win, Loss, or Tie, based on
+elimination timing between South and that bot specifically:
+
+- Both South and the bot lasted to the very end of the game -- Tie.
+- The bot lasted to the end and South didn't -- Loss.
+- South lasted to the end (or was among those tied for it) and the
+  bot didn't -- Win.
+- Both were eliminated during the game: if they were eliminated in
+  the very same round, Tie; if the bot was eliminated in an earlier
+  round, Win.
+
+A bot can never be eliminated in a *later* round than South: once
+South is eliminated, the game ends immediately for the player, even
+if other bots are still active (specs/rules.md's normal play stops
+there rather than continuing to determine a winner among them) -- so
+there's no global final ranking to draw on, only this seat-by-seat
+comparison.
+
+Below the table is a tally of how many of the three results were
+Wins, Losses, and Ties. Below that are three buttons:
 
 - Play Again
 - Main Menu

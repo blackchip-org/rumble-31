@@ -35,6 +35,7 @@ import { assignBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
 import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordGamePlace, todayDateString, viewStats, type StatsStore } from "./stats.ts";
 import { initStatsTabs, renderStatsScreen, resetStatsToOverallTab } from "./statsScreen.ts";
+import { computeBotResults, renderOverResults, type BotResult } from "./overScreen.ts";
 import {
   appendLogLine,
   backEl,
@@ -853,6 +854,11 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
 
   saveGameState({ strikes: g.strikes, eliminated: g.eliminated, secondChance: g.secondChance, roundNum: startRoundNum, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
 
+  // Set once the game ends (inside the loop below, where the final
+  // round's outcome is in scope) and read after the loop exits, by
+  // the closing showGameOverScreen call.
+  let botResults: [BotResult, BotResult, BotResult] | undefined;
+
   for (let roundNum = startRoundNum; ; roundNum++) {
     if (signal.aborted) {
       return;
@@ -1063,6 +1069,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       }
       recordGamePlace(stats, botVersion, settings.difficulty, southPlace as 1 | 2 | 3 | 4, todayDateString());
       saveStats(stats, localStorage);
+      botResults = computeBotResults(g.eliminated, outcome.eliminated);
       saveState(
         {
           screen: "over",
@@ -1075,6 +1082,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
             botSeats,
             log: logLines(),
             southWon: g.winners().includes(0),
+            botResults,
           },
         },
         localStorage,
@@ -1106,7 +1114,8 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     }
   }
 
-  showGameOverScreen(g.winners().includes(0), true);
+  const botLabels = botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
+  showGameOverScreen(g.winners().includes(0), botResults as [BotResult, BotResult, BotResult], botLabels, true);
 }
 
 // hideAllScreens hides every top-level screen. Each show*Screen
@@ -1361,15 +1370,18 @@ function showHtpScreen(): void {
 
 // showGameOverScreen swaps whichever screen is up for the game-over
 // screen, announcing South's win or loss per specs/gui.md's Game Over
-// Screen section: "You Won!"/"Game Over", one word per line. Plays
-// win.wav/lose.wav per specs/assets.md only when playSound is true --
-// callers pass true for a live game finishing or specs/params.md's
-// screen=over debug param, and false when restoring a saved "over"
-// state on reload (specs/state.md), so a restore stays silent.
-function showGameOverScreen(southWon: boolean, playSound: boolean): void {
+// Screen section: "You Won!"/"Game Over", one word per line, plus the
+// results table and Win/Loss/Tie tally (overScreen.ts's
+// renderOverResults) below it. Plays win.wav/lose.wav per
+// specs/assets.md only when playSound is true -- callers pass true
+// for a live game finishing or specs/params.md's screen=over debug
+// param, and false when restoring a saved "over" state on reload
+// (specs/state.md), so a restore stays silent.
+function showGameOverScreen(southWon: boolean, botResults: [BotResult, BotResult, BotResult], botLabels: [string, string, string], playSound: boolean): void {
   const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
   gameOverLine1El.textContent = line1;
   gameOverLine2El.textContent = line2;
+  renderOverResults(gameOverScreenEl, botResults, botLabels);
   hideAllScreens();
   gameOverScreenEl.hidden = false;
   if (playSound) {
@@ -1382,25 +1394,37 @@ function showGameOverScreen(southWon: boolean, playSound: boolean): void {
 // specs/params.md's screen=over debug param, with no game actually
 // played. Per that spec, the win/loss message defaults to whether
 // South (seat 0) already starts eliminated per the strikes param.
+// There's no real round history behind a debug state, so
+// computeBotResults' elimination-order tiebreak can't be answered
+// honestly -- when South is eliminated, every other already-
+// eliminated seat is passed as though it went out in the same round
+// as South, reading as a Tie rather than guessing an order that was
+// never actually played.
 function showDebugGameOverScreen(params: DebugParams): void {
-  const southWon = !params.initialStrikes.eliminated[0];
+  const { eliminated } = params.initialStrikes;
+  const southWon = !eliminated[0];
+  const finalRoundEliminated = southWon ? [] : [0, 1, 2, 3].filter((seat) => eliminated[seat]);
+  const botResults = computeBotResults(eliminated, finalRoundEliminated);
+  const botSeats = DIFFICULTY_BOT_SKILL_LEVELS[settings.difficulty];
+  const botLabels = botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
   saveState(
     {
       screen: "over",
       game: {
         strikes: params.initialStrikes.strikes,
-        eliminated: params.initialStrikes.eliminated,
+        eliminated,
         secondChance: params.initialStrikes.secondChance,
         roundNum: 1,
         dealerSeat: 0,
-        botSeats: DIFFICULTY_BOT_SKILL_LEVELS[settings.difficulty],
+        botSeats,
         log: logLines(),
         southWon,
+        botResults,
       },
     },
     localStorage,
   );
-  showGameOverScreen(southWon, true);
+  showGameOverScreen(southWon, botResults, botLabels, true);
 }
 
 // restoreGameOverScreen redraws the Game Over screen directly from
@@ -1408,7 +1432,8 @@ function showDebugGameOverScreen(params: DebugParams): void {
 // win/lose sound (that only plays on arrival, not on restore).
 function restoreGameOverScreen(game: OverState): void {
   restoreLogLines(game.log);
-  showGameOverScreen(game.southWon, false);
+  const botLabels = game.botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
+  showGameOverScreen(game.southWon, game.botResults, botLabels, false);
 }
 
 // downloadTextFile saves text as a local file named filename, via a

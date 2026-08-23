@@ -830,6 +830,132 @@ body {
   display: block;
 }
 
+/* South's Win/Loss/Tie against each bot seat (specs/screens/over.md),
+   modeled on .stats-skill-table/.stats-counter's own row-rule and
+   tally-tile treatment. */
+.over-results {
+  width: min(90vw, 360px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.over-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.over-results-table th,
+.over-results-table td {
+  text-align: left;
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--game-over-table-rule);
+}
+
+.over-results-table tbody tr:last-child th,
+.over-results-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.over-results-table th {
+  color: var(--ink-dim);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+.over-results-table th.result-col,
+.over-results-table td.result-col {
+  text-align: right;
+}
+
+.over-results-table td.seat-col {
+  font-weight: 700;
+}
+
+/* Fixed width, rather than sized to content, so Win/Loss/Tie line up
+   in a column regardless of word length. */
+.result-pill {
+  display: inline-block;
+  width: 3.4rem;
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-tag);
+  text-transform: uppercase;
+  text-align: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid transparent;
+}
+
+.result-pill.win {
+  background: var(--good);
+  border-color: var(--good);
+  color: var(--bg);
+}
+
+.result-pill.loss {
+  background: var(--bad-tag);
+  border-color: var(--bad-tag);
+  color: var(--bg);
+}
+
+.result-pill.tie {
+  background: var(--ink-dim);
+  border-color: var(--ink-dim);
+  color: var(--bg);
+}
+
+.over-tally {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.over-tally-tile {
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.over-tally-tile .value {
+  font-family: var(--font-score);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
+  color: var(--ink);
+}
+
+.over-tally-tile.wins .value {
+  color: var(--good);
+}
+
+.over-tally-tile.losses .value {
+  color: var(--bad-tag);
+}
+
+.over-tally-tile.ties .value {
+  color: var(--ink-dim);
+}
+
+.over-tally-tile .label {
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
 .game-over-buttons {
   display: flex;
   flex-direction: column;
@@ -1332,7 +1458,7 @@ body {
 }
 
 .stats-counter.ties .value {
-  color: var(--ink);
+  color: var(--ink-dim);
 }
 
 .stats-counter .label {

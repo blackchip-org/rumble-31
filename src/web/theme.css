@@ -191,6 +191,8 @@
   --font-size-game-over-title: clamp(2.5rem, 4vw + 1.5rem, 4.5rem); /* game
                                                                          over
                                                                          title */
+  --game-over-table-rule: var(--stats-table-rule); /* results table's
+                                                        row dividers */
 
   /* ---------- about screen (independently restylable) ---------- */
   --about-bg: var(--main-bg); /* about screen background */
