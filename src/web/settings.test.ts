@@ -29,9 +29,10 @@ test("loadSettings", () => {
     {
       name: "valid stored value",
       stored: {
-        "rumble31.settings": '{"soundsEnabled":false,"difficulty":"hard","swapConfirmCancel":true,"suitColor":"two","focusFirst":"hand"}',
+        "rumble31.settings":
+          '{"soundsEnabled":false,"difficulty":"hard","difficultyIsRandom":true,"swapConfirmCancel":true,"suitColor":"two","focusFirst":"hand"}',
       },
-      want: { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: true, suitColor: "two", focusFirst: "hand" },
+      want: { soundsEnabled: false, difficulty: "hard", difficultyIsRandom: true, swapConfirmCancel: true, suitColor: "two", focusFirst: "hand" },
     },
     {
       name: "value saved before swapConfirmCancel, suitColor, and focusFirst existed: falls back to their defaults, keeps the rest",
@@ -39,6 +40,7 @@ test("loadSettings", () => {
       want: {
         soundsEnabled: false,
         difficulty: "hard",
+        difficultyIsRandom: defaultSettings.difficultyIsRandom,
         swapConfirmCancel: false,
         suitColor: defaultSettings.suitColor,
         focusFirst: defaultSettings.focusFirst,
@@ -50,6 +52,19 @@ test("loadSettings", () => {
       want: {
         soundsEnabled: false,
         difficulty: defaultSettings.difficulty,
+        difficultyIsRandom: defaultSettings.difficultyIsRandom,
+        swapConfirmCancel: true,
+        suitColor: defaultSettings.suitColor,
+        focusFirst: defaultSettings.focusFirst,
+      },
+    },
+    {
+      name: "value saved before difficultyIsRandom existed: falls back to its default, keeps the rest",
+      stored: { "rumble31.settings": '{"soundsEnabled":false,"difficulty":"hard","swapConfirmCancel":true}' },
+      want: {
+        soundsEnabled: false,
+        difficulty: "hard",
+        difficultyIsRandom: defaultSettings.difficultyIsRandom,
         swapConfirmCancel: true,
         suitColor: defaultSettings.suitColor,
         focusFirst: defaultSettings.focusFirst,
@@ -64,6 +79,19 @@ test("loadSettings", () => {
       want: {
         soundsEnabled: true,
         difficulty: defaultSettings.difficulty,
+        difficultyIsRandom: defaultSettings.difficultyIsRandom,
+        swapConfirmCancel: defaultSettings.swapConfirmCancel,
+        suitColor: defaultSettings.suitColor,
+        focusFirst: defaultSettings.focusFirst,
+      },
+    },
+    {
+      name: "JSON with wrong type for difficultyIsRandom: falls back to default, keeps the rest",
+      stored: { "rumble31.settings": '{"soundsEnabled":true,"difficultyIsRandom":"yes"}' },
+      want: {
+        soundsEnabled: true,
+        difficulty: defaultSettings.difficulty,
+        difficultyIsRandom: defaultSettings.difficultyIsRandom,
         swapConfirmCancel: defaultSettings.swapConfirmCancel,
         suitColor: defaultSettings.suitColor,
         focusFirst: defaultSettings.focusFirst,
@@ -75,6 +103,7 @@ test("loadSettings", () => {
       want: {
         soundsEnabled: true,
         difficulty: defaultSettings.difficulty,
+        difficultyIsRandom: defaultSettings.difficultyIsRandom,
         swapConfirmCancel: defaultSettings.swapConfirmCancel,
         suitColor: defaultSettings.suitColor,
         focusFirst: defaultSettings.focusFirst,
@@ -86,6 +115,7 @@ test("loadSettings", () => {
       want: {
         soundsEnabled: true,
         difficulty: defaultSettings.difficulty,
+        difficultyIsRandom: defaultSettings.difficultyIsRandom,
         swapConfirmCancel: defaultSettings.swapConfirmCancel,
         suitColor: defaultSettings.suitColor,
         focusFirst: defaultSettings.focusFirst,
@@ -101,7 +131,14 @@ test("loadSettings", () => {
 
 test("saveSettings round-trips through loadSettings", () => {
   const storage = memoryStorage();
-  const settings: Settings = { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: true, suitColor: "two", focusFirst: "hand" };
+  const settings: Settings = {
+    soundsEnabled: false,
+    difficulty: "hard",
+    difficultyIsRandom: true,
+    swapConfirmCancel: true,
+    suitColor: "two",
+    focusFirst: "hand",
+  };
   saveSettings(settings, storage);
   assert.deepEqual(loadSettings(storage), settings);
 

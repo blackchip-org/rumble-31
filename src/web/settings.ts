@@ -13,6 +13,11 @@ export interface Settings {
   // difficulty.md), not the Settings screen -- kept here since it's
   // persisted the same way as the rest of Settings.
   difficulty: Difficulty;
+  // difficultyIsRandom records whether difficulty was last resolved by
+  // the Difficulty screen's "Random" button, so "Play Again" (specs/
+  // screens/over.md) knows to re-roll a new random difficulty rather
+  // than reusing the one just played.
+  difficultyIsRandom: boolean;
   // swapConfirmCancel swaps which button confirms vs. cancels for
   // controller/keyboard navigation (specs/controller.md), for players
   // used to a Nintendo-style layout instead of the default W3C
@@ -31,6 +36,7 @@ export interface Settings {
 export const defaultSettings: Settings = {
   soundsEnabled: true,
   difficulty: "moderate",
+  difficultyIsRandom: false,
   swapConfirmCancel: false,
   suitColor: "four",
   focusFirst: "pot",
@@ -64,15 +70,16 @@ export function loadSettings(storage: Storage): Settings {
     const p = parsed as Record<string, unknown>;
     if (typeof p.soundsEnabled === "boolean") {
       // swapConfirmCancel, difficulty (which replaced the older
-      // bot1/bot2/bot3 fields), suitColor, and focusFirst all postdate
-      // soundsEnabled -- a value saved before any of them existed
-      // falls back to its default instead of invalidating the rest of
-      // an otherwise-valid settings blob.
+      // bot1/bot2/bot3 fields), difficultyIsRandom, suitColor, and
+      // focusFirst all postdate soundsEnabled -- a value saved before
+      // any of them existed falls back to its default instead of
+      // invalidating the rest of an otherwise-valid settings blob.
       const swapConfirmCancel = typeof p.swapConfirmCancel === "boolean" ? p.swapConfirmCancel : defaultSettings.swapConfirmCancel;
       const difficulty = isDifficulty(p.difficulty) ? p.difficulty : defaultSettings.difficulty;
+      const difficultyIsRandom = typeof p.difficultyIsRandom === "boolean" ? p.difficultyIsRandom : defaultSettings.difficultyIsRandom;
       const suitColor = isSuitColor(p.suitColor) ? p.suitColor : defaultSettings.suitColor;
       const focusFirst = isFocusFirst(p.focusFirst) ? p.focusFirst : defaultSettings.focusFirst;
-      return { soundsEnabled: p.soundsEnabled, difficulty, swapConfirmCancel, suitColor, focusFirst };
+      return { soundsEnabled: p.soundsEnabled, difficulty, difficultyIsRandom, swapConfirmCancel, suitColor, focusFirst };
     }
   } catch {
     // Falls through to the default below.

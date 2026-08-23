@@ -258,7 +258,14 @@ test("loadStats never errors on a single-field-corrupted saved store, and every 
   }
 });
 
-const sampleSettings: Settings = { soundsEnabled: false, difficulty: "hard", swapConfirmCancel: true, suitColor: "two", focusFirst: "hand" };
+const sampleSettings: Settings = {
+  soundsEnabled: false,
+  difficulty: "hard",
+  difficultyIsRandom: true,
+  swapConfirmCancel: true,
+  suitColor: "two",
+  focusFirst: "hand",
+};
 
 test("loadSettings never errors on a single-field-corrupted saved settings blob -- each field falls back to a valid value independently", () => {
   for (const mutation of singleFieldMutations(sampleSettings)) {

@@ -57,6 +57,8 @@ Wins, Losses, and Ties. Below that are three buttons:
 
 Clicking on "Play Again" starts a new game at the same difficulty
 (specs/screens/difficulty.md) as the game just played, without
-showing the Difficulty screen. Clicking on Main Menu returns the user
+showing the Difficulty screen -- except that if that difficulty came
+from the Difficulty screen's "Random" button, a fresh random
+difficulty is rolled instead. Clicking on Main Menu returns the user
 to the Main screen. Clicking on Save Log lets the user save a text
 file containing the log from the game just played.

@@ -26,4 +26,6 @@ game.
 
 The difficulty chosen here is saved to local storage, and is what
 "Play Again" (specs/screens/over.md) reuses when starting another
-game without returning to this screen.
+game without returning to this screen -- except that choosing
+"Random" is also remembered, so each "Play Again" re-rolls a fresh
+random difficulty instead of reusing the one just played.

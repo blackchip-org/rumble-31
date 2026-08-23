@@ -1514,7 +1514,20 @@ function logFilename(now: Date): string {
   return `rumble31-${yy}${mm}${dd}-${hh}${mi}.txt`;
 }
 
-playAgainBtn.addEventListener("click", onTap(() => showGameScreen()));
+// Play Again reuses the difficulty just played (specs/screens/
+// over.md), except when it was picked by the Difficulty screen's
+// "Random" button (specs/screens/difficulty.md), in which case each
+// Play Again re-rolls a fresh random difficulty.
+playAgainBtn.addEventListener(
+  "click",
+  onTap(() => {
+    if (settings.difficultyIsRandom) {
+      settings = { ...settings, difficulty: randomDifficulty() };
+      saveSettings(settings, localStorage);
+    }
+    showGameScreen();
+  }),
+);
 mainMenuBtn.addEventListener("click", onTap(showMainScreen));
 aboutMainMenuBtn.addEventListener("click", onTap(showMainScreen));
 licensesMainMenuBtn.addEventListener("click", onTap(showMainScreen));
@@ -1608,22 +1621,25 @@ confirmCancelToggleBtn.addEventListener("click", () => {
   syncConfirmCancelToggleBtn();
 });
 
-// startNewGame sets difficulty as the persisted Settings' difficulty
-// (specs/screens/difficulty.md) and starts a new game at it
-// immediately.
-function startNewGame(difficulty: Difficulty): void {
-  settings = { ...settings, difficulty };
+// randomDifficulty picks one of DIFFICULTIES with equal probability
+// (specs/screens/difficulty.md's "Random" button).
+function randomDifficulty(): Difficulty {
+  return DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] as Difficulty;
+}
+
+// startNewGame sets difficulty (and whether it was picked by
+// "Random") as the persisted Settings (specs/screens/difficulty.md)
+// and starts a new game at it immediately.
+function startNewGame(difficulty: Difficulty, isRandom: boolean): void {
+  settings = { ...settings, difficulty, difficultyIsRandom: isRandom };
   saveSettings(settings, localStorage);
   showGameScreen();
 }
 
-difficultyRandomBtn.addEventListener(
-  "click",
-  onTap(() => startNewGame(DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] as Difficulty)),
-);
-difficultyEasyBtn.addEventListener("click", onTap(() => startNewGame("easy")));
-difficultyModerateBtn.addEventListener("click", onTap(() => startNewGame("moderate")));
-difficultyHardBtn.addEventListener("click", onTap(() => startNewGame("hard")));
+difficultyRandomBtn.addEventListener("click", onTap(() => startNewGame(randomDifficulty(), true)));
+difficultyEasyBtn.addEventListener("click", onTap(() => startNewGame("easy", false)));
+difficultyModerateBtn.addEventListener("click", onTap(() => startNewGame("moderate", false)));
+difficultyHardBtn.addEventListener("click", onTap(() => startNewGame("hard", false)));
 difficultyBackBtn.addEventListener("click", onTap(showMainScreen));
 
 // nextSuitColor cycles a SuitColor through SUIT_COLORS's order

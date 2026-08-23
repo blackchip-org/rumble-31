@@ -19,7 +19,14 @@ function params(strikesRaw: string): DebugParams {
   };
 }
 
-const settings: Settings = { soundsEnabled: true, difficulty: "moderate", swapConfirmCancel: false, suitColor: "four", focusFirst: "pot" };
+const settings: Settings = {
+  soundsEnabled: true,
+  difficulty: "moderate",
+  difficultyIsRandom: false,
+  swapConfirmCancel: false,
+  suitColor: "four",
+  focusFirst: "pot",
+};
 
 const cases = [
   {
