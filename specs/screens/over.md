@@ -8,7 +8,18 @@ The entire contents of the screen are in a panel that is centered both
 horizontally and vertically on the screen. In big white lettering, say either
 "You Won!" or "Game Over" with each word on its own line.
 
-Below the title is a table of South's result against each bot seat:
+Below the title is a badge naming South's finish for this game: "First
+Place", "Second Place", "Third Place", or "Fourth Place". This is the
+same 1-based place already tracked for the log (specs/log.md's "Game
+over: X place" line) and the Stats screen's Rankings tile
+(specs/screens/stats.md) -- including that spec's tie rule, where
+going out together with one or more bots places South as if they'd
+been eliminated alone. The badge is tinted per place, reusing the
+Stats screen's Rankings colors for First/Second/Third (gold/silver/
+bronze) plus a fourth, neutral tone for last place, which the Stats
+screen itself never shows.
+
+Below the badge is a table of South's result against each bot seat:
 
 | Seat  | Skill    | Result |
 | ----- | -------- | ------ |

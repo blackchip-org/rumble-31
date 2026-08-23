@@ -142,13 +142,14 @@ const sampleOver: OverState = {
   botSeats: sampleGame.botSeats,
   log: sampleGame.log,
   southWon: true,
+  southPlace: 1,
   botResults: ["win", "win", "win"] as [BotResult, BotResult, BotResult],
 };
 
 test("loadState never errors on a single-field-corrupted saved game/over screen -- it's accepted as-is or rejected outright, never thrown", () => {
   const envelopes = [
-    { version: 8, state: { screen: "game", game: sampleGame, savedAt: 100 } },
-    { version: 8, state: { screen: "over", game: sampleOver, savedAt: 100 } },
+    { version: 9, state: { screen: "game", game: sampleGame, savedAt: 100 } },
+    { version: 9, state: { screen: "over", game: sampleOver, savedAt: 100 } },
   ];
   for (const envelope of envelopes) {
     for (const mutation of singleFieldMutations(envelope)) {

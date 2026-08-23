@@ -872,6 +872,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   // the closing showGameOverScreen call.
   let botResults: [BotResult, BotResult, BotResult] | undefined;
   let southWonOutright = false;
+  let southPlace: 1 | 2 | 3 | 4 = 1;
 
   for (let roundNum = startRoundNum; ; roundNum++) {
     if (signal.aborted) {
@@ -1093,11 +1094,11 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       // specs/log.md it's placed as if South alone had been eliminated
       // rather than credited with first.
       southWonOutright = g.winners().length === 1 && g.winners().includes(0);
-      const southPlace = southWonOutright ? 1 : activeSeatsBeforeRound;
+      southPlace = (southWonOutright ? 1 : activeSeatsBeforeRound) as 1 | 2 | 3 | 4;
       for (const line of gameEndLines(southPlace, botSeats.map((n) => BOT_LABELS[n]))) {
         appendLogLine(logEl, line);
       }
-      recordGamePlace(stats, botVersion, settings.difficulty, southPlace as 1 | 2 | 3 | 4, todayDateString());
+      recordGamePlace(stats, botVersion, settings.difficulty, southPlace, todayDateString());
       recordGameCompleted(stats, botVersion, settings.difficulty, southWonOutright, g.strikes[0] as number);
       saveStats(stats, localStorage);
       botResults = computeBotResults(g.eliminated, outcome.eliminated);
@@ -1113,6 +1114,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
             botSeats,
             log: logLines(),
             southWon: southWonOutright,
+            southPlace,
             botResults,
           },
         },
@@ -1146,7 +1148,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   }
 
   const botLabels = botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
-  showGameOverScreen(southWonOutright, botResults as [BotResult, BotResult, BotResult], botLabels, true);
+  showGameOverScreen(southWonOutright, southPlace, botResults as [BotResult, BotResult, BotResult], botLabels, true);
 }
 
 // hideAllScreens hides every top-level screen. Each show*Screen
@@ -1405,18 +1407,18 @@ function showHtpScreen(): void {
 
 // showGameOverScreen swaps whichever screen is up for the game-over
 // screen, announcing South's win or loss per specs/gui.md's Game Over
-// Screen section: "You Won!"/"Game Over", one word per line, plus the
-// results table and Win/Loss/Tie tally (overScreen.ts's
+// Screen section: "You Won!"/"Game Over", one word per line, the rank
+// badge, and the results table and Win/Loss/Tie tally (overScreen.ts's
 // renderOverResults) below it. Plays win.wav/lose.wav per
 // specs/assets.md only when playSound is true -- callers pass true
 // for a live game finishing or specs/params.md's screen=over debug
 // param, and false when restoring a saved "over" state on reload
 // (specs/state.md), so a restore stays silent.
-function showGameOverScreen(southWon: boolean, botResults: [BotResult, BotResult, BotResult], botLabels: [string, string, string], playSound: boolean): void {
+function showGameOverScreen(southWon: boolean, southPlace: 1 | 2 | 3 | 4, botResults: [BotResult, BotResult, BotResult], botLabels: [string, string, string], playSound: boolean): void {
   const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
   gameOverLine1El.textContent = line1;
   gameOverLine2El.textContent = line2;
-  renderOverResults(gameOverScreenEl, botResults, botLabels);
+  renderOverResults(gameOverScreenEl, southPlace, botResults, botLabels);
   hideAllScreens();
   gameOverScreenEl.hidden = false;
   if (playSound) {
@@ -1434,12 +1436,17 @@ function showGameOverScreen(southWon: boolean, botResults: [BotResult, BotResult
 // honestly -- when South is eliminated, every other already-
 // eliminated seat is passed as though it went out in the same round
 // as South, reading as a Tie rather than guessing an order that was
-// never actually played.
+// never actually played. southPlace follows the same simplification:
+// South wins outright places First, otherwise place is 1 plus however
+// many bots read as a Loss (i.e. survived), rather than the real
+// game's activeSeatsBeforeRound (specs/log.md's tie rule), which has
+// no debug-mode equivalent since no round was actually played.
 function showDebugGameOverScreen(params: DebugParams): void {
   const { eliminated } = params.initialStrikes;
   const southWon = !eliminated[0];
   const finalRoundEliminated = southWon ? [] : [0, 1, 2, 3].filter((seat) => eliminated[seat]);
   const botResults = computeBotResults(eliminated, finalRoundEliminated);
+  const southPlace = (southWon ? 1 : 1 + botResults.filter((r) => r === "loss").length) as 1 | 2 | 3 | 4;
   const botSeats = baselineBotSeats(settings.difficulty);
   const botLabels = botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
   saveState(
@@ -1454,12 +1461,13 @@ function showDebugGameOverScreen(params: DebugParams): void {
         botSeats,
         log: logLines(),
         southWon,
+        southPlace,
         botResults,
       },
     },
     localStorage,
   );
-  showGameOverScreen(southWon, botResults, botLabels, true);
+  showGameOverScreen(southWon, southPlace, botResults, botLabels, true);
 }
 
 // restoreGameOverScreen redraws the Game Over screen directly from
@@ -1468,7 +1476,7 @@ function showDebugGameOverScreen(params: DebugParams): void {
 function restoreGameOverScreen(game: OverState): void {
   restoreLogLines(game.log);
   const botLabels = game.botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
-  showGameOverScreen(game.southWon, game.botResults, botLabels, false);
+  showGameOverScreen(game.southWon, game.southPlace, game.botResults, botLabels, false);
 }
 
 // downloadTextFile saves text as a local file named filename, via a

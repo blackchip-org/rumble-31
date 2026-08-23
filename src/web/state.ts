@@ -10,10 +10,10 @@ import type { Hand, Pot } from "../game/types.ts";
 import type { BotResult } from "./overScreen.ts";
 
 const STORAGE_KEY = "rumble31.state";
-// Bumped to 8 when OverState gained botResults (specs/state.md's Game
-// Over results table) — an old save is simply treated as absent (see
-// loadState), no migration needed.
-const SCHEMA_VERSION = 8;
+// Bumped to 9 when OverState gained southPlace (specs/screens/
+// over.md's rank badge) — an old save is simply treated as absent
+// (see loadState), no migration needed.
+const SCHEMA_VERSION = 9;
 
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
@@ -65,6 +65,11 @@ export interface GameState {
 // fields as GameState so Save Log still works from that screen.
 export interface OverState extends GameState {
   southWon: boolean;
+  // southPlace is South's 1-based finish (specs/screens/over.md's
+  // rank badge), the same value passed to log.ts's gameEndLines and
+  // stats.ts's recordGamePlace when the game ended, so a restored
+  // screen shows the same place without recomputing it.
+  southPlace: 1 | 2 | 3 | 4;
   // botResults[i] is South's Win/Loss/Tie result against botSeats[i]
   // (West/North/East), computed once at game-end time
   // (overScreen.ts's computeBotResults) so the Over screen never has

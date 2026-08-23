@@ -101,8 +101,10 @@ export function roundRecapLines(outcome: RoundOutcome, strikes: readonly number[
 }
 
 // PLACE_ORDINALS maps a 1-based place (South's own finish) to its
-// ordinal word for gameEndLines' "Game over: X place" line.
-const PLACE_ORDINALS = ["First", "Second", "Third", "Fourth"];
+// ordinal word for gameEndLines' "Game over: X place" line -- also
+// used by overScreen.ts's rank badge (specs/screens/over.md), so the
+// wording matches between the log and the Game Over screen itself.
+export const PLACE_ORDINALS = ["First", "Second", "Third", "Fourth"];
 
 // BOT_SKILL_REVEAL_SEATS is the seat order gameEndLines reveals bot
 // skill levels in: East, then clockwise (seat.ts), skipping South.

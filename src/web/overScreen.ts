@@ -2,9 +2,14 @@
 // (specs/screens/over.md): South's result against each bot seat, kept
 // separate from main.ts's DOM wiring, same split as statsScreen.ts.
 
+import { PLACE_ORDINALS } from "../log.ts";
 import { seatName } from "../game/seat.ts";
 
 export type BotResult = "win" | "loss" | "tie";
+
+// PLACE_TIER_CLASSES maps a 1-based place to its rank badge's tier
+// class (style.css's .rank-badge.first/.second/.third/.fourth).
+const PLACE_TIER_CLASSES = ["first", "second", "third", "fourth"] as const;
 
 // BOT_SEATS is the seat number (1/2/3) for each index of a BotSeats/
 // BotResults triple, i.e. West/North/East in that fixed order.
@@ -68,6 +73,21 @@ function fillResultsTable(root: HTMLElement, botResults: readonly [BotResult, Bo
   });
 }
 
+// fillRankBadge fills root's rank badge (index.html's .rank-badge)
+// with South's 1-based finish for this game: "First Place" through
+// "Fourth Place", tinted per style.css's medal tier colors (the same
+// gold/silver/bronze the Stats screen's Rankings tiles use, plus a
+// fourth tier for last that the Stats screen deliberately omits).
+function fillRankBadge(root: HTMLElement, southPlace: 1 | 2 | 3 | 4): void {
+  const badge = root.querySelector<HTMLElement>(".rank-badge");
+  if (!badge) {
+    return;
+  }
+  badge.textContent = `${PLACE_ORDINALS[southPlace - 1]} Place`;
+  badge.classList.remove(...PLACE_TIER_CLASSES);
+  badge.classList.add(PLACE_TIER_CLASSES[southPlace - 1] as string);
+}
+
 // fillTally fills root's Wins/Losses/Ties tiles (index.html's
 // over-tally) with botResults' totals.
 function fillTally(root: HTMLElement, botResults: readonly [BotResult, BotResult, BotResult]): void {
@@ -85,12 +105,16 @@ function fillTally(root: HTMLElement, botResults: readonly [BotResult, BotResult
   set(".over-tally .ties .value", ties);
 }
 
-// renderOverResults fills root's results table and tally.
-// botResults/botLabels are both West/North/East order, matching
-// BotSeats -- botLabels is each bot's display label (main.ts's
-// BOT_LABELS, already mapped from its BotSeats skill levels, the
-// same way it's already passed into log.ts's gameEndLines).
-export function renderOverResults(root: HTMLElement, botResults: readonly [BotResult, BotResult, BotResult], botLabels: readonly [string, string, string]): void {
+// renderOverResults fills root's rank badge, results table, and
+// tally. southPlace is South's 1-based finish (main.ts's southPlace,
+// the same value already fed to log.ts's gameEndLines and
+// stats.ts's recordGamePlace). botResults/botLabels are both
+// West/North/East order, matching BotSeats -- botLabels is each
+// bot's display label (main.ts's BOT_LABELS, already mapped from its
+// BotSeats skill levels, the same way it's already passed into
+// log.ts's gameEndLines).
+export function renderOverResults(root: HTMLElement, southPlace: 1 | 2 | 3 | 4, botResults: readonly [BotResult, BotResult, BotResult], botLabels: readonly [string, string, string]): void {
+  fillRankBadge(root, southPlace);
   fillResultsTable(root, botResults, botLabels);
   fillTally(root, botResults);
 }

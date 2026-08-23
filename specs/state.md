@@ -47,7 +47,8 @@ The stored object records:
   reload does not reset what a bot has already learned this round.
   This checkpoint is absent between rounds, when the next round has
   not been dealt yet.
-- If the screen is `over`: the final win/loss outcome, and South's
+- If the screen is `over`: the final win/loss outcome, South's
+  1-based finish (specs/screens/over.md's rank badge), and South's
   Win/Loss/Tie result against each bot seat (specs/screens/over.md's
   results table), so the screen can be redrawn without replaying the
   game.
