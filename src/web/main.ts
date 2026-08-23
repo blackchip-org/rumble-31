@@ -33,7 +33,7 @@ import { renderStrikes, setDealer, setKnocker, setPanelState, setScore, setStruc
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, baselineBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
-import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordGamePlace, todayDateString, viewStats, type StatsStore } from "./stats.ts";
+import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordRoundPlayed, recordGamePlace, recordGameCompleted, todayDateString, viewStats, type StatsStore } from "./stats.ts";
 import { initStatsTabs, renderStatsScreen, resetStatsToOverallTab } from "./statsScreen.ts";
 import { computeBotResults, renderOverResults, type BotResult } from "./overScreen.ts";
 import {
@@ -997,6 +997,9 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     }
 
     recordRoundElimination(stats, botVersion, settings.difficulty, botSeats, eliminatedBeforeRound, outcome.eliminated);
+    const southBest = outcome.result.winners.includes(0);
+    const southScore = outcome.result.players.find((pr) => pr.seat === 0)?.score;
+    recordRoundPlayed(stats, botVersion, settings.difficulty, southBest, southScore);
     saveStats(stats, localStorage);
 
     // The round's over, so nobody's "on turn" or "knocked" anymore —
@@ -1077,6 +1080,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
         appendLogLine(logEl, line);
       }
       recordGamePlace(stats, botVersion, settings.difficulty, southPlace as 1 | 2 | 3 | 4, todayDateString());
+      recordGameCompleted(stats, botVersion, settings.difficulty, southWonOutright, g.strikes[0] as number);
       saveStats(stats, localStorage);
       botResults = computeBotResults(g.eliminated, outcome.eliminated);
       saveState(

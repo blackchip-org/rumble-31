@@ -181,11 +181,26 @@
         <div id="stats-card" class="stats-card">
           <div class="stats-pane active" data-tab="overall">
             <section class="stats-block">
-              <div class="stats-counters">
+              <div class="stats-counters stats-counters-3">
                 <div class="stats-counter games">
                   <span class="value"></span>
                   <span class="label">Games played</span>
                 </div>
+                <div class="stats-counter rounds-played">
+                  <span class="value"></span>
+                  <span class="label">Rounds played</span>
+                </div>
+                <div class="stats-counter bot-opponents">
+                  <span class="value"></span>
+                  <span class="label">Bot opponents</span>
+                </div>
+              </div>
+              <p class="stats-footnote"></p>
+            </section>
+
+            <section class="stats-block">
+              <h2>Record vs. Bots</h2>
+              <div class="stats-counters stats-counters-3">
                 <div class="stats-counter wins">
                   <span class="value"></span>
                   <span class="label">Wins</span>
@@ -199,11 +214,6 @@
                   <span class="label">Ties</span>
                 </div>
               </div>
-              <p class="stats-footnote"></p>
-            </section>
-
-            <section class="stats-block">
-              <h2>Record vs. bot skill</h2>
               <table class="stats-skill-table">
                 <tr>
                   <th>Skill</th>
@@ -231,15 +241,73 @@
                 </tr>
               </table>
             </section>
+
+            <section class="stats-block">
+              <h2>Wins by Strikes</h2>
+              <div class="stats-counters">
+                <div class="stats-counter zero-strike">
+                  <span class="value"></span>
+                  <span class="label">Zero strikes</span>
+                </div>
+                <div class="stats-counter one-strike">
+                  <span class="value"></span>
+                  <span class="label">One strike</span>
+                </div>
+                <div class="stats-counter two-strike">
+                  <span class="value"></span>
+                  <span class="label">Two strikes</span>
+                </div>
+                <div class="stats-counter second-chance">
+                  <span class="value"></span>
+                  <span class="label">Second chance</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Rounds</h2>
+              <div class="stats-counters">
+                <div class="stats-counter best">
+                  <span class="value"></span>
+                  <span class="label">Best</span>
+                </div>
+                <div class="stats-counter best-32">
+                  <span class="value"></span>
+                  <span class="label">With 32</span>
+                </div>
+                <div class="stats-counter best-31">
+                  <span class="value"></span>
+                  <span class="label">With 31</span>
+                </div>
+                <div class="stats-counter best-305">
+                  <span class="value"></span>
+                  <span class="label">With 30.5</span>
+                </div>
+              </div>
+            </section>
           </div>
 
           <div class="stats-pane" data-tab="easy">
             <section class="stats-block">
-              <div class="stats-counters">
+              <div class="stats-counters stats-counters-3">
                 <div class="stats-counter games">
                   <span class="value"></span>
                   <span class="label">Games played</span>
                 </div>
+                <div class="stats-counter rounds-played">
+                  <span class="value"></span>
+                  <span class="label">Rounds played</span>
+                </div>
+                <div class="stats-counter bot-opponents">
+                  <span class="value"></span>
+                  <span class="label">Bot opponents</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Record vs. Bots</h2>
+              <div class="stats-counters stats-counters-3">
                 <div class="stats-counter wins">
                   <span class="value"></span>
                   <span class="label">Wins</span>
@@ -253,6 +321,32 @@
                   <span class="label">Ties</span>
                 </div>
               </div>
+              <table class="stats-skill-table">
+                <tr>
+                  <th>Skill</th>
+                  <th class="num">Wins</th>
+                  <th class="num">Losses</th>
+                  <th class="num">Ties</th>
+                </tr>
+                <tr data-skill="novice">
+                  <td>Novice</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+                <tr data-skill="advanced">
+                  <td>Advanced</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+                <tr data-skill="expert">
+                  <td>Expert</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+              </table>
             </section>
 
             <section class="stats-block">
@@ -287,36 +381,6 @@
             </section>
 
             <section class="stats-block">
-              <h2>Record vs. bot skill</h2>
-              <table class="stats-skill-table">
-                <tr>
-                  <th>Skill</th>
-                  <th class="num">Wins</th>
-                  <th class="num">Losses</th>
-                  <th class="num">Ties</th>
-                </tr>
-                <tr data-skill="novice">
-                  <td>Novice</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-                <tr data-skill="advanced">
-                  <td>Advanced</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-                <tr data-skill="expert">
-                  <td>Expert</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-              </table>
-            </section>
-
-            <section class="stats-block">
               <h2>Streaks</h2>
               <div class="stats-streak-head">
                 <span></span>
@@ -338,6 +402,50 @@
                   <span class="label">Not last</span>
                   <span class="pill current"><span class="n"></span><span class="meta"></span></span>
                   <span class="pill best"><span class="n"></span><span class="meta"></span></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Wins by Strikes</h2>
+              <div class="stats-counters">
+                <div class="stats-counter zero-strike">
+                  <span class="value"></span>
+                  <span class="label">Zero strikes</span>
+                </div>
+                <div class="stats-counter one-strike">
+                  <span class="value"></span>
+                  <span class="label">One strike</span>
+                </div>
+                <div class="stats-counter two-strike">
+                  <span class="value"></span>
+                  <span class="label">Two strikes</span>
+                </div>
+                <div class="stats-counter second-chance">
+                  <span class="value"></span>
+                  <span class="label">Second chance</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Rounds</h2>
+              <div class="stats-counters">
+                <div class="stats-counter best">
+                  <span class="value"></span>
+                  <span class="label">Best</span>
+                </div>
+                <div class="stats-counter best-32">
+                  <span class="value"></span>
+                  <span class="label">With 32</span>
+                </div>
+                <div class="stats-counter best-31">
+                  <span class="value"></span>
+                  <span class="label">With 31</span>
+                </div>
+                <div class="stats-counter best-305">
+                  <span class="value"></span>
+                  <span class="label">With 30.5</span>
                 </div>
               </div>
             </section>
@@ -345,11 +453,25 @@
 
           <div class="stats-pane" data-tab="moderate">
             <section class="stats-block">
-              <div class="stats-counters">
+              <div class="stats-counters stats-counters-3">
                 <div class="stats-counter games">
                   <span class="value"></span>
                   <span class="label">Games played</span>
                 </div>
+                <div class="stats-counter rounds-played">
+                  <span class="value"></span>
+                  <span class="label">Rounds played</span>
+                </div>
+                <div class="stats-counter bot-opponents">
+                  <span class="value"></span>
+                  <span class="label">Bot opponents</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Record vs. Bots</h2>
+              <div class="stats-counters stats-counters-3">
                 <div class="stats-counter wins">
                   <span class="value"></span>
                   <span class="label">Wins</span>
@@ -363,6 +485,32 @@
                   <span class="label">Ties</span>
                 </div>
               </div>
+              <table class="stats-skill-table">
+                <tr>
+                  <th>Skill</th>
+                  <th class="num">Wins</th>
+                  <th class="num">Losses</th>
+                  <th class="num">Ties</th>
+                </tr>
+                <tr data-skill="novice">
+                  <td>Novice</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+                <tr data-skill="advanced">
+                  <td>Advanced</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+                <tr data-skill="expert">
+                  <td>Expert</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+              </table>
             </section>
 
             <section class="stats-block">
@@ -397,36 +545,6 @@
             </section>
 
             <section class="stats-block">
-              <h2>Record vs. bot skill</h2>
-              <table class="stats-skill-table">
-                <tr>
-                  <th>Skill</th>
-                  <th class="num">Wins</th>
-                  <th class="num">Losses</th>
-                  <th class="num">Ties</th>
-                </tr>
-                <tr data-skill="novice">
-                  <td>Novice</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-                <tr data-skill="advanced">
-                  <td>Advanced</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-                <tr data-skill="expert">
-                  <td>Expert</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-              </table>
-            </section>
-
-            <section class="stats-block">
               <h2>Streaks</h2>
               <div class="stats-streak-head">
                 <span></span>
@@ -448,6 +566,50 @@
                   <span class="label">Not last</span>
                   <span class="pill current"><span class="n"></span><span class="meta"></span></span>
                   <span class="pill best"><span class="n"></span><span class="meta"></span></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Wins by Strikes</h2>
+              <div class="stats-counters">
+                <div class="stats-counter zero-strike">
+                  <span class="value"></span>
+                  <span class="label">Zero strikes</span>
+                </div>
+                <div class="stats-counter one-strike">
+                  <span class="value"></span>
+                  <span class="label">One strike</span>
+                </div>
+                <div class="stats-counter two-strike">
+                  <span class="value"></span>
+                  <span class="label">Two strikes</span>
+                </div>
+                <div class="stats-counter second-chance">
+                  <span class="value"></span>
+                  <span class="label">Second chance</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Rounds</h2>
+              <div class="stats-counters">
+                <div class="stats-counter best">
+                  <span class="value"></span>
+                  <span class="label">Best</span>
+                </div>
+                <div class="stats-counter best-32">
+                  <span class="value"></span>
+                  <span class="label">With 32</span>
+                </div>
+                <div class="stats-counter best-31">
+                  <span class="value"></span>
+                  <span class="label">With 31</span>
+                </div>
+                <div class="stats-counter best-305">
+                  <span class="value"></span>
+                  <span class="label">With 30.5</span>
                 </div>
               </div>
             </section>
@@ -455,11 +617,25 @@
 
           <div class="stats-pane" data-tab="hard">
             <section class="stats-block">
-              <div class="stats-counters">
+              <div class="stats-counters stats-counters-3">
                 <div class="stats-counter games">
                   <span class="value"></span>
                   <span class="label">Games played</span>
                 </div>
+                <div class="stats-counter rounds-played">
+                  <span class="value"></span>
+                  <span class="label">Rounds played</span>
+                </div>
+                <div class="stats-counter bot-opponents">
+                  <span class="value"></span>
+                  <span class="label">Bot opponents</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Record vs. Bots</h2>
+              <div class="stats-counters stats-counters-3">
                 <div class="stats-counter wins">
                   <span class="value"></span>
                   <span class="label">Wins</span>
@@ -473,6 +649,32 @@
                   <span class="label">Ties</span>
                 </div>
               </div>
+              <table class="stats-skill-table">
+                <tr>
+                  <th>Skill</th>
+                  <th class="num">Wins</th>
+                  <th class="num">Losses</th>
+                  <th class="num">Ties</th>
+                </tr>
+                <tr data-skill="novice">
+                  <td>Novice</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+                <tr data-skill="advanced">
+                  <td>Advanced</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+                <tr data-skill="expert">
+                  <td>Expert</td>
+                  <td class="num w"></td>
+                  <td class="num l"></td>
+                  <td class="num t"></td>
+                </tr>
+              </table>
             </section>
 
             <section class="stats-block">
@@ -507,36 +709,6 @@
             </section>
 
             <section class="stats-block">
-              <h2>Record vs. bot skill</h2>
-              <table class="stats-skill-table">
-                <tr>
-                  <th>Skill</th>
-                  <th class="num">Wins</th>
-                  <th class="num">Losses</th>
-                  <th class="num">Ties</th>
-                </tr>
-                <tr data-skill="novice">
-                  <td>Novice</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-                <tr data-skill="advanced">
-                  <td>Advanced</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-                <tr data-skill="expert">
-                  <td>Expert</td>
-                  <td class="num w"></td>
-                  <td class="num l"></td>
-                  <td class="num t"></td>
-                </tr>
-              </table>
-            </section>
-
-            <section class="stats-block">
               <h2>Streaks</h2>
               <div class="stats-streak-head">
                 <span></span>
@@ -558,6 +730,50 @@
                   <span class="label">Not last</span>
                   <span class="pill current"><span class="n"></span><span class="meta"></span></span>
                   <span class="pill best"><span class="n"></span><span class="meta"></span></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Wins by Strikes</h2>
+              <div class="stats-counters">
+                <div class="stats-counter zero-strike">
+                  <span class="value"></span>
+                  <span class="label">Zero strikes</span>
+                </div>
+                <div class="stats-counter one-strike">
+                  <span class="value"></span>
+                  <span class="label">One strike</span>
+                </div>
+                <div class="stats-counter two-strike">
+                  <span class="value"></span>
+                  <span class="label">Two strikes</span>
+                </div>
+                <div class="stats-counter second-chance">
+                  <span class="value"></span>
+                  <span class="label">Second chance</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="stats-block">
+              <h2>Rounds</h2>
+              <div class="stats-counters">
+                <div class="stats-counter best">
+                  <span class="value"></span>
+                  <span class="label">Best</span>
+                </div>
+                <div class="stats-counter best-32">
+                  <span class="value"></span>
+                  <span class="label">With 32</span>
+                </div>
+                <div class="stats-counter best-31">
+                  <span class="value"></span>
+                  <span class="label">With 31</span>
+                </div>
+                <div class="stats-counter best-305">
+                  <span class="value"></span>
+                  <span class="label">With 30.5</span>
                 </div>
               </div>
             </section>

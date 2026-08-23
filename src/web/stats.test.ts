@@ -6,10 +6,13 @@ import {
   recordGameStarted,
   recordGameAbandoned,
   recordRoundElimination,
+  recordRoundPlayed,
   recordGamePlace,
+  recordGameCompleted,
   ratingFor,
   totalWinLossTie,
   gamesPlayedFor,
+  sumPerDifficulty,
   viewStats,
   type StatsStore,
   type WinLossTie,
@@ -80,6 +83,15 @@ function emptyDStats(): DifficultyStats {
     firstPlaceStreak: { current: { count: 0 }, best: { count: 0 } },
     topTwoStreak: { current: { count: 0 }, best: { count: 0 } },
     notLastStreak: { current: { count: 0 }, best: { count: 0 } },
+    roundsPlayed: 0,
+    zeroStrikeWins: 0,
+    oneStrikeWins: 0,
+    twoStrikeWins: 0,
+    secondChanceWins: 0,
+    best: 0,
+    bestWith32: 0,
+    bestWith31: 0,
+    bestWith305: 0,
   };
 }
 
@@ -298,6 +310,91 @@ test("recordGamePlace tracks Wins per place and the three streaks", () => {
   }
 });
 
+test("recordRoundPlayed always bumps roundsPlayed, and only bumps best/bestWithX when South was the round's best", () => {
+  const cases: Array<{
+    name: string;
+    southWasBest: boolean;
+    southScore: number | undefined;
+    wantBest: number;
+    wantBest32: number;
+    wantBest31: number;
+    wantBest305: number;
+  }> = [
+    { name: "South not best -> best untouched", southWasBest: false, southScore: 28, wantBest: 0, wantBest32: 0, wantBest31: 0, wantBest305: 0 },
+    { name: "South best with an ordinary score", southWasBest: true, southScore: 24, wantBest: 1, wantBest32: 0, wantBest31: 0, wantBest305: 0 },
+    { name: "South best with 32 (three aces)", southWasBest: true, southScore: 32, wantBest: 1, wantBest32: 1, wantBest31: 0, wantBest305: 0 },
+    { name: "South best with 31", southWasBest: true, southScore: 31, wantBest: 1, wantBest32: 0, wantBest31: 1, wantBest305: 0 },
+    { name: "South best with 30.5 (three of a kind)", southWasBest: true, southScore: 30.5, wantBest: 1, wantBest32: 0, wantBest31: 0, wantBest305: 1 },
+    { name: "South best but score missing", southWasBest: true, southScore: undefined, wantBest: 1, wantBest32: 0, wantBest31: 0, wantBest305: 0 },
+  ];
+
+  for (const { name, southWasBest, southScore, wantBest, wantBest32, wantBest31, wantBest305 } of cases) {
+    const store = loadStats(memoryStorage());
+    recordRoundPlayed(store, "2", "easy", southWasBest, southScore);
+    const dStats = store.byBotVersion["2"]?.perDifficulty.easy as DifficultyStats;
+
+    assert.equal(dStats.roundsPlayed, 1, `${name} (roundsPlayed)`);
+    assert.equal(dStats.best, wantBest, `${name} (best)`);
+    assert.equal(dStats.bestWith32, wantBest32, `${name} (bestWith32)`);
+    assert.equal(dStats.bestWith31, wantBest31, `${name} (bestWith31)`);
+    assert.equal(dStats.bestWith305, wantBest305, `${name} (bestWith305)`);
+  }
+});
+
+test("recordRoundPlayed keeps accumulating roundsPlayed/best across rounds even when the game is later abandoned (no recordGameCompleted call)", () => {
+  const store = loadStats(memoryStorage());
+  recordRoundPlayed(store, "2", "hard", true, 20);
+  recordRoundPlayed(store, "2", "hard", false, 12);
+  recordRoundPlayed(store, "2", "hard", true, 31);
+  // Game abandoned here -- recordGameCompleted is deliberately never
+  // called, but the rounds already played still count.
+
+  const dStats = store.byBotVersion["2"]?.perDifficulty.hard as DifficultyStats;
+  assert.equal(dStats.roundsPlayed, 3);
+  assert.equal(dStats.best, 2);
+  assert.equal(dStats.bestWith31, 1);
+  assert.equal(dStats.zeroStrikeWins, 0, "recordGameCompleted was never called for the abandoned game");
+  assert.equal(dStats.oneStrikeWins, 0, "recordGameCompleted was never called for the abandoned game");
+});
+
+test("recordGameCompleted sorts a win into exactly one of the four Wins by strikes buckets", () => {
+  const cases: Array<{ name: string; southFinalStrikes: number; wantZero: number; wantOne: number; wantTwo: number; wantSecondChance: number }> = [
+    { name: "flawless win", southFinalStrikes: 0, wantZero: 1, wantOne: 0, wantTwo: 0, wantSecondChance: 0 },
+    { name: "one-strike win", southFinalStrikes: 1, wantZero: 0, wantOne: 1, wantTwo: 0, wantSecondChance: 0 },
+    { name: "two-strike win", southFinalStrikes: 2, wantZero: 0, wantOne: 0, wantTwo: 1, wantSecondChance: 0 },
+    { name: "second-chance win (three strikes, only reachable via the leniency)", southFinalStrikes: 3, wantZero: 0, wantOne: 0, wantTwo: 0, wantSecondChance: 1 },
+  ];
+
+  for (const { name, southFinalStrikes, wantZero, wantOne, wantTwo, wantSecondChance } of cases) {
+    const store = loadStats(memoryStorage());
+    recordGameCompleted(store, "2", "moderate", true, southFinalStrikes);
+    const dStats = store.byBotVersion["2"]?.perDifficulty.moderate as DifficultyStats;
+
+    assert.equal(dStats.zeroStrikeWins, wantZero, `${name} (zeroStrikeWins)`);
+    assert.equal(dStats.oneStrikeWins, wantOne, `${name} (oneStrikeWins)`);
+    assert.equal(dStats.twoStrikeWins, wantTwo, `${name} (twoStrikeWins)`);
+    assert.equal(dStats.secondChanceWins, wantSecondChance, `${name} (secondChanceWins)`);
+  }
+});
+
+test("recordGameCompleted leaves every bucket untouched for a loss, regardless of strike count", () => {
+  const store = loadStats(memoryStorage());
+  recordGameCompleted(store, "2", "moderate", false, 0);
+  recordGameCompleted(store, "2", "moderate", false, 3);
+
+  const dStats = store.byBotVersion["2"]?.perDifficulty.moderate;
+  assert.equal(dStats, undefined, "a loss never even creates a stored entry, since nothing was incremented");
+});
+
+test("sumPerDifficulty totals one field across Easy/Moderate/Hard", () => {
+  const perDifficulty: Record<"easy" | "moderate" | "hard", DifficultyStats> = {
+    easy: { ...emptyDStats(), roundsPlayed: 5 },
+    moderate: { ...emptyDStats(), roundsPlayed: 9 },
+    hard: { ...emptyDStats(), roundsPlayed: 2 },
+  };
+  assert.equal(sumPerDifficulty(perDifficulty, (d) => d.roundsPlayed), 16);
+});
+
 test("ratingFor derives Rating from winsPerPlace, no stored denominator", () => {
   const cases: Array<{ name: string; winsPerPlace: [number, number, number, number]; want: number }> = [
     { name: "no games", winsPerPlace: [0, 0, 0, 0], want: 0 },
@@ -307,13 +404,7 @@ test("ratingFor derives Rating from winsPerPlace, no stored denominator", () => 
     { name: "mostly first, some second", winsPerPlace: [3, 1, 0, 0], want: 917 },
   ];
   for (const { name, winsPerPlace, want } of cases) {
-    const dStats: DifficultyStats = {
-      winsPerPlace,
-      recordsBySkill: emptyRecords(),
-      firstPlaceStreak: { current: { count: 0 }, best: { count: 0 } },
-      topTwoStreak: { current: { count: 0 }, best: { count: 0 } },
-      notLastStreak: { current: { count: 0 }, best: { count: 0 } },
-    };
+    const dStats: DifficultyStats = { ...emptyDStats(), winsPerPlace };
     assert.equal(ratingFor(dStats), want, name);
   }
 });
@@ -371,13 +462,7 @@ test("gamesPlayedFor sums winsPerPlace", () => {
     { name: "some of each place", winsPerPlace: [28, 9, 3, 1], want: 41 },
   ];
   for (const { name, winsPerPlace, want } of cases) {
-    const dStats: DifficultyStats = {
-      winsPerPlace,
-      recordsBySkill: emptyRecords(),
-      firstPlaceStreak: { current: { count: 0 }, best: { count: 0 } },
-      topTwoStreak: { current: { count: 0 }, best: { count: 0 } },
-      notLastStreak: { current: { count: 0 }, best: { count: 0 } },
-    };
+    const dStats: DifficultyStats = { ...emptyDStats(), winsPerPlace };
     assert.equal(gamesPlayedFor(dStats), want, name);
   }
 });

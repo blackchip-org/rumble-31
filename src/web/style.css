@@ -1514,6 +1514,13 @@ body {
   text-transform: uppercase;
 }
 
+/* The top counters row (Games played/Rounds played/Bot opponents) and
+   Record vs. Bots (Wins/Losses/Ties) both reuse the headline counter
+   tile with three columns instead of four. */
+.stats-counters-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .stats-footnote {
   margin: 0;
   font-size: 0.72rem;
@@ -1732,16 +1739,18 @@ body {
 /* Desktop has room to spare on both axes that the phone-sized panel
    above leaves as dead space around it, so this grows the panel to
    fill most of the viewport instead: wider, and .stats-card taller.
-   A difficulty pane's five blocks stay in a single narrow column even
+   A difficulty pane's seven blocks stay in a single narrow column even
    at that width unless something spreads them out, so this also lays
    each pane's blocks into a two-column grid -- filling the extra
    width rather than just leaving it blank beside a still-narrow
    column -- which incidentally shrinks the stacked height enough that
    .stats-card rarely needs to scroll at all. Explicit placement below
    assumes each pane's blocks stay in their current DOM order (see
-   index.html: counters, then -- for a difficulty pane -- rating,
-   places, skill table, streaks) -- if a block is ever added, removed,
-   or reordered, these nth-of-type rules need updating to match. */
+   index.html: counters, record vs. bots (which also holds the record
+   vs. bot skill table), then -- for a difficulty pane -- rating,
+   places, streaks, wins-by-strikes, rounds) -- if a block is ever
+   added, removed, or reordered, these nth-of-type rules need updating
+   to match. */
 @media (min-width: 901px) {
   .stats-panel {
     width: min(92vw, 1080px);
@@ -1759,38 +1768,53 @@ body {
   }
 
   .stats-pane.active[data-tab="overall"] {
-    grid-template-areas: "counters skill";
+    grid-template-areas:
+      "counters record"
+      "strikes  rounds";
   }
 
   .stats-pane.active:not([data-tab="overall"]) {
     grid-template-areas:
-      "counters counters"
-      "rating skill"
-      "places streaks";
+      "counters record"
+      "rating   record"
+      "places   streaks"
+      "strikes  rounds";
   }
 
   .stats-pane.active > .stats-block:nth-of-type(1) {
     grid-area: counters;
   }
 
-  .stats-pane.active[data-tab="overall"] > .stats-block:nth-of-type(2) {
-    grid-area: skill;
+  .stats-pane.active > .stats-block:nth-of-type(2) {
+    grid-area: record;
   }
 
-  .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(2) {
-    grid-area: rating;
+  .stats-pane.active[data-tab="overall"] > .stats-block:nth-of-type(3) {
+    grid-area: strikes;
+  }
+
+  .stats-pane.active[data-tab="overall"] > .stats-block:nth-of-type(4) {
+    grid-area: rounds;
   }
 
   .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(3) {
-    grid-area: places;
+    grid-area: rating;
   }
 
   .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(4) {
-    grid-area: skill;
+    grid-area: places;
   }
 
   .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(5) {
     grid-area: streaks;
+  }
+
+  .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(6) {
+    grid-area: strikes;
+  }
+
+  .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(7) {
+    grid-area: rounds;
   }
 }
 

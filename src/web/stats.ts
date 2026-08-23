@@ -48,6 +48,15 @@ export interface DifficultyStats {
   firstPlaceStreak: StreakState;
   topTwoStreak: StreakState;
   notLastStreak: StreakState;
+  roundsPlayed: number;
+  zeroStrikeWins: number;
+  oneStrikeWins: number;
+  twoStrikeWins: number;
+  secondChanceWins: number;
+  best: number;
+  bestWith32: number;
+  bestWith31: number;
+  bestWith305: number;
 }
 
 function emptyDifficultyStats(): DifficultyStats {
@@ -57,6 +66,15 @@ function emptyDifficultyStats(): DifficultyStats {
     firstPlaceStreak: emptyStreak(),
     topTwoStreak: emptyStreak(),
     notLastStreak: emptyStreak(),
+    roundsPlayed: 0,
+    zeroStrikeWins: 0,
+    oneStrikeWins: 0,
+    twoStrikeWins: 0,
+    secondChanceWins: 0,
+    best: 0,
+    bestWith32: 0,
+    bestWith31: 0,
+    bestWith305: 0,
   };
 }
 
@@ -139,6 +157,10 @@ function normalizeWinsPerPlace(raw: unknown): [number, number, number, number] {
   return [0, 0, 0, 0];
 }
 
+function normalizeCount(raw: unknown): number {
+  return typeof raw === "number" ? raw : 0;
+}
+
 function normalizeDifficultyStats(raw: unknown): DifficultyStats {
   const r = isRecord(raw) ? raw : {};
   return {
@@ -147,6 +169,15 @@ function normalizeDifficultyStats(raw: unknown): DifficultyStats {
     firstPlaceStreak: normalizeStreak(r.firstPlaceStreak),
     topTwoStreak: normalizeStreak(r.topTwoStreak),
     notLastStreak: normalizeStreak(r.notLastStreak),
+    roundsPlayed: normalizeCount(r.roundsPlayed),
+    zeroStrikeWins: normalizeCount(r.zeroStrikeWins),
+    oneStrikeWins: normalizeCount(r.oneStrikeWins),
+    twoStrikeWins: normalizeCount(r.twoStrikeWins),
+    secondChanceWins: normalizeCount(r.secondChanceWins),
+    best: normalizeCount(r.best),
+    bestWith32: normalizeCount(r.bestWith32),
+    bestWith31: normalizeCount(r.bestWith31),
+    bestWith305: normalizeCount(r.bestWith305),
   };
 }
 
@@ -332,6 +363,63 @@ export function recordGamePlace(store: StatsStore, botVersion: string, difficult
   applyStreak(dStats.firstPlaceStreak, place === 1, todayStr);
   applyStreak(dStats.topTwoStreak, place <= 2, todayStr);
   applyStreak(dStats.notLastStreak, place <= 3, todayStr);
+}
+
+// recordRoundPlayed applies specs/stats.md's Rounds played/Best stats
+// for one real round: roundsPlayed always increments (a played round
+// counts even if the game it's part of is later abandoned -- only the
+// abandonment moment itself, which has no round of its own, doesn't
+// call this). southWasBest is whether South was awarded that round's
+// best-score tag (outcome.result.winners.includes(0), ties included);
+// when true, best increments, plus whichever of
+// bestWith32/31/305 matches southScore exactly.
+export function recordRoundPlayed(store: StatsStore, botVersion: string, difficulty: Difficulty, southWasBest: boolean, southScore: number | undefined): void {
+  const dStats = statsFor(store, botVersion).perDifficulty[difficulty];
+  dStats.roundsPlayed++;
+  if (!southWasBest) {
+    return;
+  }
+  dStats.best++;
+  if (southScore === 32) {
+    dStats.bestWith32++;
+  } else if (southScore === 31) {
+    dStats.bestWith31++;
+  } else if (southScore === 30.5) {
+    dStats.bestWith305++;
+  }
+}
+
+// recordGameCompleted applies specs/stats.md's Wins by strikes stats:
+// called once per real (non-abandoned) game end, win or loss, but only
+// ever increments a bucket when southWon -- a loss leaves every bucket
+// untouched, same as never calling this at all for an abandoned game.
+// southFinalStrikes of 3 or more
+// only happens via the once-per-game second-chance leniency
+// (specs/rules.md), since reaching three strikes without it is an
+// elimination (a loss), never a win.
+export function recordGameCompleted(store: StatsStore, botVersion: string, difficulty: Difficulty, southWon: boolean, southFinalStrikes: number): void {
+  if (!southWon) {
+    return;
+  }
+  const dStats = statsFor(store, botVersion).perDifficulty[difficulty];
+  if (southFinalStrikes === 0) {
+    dStats.zeroStrikeWins++;
+  } else if (southFinalStrikes === 1) {
+    dStats.oneStrikeWins++;
+  } else if (southFinalStrikes === 2) {
+    dStats.twoStrikeWins++;
+  } else {
+    dStats.secondChanceWins++;
+  }
+}
+
+// sumPerDifficulty totals one numeric field of DifficultyStats across
+// every difficulty -- the Overall tab's grand totals for Rounds
+// played/Zero-One strike games/Best (specs/stats.md's normalization
+// note: these are simple counts, so summed rather than separately
+// tracked at the Global level).
+export function sumPerDifficulty(perDifficulty: Record<Difficulty, DifficultyStats>, pick: (dStats: DifficultyStats) => number): number {
+  return DIFFICULTIES.reduce((total, difficulty) => total + pick(perDifficulty[difficulty]), 0);
 }
 
 // ratingFor computes specs/stats.md's Rating for one DifficultyStats:

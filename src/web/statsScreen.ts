@@ -6,7 +6,7 @@
 
 import { BOT_SKILL_LEVELS, type BotSkillLevel } from "../bot/factory.ts";
 import { DIFFICULTIES, DIFFICULTY_BOT_SKILL_LEVELS, type Difficulty } from "../config.ts";
-import { gamesPlayedFor, ratingFor, totalWinLossTie, type BotVersionStats, type DifficultyStats, type StreakState, type WinLossTie } from "./stats.ts";
+import { gamesPlayedFor, ratingFor, sumPerDifficulty, totalWinLossTie, type BotVersionStats, type DifficultyStats, type StreakState, type WinLossTie } from "./stats.ts";
 
 // PLACE_CLASSES maps a 0-based winsPerPlace index to its medal tile's
 // class (style.css), in First-to-Fourth order.
@@ -62,10 +62,25 @@ function setText(root: ParentNode, selector: string, text: string): void {
   }
 }
 
-// fillCounters fills a pane's Games played/Wins/Losses/Ties tiles
-// (shared markup between the Overall pane and every difficulty pane).
-function fillCounters(pane: HTMLElement, games: number, wlt: WinLossTie): void {
+// BOT_SEATS_PER_GAME is how many bots are seated at every game
+// (specs/rules.md), used to derive a pane's Bot opponents tile from
+// its Games played count -- not separately tracked in stats.ts, same
+// as every other derived Stats-screen value.
+const BOT_SEATS_PER_GAME = 3;
+
+// fillCounters fills a pane's Games played/Rounds played/Bot opponents
+// tiles (shared markup between the Overall pane and every difficulty
+// pane). Bot opponents is games * BOT_SEATS_PER_GAME, not a stored
+// stat.
+function fillCounters(pane: HTMLElement, games: number, roundsPlayed: number): void {
   setText(pane, ".stats-counter.games .value", String(games));
+  setText(pane, ".stats-counter.rounds-played .value", String(roundsPlayed));
+  setText(pane, ".stats-counter.bot-opponents .value", String(games * BOT_SEATS_PER_GAME));
+}
+
+// fillRecordVsBots fills a pane's Wins/Losses/Ties tiles (specs/screens/
+// stats.md's "Record vs. Bots" section).
+function fillRecordVsBots(pane: HTMLElement, wlt: WinLossTie): void {
   setText(pane, ".stats-counter.wins .value", String(wlt.wins));
   setText(pane, ".stats-counter.losses .value", String(wlt.losses));
   setText(pane, ".stats-counter.ties .value", String(wlt.ties));
@@ -127,6 +142,25 @@ function fillStreaks(pane: HTMLElement, dStats: DifficultyStats): void {
   }
 }
 
+// fillWinsByStrikes fills a pane's Zero/One/Two-strike and
+// Second-chance win tiles (specs/screens/stats.md's Wins by strikes
+// section).
+function fillWinsByStrikes(pane: HTMLElement, zeroStrikeWins: number, oneStrikeWins: number, twoStrikeWins: number, secondChanceWins: number): void {
+  setText(pane, ".stats-counter.zero-strike .value", String(zeroStrikeWins));
+  setText(pane, ".stats-counter.one-strike .value", String(oneStrikeWins));
+  setText(pane, ".stats-counter.two-strike .value", String(twoStrikeWins));
+  setText(pane, ".stats-counter.second-chance .value", String(secondChanceWins));
+}
+
+// fillRounds fills a pane's Best/With 32/With 31/With 30.5 tiles
+// (specs/screens/stats.md's Rounds section).
+function fillRounds(pane: HTMLElement, best: number, bestWith32: number, bestWith31: number, bestWith305: number): void {
+  setText(pane, ".stats-counter.best .value", String(best));
+  setText(pane, ".stats-counter.best-32 .value", String(bestWith32));
+  setText(pane, ".stats-counter.best-31 .value", String(bestWith31));
+  setText(pane, ".stats-counter.best-305 .value", String(bestWith305));
+}
+
 // renderStatsScreen fills every tab of #stats-screen (root) from
 // stats -- the current bot version's stats (stats.ts's viewStats),
 // per specs/screens/stats.md. Safe to call every time the screen is
@@ -134,9 +168,24 @@ function fillStreaks(pane: HTMLElement, dStats: DifficultyStats): void {
 export function renderStatsScreen(root: HTMLElement, stats: BotVersionStats): void {
   const overallPane = root.querySelector<HTMLElement>('.stats-pane[data-tab="overall"]');
   if (overallPane) {
-    fillCounters(overallPane, stats.global.gamesPlayed, totalWinLossTie(stats.global.recordsBySkill));
+    fillCounters(overallPane, stats.global.gamesPlayed, sumPerDifficulty(stats.perDifficulty, (d) => d.roundsPlayed));
     setText(overallPane, ".stats-footnote", `${stats.global.gamesAbandoned} games abandoned`);
+    fillRecordVsBots(overallPane, totalWinLossTie(stats.global.recordsBySkill));
     fillSkillTable(overallPane, stats.global.recordsBySkill, () => true);
+    fillWinsByStrikes(
+      overallPane,
+      sumPerDifficulty(stats.perDifficulty, (d) => d.zeroStrikeWins),
+      sumPerDifficulty(stats.perDifficulty, (d) => d.oneStrikeWins),
+      sumPerDifficulty(stats.perDifficulty, (d) => d.twoStrikeWins),
+      sumPerDifficulty(stats.perDifficulty, (d) => d.secondChanceWins),
+    );
+    fillRounds(
+      overallPane,
+      sumPerDifficulty(stats.perDifficulty, (d) => d.best),
+      sumPerDifficulty(stats.perDifficulty, (d) => d.bestWith32),
+      sumPerDifficulty(stats.perDifficulty, (d) => d.bestWith31),
+      sumPerDifficulty(stats.perDifficulty, (d) => d.bestWith305),
+    );
   }
 
   for (const difficulty of DIFFICULTIES) {
@@ -145,11 +194,14 @@ export function renderStatsScreen(root: HTMLElement, stats: BotVersionStats): vo
       continue;
     }
     const dStats = stats.perDifficulty[difficulty];
-    fillCounters(pane, gamesPlayedFor(dStats), totalWinLossTie(dStats.recordsBySkill));
+    fillCounters(pane, gamesPlayedFor(dStats), dStats.roundsPlayed);
+    fillRecordVsBots(pane, totalWinLossTie(dStats.recordsBySkill));
     fillRating(pane, dStats);
     fillPlaces(pane, dStats.winsPerPlace);
     fillSkillTable(pane, dStats.recordsBySkill, (skill) => isSkillSeatedInDifficulty(difficulty, skill));
     fillStreaks(pane, dStats);
+    fillWinsByStrikes(pane, dStats.zeroStrikeWins, dStats.oneStrikeWins, dStats.twoStrikeWins, dStats.secondChanceWins);
+    fillRounds(pane, dStats.best, dStats.bestWith32, dStats.bestWith31, dStats.bestWith305);
   }
 }
 
