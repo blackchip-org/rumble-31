@@ -18,7 +18,7 @@ const SCHEMA_VERSION = 8;
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
 // persisted (specs/state.md's "Error screen" section).
-const STATE_SCREEN_IDS = ["main", "settings", "about", "licenses", "htp", "stats", "game", "over", "menu"] as const;
+const STATE_SCREEN_IDS = ["main", "difficulty", "settings", "about", "licenses", "htp", "stats", "game", "over", "menu"] as const;
 export type StateScreenId = (typeof STATE_SCREEN_IDS)[number];
 
 // RoundCheckpoint captures a round already in progress, enough to
@@ -73,14 +73,14 @@ export interface OverState extends GameState {
 }
 
 // SettingsOrigin is which screen the Settings screen was entered from
-// (specs/gui.md): "main" shows the "Main Menu" back button with the
-// bot-difficulty toggles enabled; "menu" shows the "Game Menu" back
-// button (carrying the in-progress game to return to) with those
-// toggles disabled, since a game is in progress.
+// (specs/gui.md): "main" shows the "Main Menu" back button; "menu"
+// shows the "Game Menu" back button, carrying the in-progress game to
+// return to.
 export type SettingsOrigin = { from: "main" } | { from: "menu"; game: GameState };
 
 export type PersistedState =
   | { screen: "main" }
+  | { screen: "difficulty" }
   | ({ screen: "settings" } & SettingsOrigin)
   | { screen: "about" }
   | { screen: "licenses" }

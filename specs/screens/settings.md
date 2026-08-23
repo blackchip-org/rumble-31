@@ -9,7 +9,6 @@ setting, the second column is a control to adjust the setting. The
 settings are:
 
 - Sounds
-- Difficulty
 - Suit Colors
 - Confirm/Cancel
 - Focus First
@@ -18,13 +17,6 @@ settings are:
 Sounds is a button that by default reads "Enabled". Clicking on it toggles
 to "Disabled". When this setting is disabled, the application should
 not emit any sounds.
-
-Difficulty is a button that by default reads "Moderate". Clicking on it
-cycles through "Easy", "Moderate", "Hard". Each difficulty determines
-the odds of which three bot skill levels (specs/bots.md) are seated
-for the game's three bot seats, per the mapping configured in
-config.ts. Changing the difficulty takes effect starting with the next
-game; it has no effect on a game already in progress.
 
 Suit Colors is a button that by default reads "Four". Clicking on it
 toggles to "Two". "Four" renders each suit's cards in a different
@@ -53,10 +45,6 @@ back on the Main Menu or the Application Info screen exactly as a
 fresh visit would (specs/screens/appinfo.md). Clicking on "No"
 dismisses the dialog box.
 
-When the Settings screen is entered via the Game Menu, the Difficulty
-setting should be disabled. It should not be modified while a game is
-in progress.
-
 A "Main Menu" or "Game Menu" button is shown below the settings depending
 on which screen it came from. Clicking on that button will navigate back to
 that screen. If this screen was entered using a URL parameter, it shows
@@ -67,7 +55,7 @@ These settings should be saved and retrieved from local storage.
 ## Mobile
 
 In landscape orientation, on a narrow enough (phone-sized) viewport,
-the settings list is arranged into two side-by-side groups (Sounds,
-Difficulty, and Suit Colors on the left; Confirm/Cancel, Focus First,
-and Reset on the right), instead of one column of six, so the whole
-panel fits the shorter viewport height.
+the settings list is arranged into two side-by-side groups (Sounds
+and Suit Colors on the left; Confirm/Cancel, Focus First, and Reset
+on the right), instead of one column of five, so the whole panel fits
+the shorter viewport height.

@@ -73,15 +73,14 @@ it is "You Won!".
 
 For the game menu screen (menu), with no saved game to show, a
 placeholder game state is synthesized from the strikes parameter
-(defaulting to no strikes) and the current Settings screen's bot
-difficulties -- the same "reasonable defaults" approach as the over
-screen above. Resuming from that placeholder starts a game with an
-empty log, same as any other debug-seeded game.
+(defaulting to no strikes) and the currently selected difficulty
+(specs/screens/difficulty.md) -- the same "reasonable defaults"
+approach as the over screen above. Resuming from that placeholder
+starts a game with an empty log, same as any other debug-seeded game.
 
 For the settings screen (settings), reaching it through this
-parameter always shows the "Main Menu" back button with the bot
-difficulty toggles enabled, same as reaching it from the Main
-screen -- see specs/screens/settings.md.
+parameter always shows the "Main Menu" back button, same as reaching
+it from the Main screen -- see specs/screens/settings.md.
 
 For the application info screen (appinfo), reaching it through this
 parameter shows it directly regardless of platform, saved state, or

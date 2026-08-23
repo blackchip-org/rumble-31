@@ -93,6 +93,11 @@ test("loadState", () => {
     { name: "screen missing entirely: no saved state", stored: { "rumble31.state": '{"version":8,"state":{"savedAt":100}}' }, want: undefined },
     { name: "valid main screen", stored: { "rumble31.state": '{"version":8,"state":{"screen":"main","savedAt":100}}' }, want: { screen: "main", savedAt: 100 } },
     {
+      name: "valid difficulty screen",
+      stored: { "rumble31.state": '{"version":8,"state":{"screen":"difficulty","savedAt":100}}' },
+      want: { screen: "difficulty", savedAt: 100 },
+    },
+    {
       name: "valid settings screen, from main",
       stored: { "rumble31.state": '{"version":8,"state":{"screen":"settings","from":"main","savedAt":100}}' },
       want: { screen: "settings", from: "main", savedAt: 100 },
@@ -145,6 +150,9 @@ test("saveState round-trips through loadState, stamping savedAt from now", () =>
 
   saveState({ screen: "main" }, storage, now);
   assert.deepEqual(loadState(storage), { screen: "main", savedAt: 1000 });
+
+  saveState({ screen: "difficulty" }, storage, now);
+  assert.deepEqual(loadState(storage), { screen: "difficulty", savedAt: 1000 });
 
   clock = 2000;
   saveState({ screen: "licenses" }, storage, now);

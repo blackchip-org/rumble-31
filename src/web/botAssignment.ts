@@ -1,6 +1,6 @@
-// Randomly seats the three bot skill levels for the settings-configured
-// Difficulty (specs/gui.md's Settings Screen, specs/bots.md) at the
-// start of a new game. Kept separate from main.ts so it's
+// Randomly seats the three bot skill levels for the currently
+// selected Difficulty (specs/screens/difficulty.md, specs/bots.md) at
+// the start of a new game. Kept separate from main.ts so it's
 // unit-testable without the DOM.
 
 import type { BotSkillLevel } from "../bot/factory.ts";

@@ -11,9 +11,9 @@ import type { GameState } from "./state.ts";
 // specs/params.md's screen=menu debug param, which has no real game
 // to fall back on -- mirroring main.ts's showDebugGameOverScreen,
 // which does the same for screen=over: strikes seed each seat's
-// elimination status, the three bot seats reflect the current
-// Settings-screen Difficulty's bot skill levels, and there is no round
-// in progress (no checkpoint) or log yet.
+// elimination status, the three bot seats reflect the currently
+// selected Difficulty's bot skill levels, and there is no round in
+// progress (no checkpoint) or log yet.
 export function buildDebugMenuGameState(params: DebugParams, settings: Settings): GameState {
   const botSeats: BotSeats = baselineBotSeats(settings.difficulty);
   return {

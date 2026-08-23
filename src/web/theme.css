@@ -207,6 +207,12 @@
   --font-size-settings-title: 2.25rem; /* settings screen "Settings"
                                            heading */
 
+  /* ---------- difficulty screen (independently restylable) ---------- */
+  --difficulty-bg: var(--main-bg); /* difficulty screen background */
+  --difficulty-title-color: #fff; /* "Difficulty" heading color */
+  --font-size-difficulty-title: 2.25rem; /* difficulty screen
+                                             "Difficulty" heading */
+
   /* ---------- licenses screen (independently restylable) ---------- */
   --licenses-bg: var(--main-bg); /* licenses screen background */
   --licenses-title-color: #fff; /* "Licenses" heading color */

@@ -9,6 +9,9 @@ const STORAGE_KEY = "rumble31.settings";
 
 export interface Settings {
   soundsEnabled: boolean;
+  // difficulty is set from the Difficulty screen (specs/screens/
+  // difficulty.md), not the Settings screen -- kept here since it's
+  // persisted the same way as the rest of Settings.
   difficulty: Difficulty;
   // swapConfirmCancel swaps which button confirms vs. cancels for
   // controller/keyboard navigation (specs/controller.md), for players

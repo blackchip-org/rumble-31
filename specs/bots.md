@@ -25,8 +25,8 @@ bot strategies.
 The current bot version is 3.
 
 At the start of the game, the three bots' skill levels are chosen
-according to the Settings Screen's Difficulty setting (specs/screens/
-settings.md: "Easy", "Moderate", or "Hard"). Each difficulty maps to a
+according to the Difficulty screen's setting (specs/screens/
+difficulty.md: "Easy", "Moderate", or "Hard"). Each difficulty maps to a
 weighted set of three-bot-skill-level combinations; one is chosen at
 random at the start of the game, with the following odds:
 

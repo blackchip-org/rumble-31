@@ -44,6 +44,8 @@ Wins, Losses, and Ties. Below that are three buttons:
 - Main Menu
 - Save Log
 
-Clicking on "Play Again" returns the user to the Game screen. Clicking on
-Main Menu returns the user to the Main screen. Clicking on Save Log lets the
-user save a text file containing the log from the game just played.
+Clicking on "Play Again" starts a new game at the same difficulty
+(specs/screens/difficulty.md) as the game just played, without
+showing the Difficulty screen. Clicking on Main Menu returns the user
+to the Main screen. Clicking on Save Log lets the user save a text
+file containing the log from the game just played.

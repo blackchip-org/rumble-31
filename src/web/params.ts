@@ -17,7 +17,7 @@ const HAND_PARAM_NAMES = ["north", "south", "east", "west"] as const;
 
 // SCREEN_IDS are the screen identifiers listed in specs/gui.md's
 // section headings.
-const SCREEN_IDS = ["game", "main", "appinfo", "over", "error", "settings", "about", "licenses", "htp", "stats", "menu"] as const;
+const SCREEN_IDS = ["game", "main", "difficulty", "appinfo", "over", "error", "settings", "about", "licenses", "htp", "stats", "menu"] as const;
 export type ScreenId = (typeof SCREEN_IDS)[number];
 
 export interface DebugParams {

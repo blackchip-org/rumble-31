@@ -36,6 +36,9 @@ visited, without waiting for a navigation input:
   last clicked on it and defaults to that instead the next time it's
   visited (e.g. clicking "About" and returning to the Main Menu later
   focuses "About").
+- Difficulty defaults to "Moderate", but remembers whichever
+  difficulty was last clicked on it and defaults to that instead the
+  next time it's visited, same as the Main Menu above.
 - How to Play, Settings, About, Licenses, and Stats always default to
   their "Main Menu" (or, on Settings entered from the Game Menu, "Game
   Menu") button.

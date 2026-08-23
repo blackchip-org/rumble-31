@@ -4,7 +4,7 @@ Values that should be available for the developer to tweak easily are
 included in a config.ts file. It holds the following constants:
 
 - DIFFICULTY_BOT_SKILL_LEVELS: Maps each Difficulty option of the
-Settings Screen (specs/screens/settings.md) to the weighted set of
+Difficulty screen (specs/screens/difficulty.md) to the weighted set of
 three-bot-skill-level combinations (specs/bots.md) one of which is
 chosen at random for that game's three bot seats.
 - MIN_BOT_THINK_TIME: The minimum number of milliseconds to pause to

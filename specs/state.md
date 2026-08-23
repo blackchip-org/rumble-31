@@ -26,17 +26,16 @@ time it was written, so a stale saved `over` screen can be detected
 
 The stored object records:
 
-- Which screen is showing: `main`, `settings`, `about`, `licenses`,
-  `htp`, `game`, `over`, or `menu`. The error screen is never recorded
-  here (see "Error screen" below).
+- Which screen is showing: `main`, `difficulty`, `settings`, `about`,
+  `licenses`, `htp`, `game`, `over`, or `menu`. The error screen is
+  never recorded here (see "Error screen" below).
 - If the screen is `game`, `over`, or `menu`: each seat's strikes,
   elimination status, and second-chance status (specs/rules.md), the
   current round number, which seat holds
   the dealer button (specs/rules.md), and which bot skill level
   (specs/bots.md) is seated at each of the three bot seats. The
   latter is fixed for the life of the game: it is chosen once, when
-  the game starts, and does not change even if the player changes
-  the Settings Screen's bot settings while the game is in progress.
+  the game starts, and does not change while the game is in progress.
 - If the screen is `game` and a round is in progress: that round's
   checkpoint -- every active seat's current hand, the current pot,
   which seat acts next, whether that seat's turn is the round's first
@@ -59,8 +58,7 @@ The stored object records:
   re-tags the most recently saved one under `menu` instead of `game`.
 - If the screen is `settings`: which screen it was entered from --
   `main`, or `menu` together with that same `game` state -- per
-  specs/screens/settings.md, driving its back button and whether the
-  bot-difficulty toggles are disabled.
+  specs/screens/settings.md, driving its back button.
 - The log panel's lines, so the visible history and Save Log survive
   a reload.
 
@@ -117,9 +115,11 @@ specs/params.md:
   screen above but without resuming play (see "The Game Menu screen"
   below).
 - If that screen is `settings`, the saved origin decides its back
-  button and bot-toggle state, restoring a `menu` origin's `game`
-  state the same way as above so returning to the Game Menu (rather
-  than Resume) still works after the reload.
+  button, restoring a `menu` origin's `game` state the same way as
+  above so returning to the Game Menu (rather than Resume) still
+  works after the reload.
+- If that screen is `difficulty`, the Difficulty screen is shown
+  directly with no further state to restore.
 - If there is no saved state, or it is invalid, the application
   behaves as it does today: a bare visit shows the Main Screen --
   unless specs/screens/appinfo.md's Application Info screen conditions

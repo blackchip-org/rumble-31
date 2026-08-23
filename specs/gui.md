@@ -20,6 +20,9 @@ the phone in landscape mode.
   dealing, trading, and the log panel during a round.
 - [Main Screen](screens/main.md) (main) — Landing screen shown when
   the app is opened with no debug URL parameters.
+- [Difficulty Screen](screens/difficulty.md) (difficulty) — Picks the
+  bot difficulty for a new game, reached from the Main Screen's "New
+  Game" button.
 - [Application Info Screen](screens/appinfo.md) (appinfo) — Shown
   instead of the Main Screen on a qualifying mobile visit with no
   saved state, nudging the player to install the game as an app.
@@ -30,8 +33,8 @@ the phone in landscape mode.
   exception.
 - [Stats Screen](screens/stats.md) (stats) — Gameplay stats
   (specs/stats.md), tabbed by Overall and each difficulty.
-- [Settings Screen](screens/settings.md) (settings) — Sound and bot
-  difficulty settings, persisted to local storage.
+- [Settings Screen](screens/settings.md) (settings) — Sound, suit
+  color, and controller settings, persisted to local storage.
 - [Game Menu Screen](screens/menu.md) (menu) — In-game pause menu
   with resume, settings, and abandon.
 - [About Screen](screens/about.md) (about) — Version, credits, and a

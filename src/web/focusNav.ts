@@ -19,7 +19,7 @@ import type { NavAction } from "./gamepadInput.ts";
 // id (rather than importing main.ts's private element consts) so this
 // module stays a self-contained, DOM-id-based dependency of main.ts,
 // not the other way around.
-const SCREEN_IDS = ["main-screen", "appinfo-screen", "game-screen", "menu-screen", "about-screen", "licenses-screen", "htp-screen", "stats-screen", "settings-screen", "game-over-screen", "error-screen"];
+const SCREEN_IDS = ["main-screen", "difficulty-screen", "appinfo-screen", "game-screen", "menu-screen", "about-screen", "licenses-screen", "htp-screen", "stats-screen", "settings-screen", "game-over-screen", "error-screen"];
 
 // DIALOG_IDS are the app's native <dialog> elements. An open dialog is
 // its own focus scope -- the screen behind it is already inert to
@@ -43,12 +43,13 @@ const TRADEABLE_CLASS = "is-tradeable";
 // visited, per specs/controller.md's "Default Focus" rules: the id of
 // the button/select to fall back to once navUsed is true and the
 // previously focused element isn't part of the new screen's grid
-// (i.e. on every fresh visit). sticky screens (currently just the
-// main menu) update their default to whichever button was last
-// clicked on them (see the click listener below); the rest always
-// reset to this same fixed id.
+// (i.e. on every fresh visit). sticky screens (currently the main menu
+// and the difficulty screen) update their default to whichever button
+// was last clicked on them (see the click listener below); the rest
+// always reset to this same fixed id.
 const SCREEN_DEFAULTS: Readonly<Record<string, { id: string; sticky: boolean }>> = {
   "main-screen": { id: "new-game-btn", sticky: true },
+  "difficulty-screen": { id: "difficulty-moderate-btn", sticky: true },
   "appinfo-screen": { id: "appinfo-proceed-btn", sticky: false },
   "htp-screen": { id: "htp-main-menu-btn", sticky: false },
   "settings-screen": { id: "settings-back-btn", sticky: false },

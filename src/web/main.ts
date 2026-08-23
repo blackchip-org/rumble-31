@@ -6,7 +6,7 @@ import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { createBot, snapshotBot, type BotMemory, type BotSkillLevel } from "../bot/factory.ts";
 import { botVersion } from "../bot/version.ts";
-import { DEAL_ANIMATION_DELAY, DIFFICULTIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
+import { DEAL_ANIMATION_DELAY, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
@@ -131,8 +131,7 @@ let currentMenuGame: GameState | undefined;
 
 // currentSettingsOrigin is which screen Settings was entered from
 // (specs/gui.md's Settings Screen section), driving its back button's
-// label/destination and whether the bot-difficulty toggles are
-// disabled.
+// label/destination.
 let currentSettingsOrigin: SettingsOrigin = { from: "main" };
 
 // playDealSound plays deal.wav for one card being dealt, unless the
@@ -274,6 +273,12 @@ const statsBtn = must<HTMLButtonElement>("stats-btn");
 const settingsBtn = must<HTMLButtonElement>("settings-btn");
 const aboutBtn = must<HTMLButtonElement>("about-btn");
 
+const difficultyScreenEl = must<HTMLElement>("difficulty-screen");
+const difficultyEasyBtn = must<HTMLButtonElement>("difficulty-easy-btn");
+const difficultyModerateBtn = must<HTMLButtonElement>("difficulty-moderate-btn");
+const difficultyHardBtn = must<HTMLButtonElement>("difficulty-hard-btn");
+const difficultyBackBtn = must<HTMLButtonElement>("difficulty-back-btn");
+
 const appinfoScreenEl = must<HTMLElement>("appinfo-screen");
 const appinfoInstructionsEl = must<HTMLElement>("appinfo-instructions");
 const appinfoProceedBtn = must<HTMLButtonElement>("appinfo-proceed-btn");
@@ -334,7 +339,6 @@ const statsMainMenuBtn = must<HTMLButtonElement>("stats-main-menu-btn");
 
 const settingsScreenEl = must<HTMLElement>("settings-screen");
 const soundsToggleBtn = must<HTMLButtonElement>("sounds-toggle-btn");
-const difficultyToggleBtn = must<HTMLButtonElement>("difficulty-toggle-btn");
 const suitColorToggleBtn = must<HTMLButtonElement>("suit-color-toggle-btn");
 const confirmCancelToggleBtn = must<HTMLButtonElement>("confirm-cancel-toggle-btn");
 const focusFirstToggleBtn = must<HTMLButtonElement>("focus-first-toggle-btn");
@@ -1130,6 +1134,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
 // if any, was already showing.
 function hideAllScreens(): void {
   mainScreenEl.hidden = true;
+  difficultyScreenEl.hidden = true;
   appinfoScreenEl.hidden = true;
   gameScreenEl.hidden = true;
   menuScreenEl.hidden = true;
@@ -1249,15 +1254,9 @@ const BOT_LABELS: Record<BotSkillLevel, string> = { novice: "Novice", advanced: 
 // the showBots debug parameter (specs/params.md).
 const BOT_INITIALS: Record<BotSkillLevel, string> = { novice: "N", advanced: "A", expert: "E" };
 
-// DIFFICULTY_LABELS maps a Difficulty to its Settings Screen button
-// label (specs/screens/settings.md: "Easy", "Moderate", "Hard").
+// DIFFICULTY_LABELS maps a Difficulty to its game-log start line label
+// (specs/log.md, specs/screens/difficulty.md: "Easy", "Moderate", "Hard").
 const DIFFICULTY_LABELS: Record<Difficulty, string> = { easy: "Easy", moderate: "Moderate", hard: "Hard" };
-
-// syncDifficultyToggleBtn sets the difficulty toggle button's label to
-// match settings.difficulty.
-function syncDifficultyToggleBtn(): void {
-  difficultyToggleBtn.textContent = DIFFICULTY_LABELS[settings.difficulty];
-}
 
 // SUIT_COLOR_LABELS maps a SuitColor to its Settings Screen button
 // label (specs/screens/settings.md: "Four", "Two").
@@ -1298,22 +1297,30 @@ function showStatsScreen(): void {
 // screen (per specs/gui.md's Main Screen and Game Menu Screen
 // sections' "Settings" buttons), and persists it -- together with
 // origin -- as the screen to resume (specs/state.md). Entered from the
-// Game Menu, the Difficulty toggle is disabled (a game is in
-// progress) and the back button reads "Game Menu" instead of "Main
-// Menu" (wired below, alongside the other menu/settings listeners).
+// Game Menu, the back button reads "Game Menu" instead of "Main Menu"
+// (wired below, alongside the other menu/settings listeners).
 function showSettingsScreen(origin: SettingsOrigin): void {
   currentSettingsOrigin = origin;
   syncSoundsToggleBtn();
-  syncDifficultyToggleBtn();
   syncSuitColorToggleBtn();
   syncConfirmCancelToggleBtn();
   syncFocusFirstToggleBtn();
   const fromMenu = origin.from === "menu";
-  difficultyToggleBtn.disabled = fromMenu;
   settingsBackBtn.textContent = fromMenu ? "Game Menu" : "Main Menu";
   hideAllScreens();
   settingsScreenEl.hidden = false;
   saveState({ screen: "settings", ...origin }, localStorage);
+  focusScreenDefault();
+}
+
+// showDifficultyScreen swaps whichever screen is up for the
+// difficulty screen (per specs/gui.md's Main Screen section's "New
+// Game" button), and persists it as the screen to resume
+// (specs/state.md).
+function showDifficultyScreen(): void {
+  hideAllScreens();
+  difficultyScreenEl.hidden = false;
+  saveState({ screen: "difficulty" }, localStorage);
   focusScreenDefault();
 }
 
@@ -1558,17 +1565,19 @@ confirmCancelToggleBtn.addEventListener("click", () => {
   syncConfirmCancelToggleBtn();
 });
 
-// nextDifficulty cycles a Difficulty through DIFFICULTIES's order
-// (specs/screens/settings.md: "Easy", "Moderate", "Hard").
-function nextDifficulty(difficulty: Difficulty): Difficulty {
-  return DIFFICULTIES[(DIFFICULTIES.indexOf(difficulty) + 1) % DIFFICULTIES.length] as Difficulty;
+// startNewGame sets difficulty as the persisted Settings' difficulty
+// (specs/screens/difficulty.md) and starts a new game at it
+// immediately.
+function startNewGame(difficulty: Difficulty): void {
+  settings = { ...settings, difficulty };
+  saveSettings(settings, localStorage);
+  showGameScreen();
 }
 
-difficultyToggleBtn.addEventListener("click", () => {
-  settings = { ...settings, difficulty: nextDifficulty(settings.difficulty) };
-  saveSettings(settings, localStorage);
-  syncDifficultyToggleBtn();
-});
+difficultyEasyBtn.addEventListener("click", () => startNewGame("easy"));
+difficultyModerateBtn.addEventListener("click", () => startNewGame("moderate"));
+difficultyHardBtn.addEventListener("click", () => startNewGame("hard"));
+difficultyBackBtn.addEventListener("click", showMainScreen);
 
 // nextSuitColor cycles a SuitColor through SUIT_COLORS's order
 // (specs/screens/settings.md: "Four", "Two").
@@ -1594,7 +1603,7 @@ focusFirstToggleBtn.addEventListener("click", () => {
   syncFocusFirstToggleBtn();
 });
 
-newGameBtn.addEventListener("click", () => showGameScreen());
+newGameBtn.addEventListener("click", () => showDifficultyScreen());
 settingsBtn.addEventListener("click", () => showSettingsScreen({ from: "main" }));
 aboutBtn.addEventListener("click", showAboutScreen);
 
@@ -1617,6 +1626,9 @@ const initialScreen: ScreenId =
 switch (initialScreen) {
   case "main":
     showMainScreen();
+    break;
+  case "difficulty":
+    showDifficultyScreen();
     break;
   case "appinfo":
     showAppInfoScreen();
