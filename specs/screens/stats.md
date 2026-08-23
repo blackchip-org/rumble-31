@@ -33,9 +33,9 @@ difficulty's Per Difficulty Setting stats (specs/stats.md):
   skill level at that difficulty.
 - Rating, shown as a number out of 1000 alongside a filled gauge bar
   proportional to that number.
-- Wins per place, shown as four tiles -- First, Second, Third, and
-  Fourth -- each showing that place's count. First is tinted gold,
-  Second silver, Third bronze, and Fourth a dim, medal-less color.
+- Rankings, shown as four tiles -- First, Second, Third, and Fourth --
+  each showing that place's win count. First is tinted gold, Second
+  silver, Third bronze, and Fourth a dim, medal-less color.
 - A Record vs. bot skill table, same as the Overall tab's, except a
   row for a skill never seated at that difficulty (specs/bots.md's
   Difficulty mapping) shows a dash in each column instead of a
