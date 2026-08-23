@@ -23,10 +23,11 @@ The "Overall" tab shows the Global Stats (specs/stats.md):
   multiplied by three, since every game seats exactly three bots.
 - Games abandoned, shown as a small note below those numbers rather
   than as its own headline number.
-- Record vs. Bots: the total Wins, Losses, and Ties summed across
-  every bot skill level, and, below those, a table with one row each
-  for Novice, Advanced, and Expert showing that skill's own Wins,
-  Losses, and Ties.
+- Record vs. Bots: the total Wins, Losses, Ties, and Win% summed
+  across every bot skill level, and, below those, a table with one
+  row each for Novice, Advanced, and Expert showing that skill's own
+  Wins, Losses, Ties, and Win%. Win% is Wins divided by total games
+  (Wins + Losses + Ties), shown as a percentage to one decimal place.
 - Wins by strikes, summed across Easy/Moderate/Hard (specs/stats.md):
   Zero strikes, One strike, Two strikes, and Second chance.
 - Rounds, summed across Easy/Moderate/Hard (specs/stats.md): Best,
@@ -40,15 +41,15 @@ difficulty's Per Difficulty Setting stats (specs/stats.md):
   three, since every game seats exactly three bots.
 - Rating, shown as a number out of 1000 alongside a filled gauge bar
   proportional to that number.
-- Rankings, shown as four tiles -- First, Second, Third, and Fourth --
-  each showing that place's win count. First is tinted gold, Second
-  silver, Third bronze, and Fourth a dim, medal-less color.
-- Record vs. Bots: the total Wins, Losses, and Ties summed across
-  every bot skill level at that difficulty, and, below those, a table
-  breaking that same record down by skill (Novice/Advanced/Expert),
-  same as the Overall tab's, except a row for a skill never seated at
-  that difficulty (specs/bots.md's Difficulty mapping) shows a dash in
-  each column instead of a permanent zero.
+- Rankings, shown as three tiles -- First, Second, and Third -- each
+  showing that place's win count. First is tinted gold, Second
+  silver, and Third bronze.
+- Record vs. Bots: the total Wins, Losses, Ties, and Win% summed
+  across every bot skill level at that difficulty, and, below those,
+  a table breaking that same record down by skill (Novice/Advanced/
+  Expert), same as the Overall tab's, except a row for a skill never
+  seated at that difficulty (specs/bots.md's Difficulty mapping) shows
+  a dash in each column instead of a permanent zero.
 - The three streaks (specs/stats.md): First place, Top two, and Not
   last. Each shows its current streak (its length, and, once it has
   started, the date it started) and its best streak (its length, and,

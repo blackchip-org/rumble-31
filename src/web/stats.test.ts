@@ -11,6 +11,7 @@ import {
   recordGameCompleted,
   ratingFor,
   totalWinLossTie,
+  winPercentFor,
   gamesPlayedFor,
   sumPerDifficulty,
   viewStats,
@@ -406,6 +407,19 @@ test("ratingFor derives Rating from winsPerPlace, no stored denominator", () => 
   for (const { name, winsPerPlace, want } of cases) {
     const dStats: DifficultyStats = { ...emptyDStats(), winsPerPlace };
     assert.equal(ratingFor(dStats), want, name);
+  }
+});
+
+test("winPercentFor derives Win% from a WinLossTie", () => {
+  const cases: Array<{ name: string; wlt: WinLossTie; want: number }> = [
+    { name: "no games", wlt: { wins: 0, losses: 0, ties: 0 }, want: 0 },
+    { name: "all wins", wlt: { wins: 4, losses: 0, ties: 0 }, want: 100 },
+    { name: "all losses", wlt: { wins: 0, losses: 4, ties: 0 }, want: 0 },
+    { name: "mixed record", wlt: { wins: 1, losses: 1, ties: 1 }, want: (1 / 3) * 100 },
+    { name: "ties count toward the denominator, not the numerator", wlt: { wins: 3, losses: 0, ties: 1 }, want: 75 },
+  ];
+  for (const { name, wlt, want } of cases) {
+    assert.equal(winPercentFor(wlt), want, name);
   }
 });
 

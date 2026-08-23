@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatGamesAbandoned, formatShortDate, formatStreakBestMeta, formatStreakCurrentMeta, isSkillSeatedInDifficulty } from "./statsScreen.ts";
+import { formatGamesAbandoned, formatShortDate, formatStreakBestMeta, formatStreakCurrentMeta, formatWinPercent, isSkillSeatedInDifficulty } from "./statsScreen.ts";
 import type { StreakState } from "./stats.ts";
 import type { Difficulty } from "../config.ts";
 import type { BotSkillLevel } from "../bot/factory.ts";
@@ -41,6 +41,19 @@ const gamesAbandonedCases = [
 test("formatGamesAbandoned", () => {
   for (const c of gamesAbandonedCases) {
     assert.equal(formatGamesAbandoned(c.count), c.want, c.name);
+  }
+});
+
+const winPercentCases = [
+  { name: "zero", winPercent: 0, want: "0.0%" },
+  { name: "whole number", winPercent: 100, want: "100.0%" },
+  { name: "rounds to one decimal", winPercent: 100 / 3, want: "33.3%" },
+  { name: "rounds up", winPercent: 75.06, want: "75.1%" },
+];
+
+test("formatWinPercent", () => {
+  for (const c of winPercentCases) {
+    assert.equal(formatWinPercent(c.winPercent), c.want, c.name);
   }
 });
 

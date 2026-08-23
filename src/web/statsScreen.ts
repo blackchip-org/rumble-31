@@ -6,11 +6,13 @@
 
 import { BOT_SKILL_LEVELS, type BotSkillLevel } from "../bot/factory.ts";
 import { DIFFICULTIES, DIFFICULTY_BOT_SKILL_LEVELS, type Difficulty } from "../config.ts";
-import { gamesPlayedFor, ratingFor, sumPerDifficulty, totalWinLossTie, type BotVersionStats, type DifficultyStats, type StreakState, type WinLossTie } from "./stats.ts";
+import { gamesPlayedFor, ratingFor, sumPerDifficulty, totalWinLossTie, winPercentFor, type BotVersionStats, type DifficultyStats, type StreakState, type WinLossTie } from "./stats.ts";
 
 // PLACE_CLASSES maps a 0-based winsPerPlace index to its medal tile's
-// class (style.css), in First-to-Fourth order.
-const PLACE_CLASSES = ["first", "second", "third", "fourth"] as const;
+// class (style.css), in First-to-Third order -- winsPerPlace still
+// tracks a 4th slot (used by ratingFor), it's just not shown as its
+// own tile (specs/screens/stats.md).
+const PLACE_CLASSES = ["first", "second", "third"] as const;
 
 // STREAK_ACCESSORS maps a stats-streak-row's data-streak value to the
 // DifficultyStats field it displays.
@@ -85,12 +87,19 @@ function fillCounters(pane: HTMLElement, games: number, roundsPlayed: number): v
   setText(pane, ".stats-counter.bot-opponents .value", String(games * BOT_SEATS_PER_GAME));
 }
 
-// fillRecordVsBots fills a pane's Wins/Losses/Ties tiles (specs/screens/
-// stats.md's "Record vs. Bots" section).
+// formatWinPercent renders winPercentFor's 0-100 value to one decimal
+// place (specs/screens/stats.md's Win%).
+export function formatWinPercent(winPercent: number): string {
+  return `${winPercent.toFixed(1)}%`;
+}
+
+// fillRecordVsBots fills a pane's Wins/Losses/Ties/Win% tiles
+// (specs/screens/stats.md's "Record vs. Bots" section).
 function fillRecordVsBots(pane: HTMLElement, wlt: WinLossTie): void {
   setText(pane, ".stats-counter.wins .value", String(wlt.wins));
   setText(pane, ".stats-counter.losses .value", String(wlt.losses));
   setText(pane, ".stats-counter.ties .value", String(wlt.ties));
+  setText(pane, ".stats-counter.win-percent .value", formatWinPercent(winPercentFor(wlt)));
 }
 
 // fillSkillTable fills pane's Record vs. bot skill table, dashing out
@@ -108,6 +117,7 @@ function fillSkillTable(pane: HTMLElement, records: Record<BotSkillLevel, WinLos
     setText(row, ".w", seated ? String(rec.wins) : "—");
     setText(row, ".l", seated ? String(rec.losses) : "—");
     setText(row, ".t", seated ? String(rec.ties) : "—");
+    setText(row, ".pct", seated ? formatWinPercent(winPercentFor(rec)) : "—");
   }
 }
 
@@ -123,8 +133,8 @@ function fillRating(pane: HTMLElement, dStats: DifficultyStats): void {
   }
 }
 
-// fillPlaces fills a difficulty pane's four Wins-per-place medal
-// tiles, in First-to-Fourth order.
+// fillPlaces fills a difficulty pane's three Wins-per-place medal
+// tiles, in First-to-Third order.
 function fillPlaces(pane: HTMLElement, winsPerPlace: readonly [number, number, number, number]): void {
   PLACE_CLASSES.forEach((cls, i) => {
     setText(pane, `.place-tile.${cls} .value`, String(winsPerPlace[i] as number));

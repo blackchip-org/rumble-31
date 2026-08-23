@@ -242,12 +242,11 @@
   --stats-rating-low: #6b5636; /* muted brass -- the low end of the
                                     Rating gauge's fill gradient,
                                     ramping up to --accent gold */
-  /* Wins-per-place medal tiers: gold/silver/bronze/dim, a real medal
-     read rather than an arbitrary 4-color scale. */
+  /* Wins-per-place medal tiers: gold/silver/bronze, a real medal read
+     rather than an arbitrary 3-color scale. */
   --stats-place-first: var(--accent);
   --stats-place-second: #cbd2dc;
   --stats-place-third: #cf9a5c;
-  --stats-place-fourth: var(--ink-dim);
 
   /* ---------- game menu screen (independently restylable) ---------- */
   --menu-bg: var(--main-bg); /* game menu screen background */

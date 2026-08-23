@@ -451,6 +451,15 @@ export function totalWinLossTie(records: Record<BotSkillLevel, WinLossTie>): Win
   );
 }
 
+// winPercentFor computes specs/screens/stats.md's Win% for one
+// WinLossTie: wins divided by total games (wins + losses + ties),
+// scaled to 0-100. Unrounded -- the Stats screen rounds it for
+// display, same division of labor as ratingFor above.
+export function winPercentFor(wlt: WinLossTie): number {
+  const total = wlt.wins + wlt.losses + wlt.ties;
+  return total === 0 ? 0 : (wlt.wins / total) * 100;
+}
+
 // gamesPlayedFor sums a DifficultyStats' winsPerPlace into that
 // difficulty's own games-played count -- specs/stats.md tracks Games
 // played only globally, so the Stats screen's per-difficulty counter

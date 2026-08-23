@@ -1601,7 +1601,7 @@ body {
    tile language above it. ---- */
 .stats-places {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.6rem;
 }
 
@@ -1642,10 +1642,6 @@ body {
 
 .place-tile.third {
   --tier-color: var(--stats-place-third);
-}
-
-.place-tile.fourth {
-  --tier-color: var(--stats-place-fourth);
 }
 
 /* ---- record vs. bot skill ---- */
