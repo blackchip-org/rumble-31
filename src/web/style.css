@@ -1683,6 +1683,71 @@ body {
   padding: 0.75rem 1rem;
 }
 
+/* Desktop has room to spare on both axes that the phone-sized panel
+   above leaves as dead space around it, so this grows the panel to
+   fill most of the viewport instead: wider, and .stats-card taller.
+   A difficulty pane's five blocks stay in a single narrow column even
+   at that width unless something spreads them out, so this also lays
+   each pane's blocks into a two-column grid -- filling the extra
+   width rather than just leaving it blank beside a still-narrow
+   column -- which incidentally shrinks the stacked height enough that
+   .stats-card rarely needs to scroll at all. Explicit placement below
+   assumes each pane's blocks stay in their current DOM order (see
+   index.html: counters, then -- for a difficulty pane -- rating,
+   places, skill table, streaks) -- if a block is ever added, removed,
+   or reordered, these nth-of-type rules need updating to match. */
+@media (min-width: 901px) {
+  .stats-panel {
+    width: min(92vw, 1080px);
+  }
+
+  .stats-card {
+    height: min(82vh, 760px);
+  }
+
+  .stats-pane.active {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 3rem;
+    align-content: center;
+  }
+
+  .stats-pane.active[data-tab="overall"] {
+    grid-template-areas: "counters skill";
+  }
+
+  .stats-pane.active:not([data-tab="overall"]) {
+    grid-template-areas:
+      "counters counters"
+      "rating skill"
+      "places streaks";
+  }
+
+  .stats-pane.active > .stats-block:nth-of-type(1) {
+    grid-area: counters;
+  }
+
+  .stats-pane.active[data-tab="overall"] > .stats-block:nth-of-type(2) {
+    grid-area: skill;
+  }
+
+  .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(2) {
+    grid-area: rating;
+  }
+
+  .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(3) {
+    grid-area: places;
+  }
+
+  .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(4) {
+    grid-area: skill;
+  }
+
+  .stats-pane.active:not([data-tab="overall"]) > .stats-block:nth-of-type(5) {
+    grid-area: streaks;
+  }
+}
+
 /* ---------- game menu screen ---------- */
 
 .menu-screen {
