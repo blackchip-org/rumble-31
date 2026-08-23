@@ -34,7 +34,7 @@ import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, baselineBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
 import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordRoundPlayed, recordGamePlace, recordGameCompleted, todayDateString, viewStats, type StatsStore } from "./stats.ts";
-import { initStatsTabs, renderStatsScreen, resetStatsToOverallTab } from "./statsScreen.ts";
+import { initStatsTabs, renderStatsScreen, scrollStatsToTop } from "./statsScreen.ts";
 import { computeBotResults, renderOverResults, type BotResult } from "./overScreen.ts";
 import {
   appendLogLine,
@@ -1286,10 +1286,11 @@ function syncFocusFirstToggleBtn(): void {
 // (per specs/screens/stats.md, reached from the Main Screen's "Stats"
 // button), rendering the current bot version's stats (stats.ts's
 // viewStats -- a read-only lookup, so just viewing this screen never
-// creates or saves a stats entry) and resetting to its Overall tab, and
-// persists it as the screen to resume (specs/state.md).
+// creates or saves a stats entry) and scrolling back to the top of
+// whichever tab was last active, and persists it as the screen to
+// resume (specs/state.md).
 function showStatsScreen(): void {
-  resetStatsToOverallTab(statsScreenEl, statsCardEl);
+  scrollStatsToTop(statsCardEl);
   renderStatsScreen(statsScreenEl, viewStats(stats, botVersion));
   hideAllScreens();
   statsScreenEl.hidden = false;

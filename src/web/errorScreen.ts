@@ -2,6 +2,8 @@
 // of the game for any unhandled exception, unhandled promise rejection,
 // or URL debug-param validation error.
 
+import { focusScreenDefault } from "./focusNav.ts";
+
 // formatErrorDetail renders err as the text shown in the stack-trace
 // area. For an Error, this is "name: message" followed by the stack's
 // call frames — built explicitly rather than trusting err.stack to
@@ -42,6 +44,7 @@ export function showErrorScreen(err: unknown): void {
   }
   stackEl.textContent = formatErrorDetail(err);
   screen.hidden = false;
+  focusScreenDefault();
 }
 
 // installGlobalErrorHandlers routes window's error/unhandledrejection

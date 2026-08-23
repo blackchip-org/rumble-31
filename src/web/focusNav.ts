@@ -1,10 +1,10 @@
 // Controller/keyboard focus navigation, per specs/controller.md:
 // tracks which element a NavAction (gamepadInput.ts/keyboardNav.ts)
 // currently targets, moves that focus around, and activates/cancels
-// it -- covers every static button/select on the menu screens, the
-// game screen's Menu/Take Pot/Knock buttons, and (see
-// buildGameScreenGrid below) the hand/pot cards while a trade is in
-// progress.
+// it -- covers every static button/select/scrollable-panel on the
+// menu screens, the game screen's Menu/Take Pot/Knock buttons and log
+// panel, and (see buildGameScreenGrid below) the hand/pot cards while
+// a trade is in progress.
 //
 // Focus here is app-managed state (an "is-focused" class on an
 // element), not real DOM focus (document.activeElement/.focus()) --
@@ -13,6 +13,7 @@
 // consistent by never relying on native focus for either.
 
 import type { NavAction } from "./gamepadInput.ts";
+import { SCROLL_TARGETS, pageScroll } from "./scrollNav.ts";
 
 // SCREEN_IDS mirrors main.ts's hideAllScreens() -- the set of
 // top-level screens a focus scope can be computed from. Re-queried by
@@ -27,10 +28,13 @@ const SCREEN_IDS = ["main-screen", "difficulty-screen", "appinfo-screen", "game-
 // navigation too.
 const DIALOG_IDS = ["abandon-dialog", "reset-dialog"];
 
-// GAME_SCREEN_ID gets a dedicated row-based builder (buildGameScreenGrid)
-// instead of the generic per-screen query, since it's the only screen
-// with multi-item rows (hand/pot cards) rather than one button per row.
+// GAME_SCREEN_ID and STATS_SCREEN_ID each get a dedicated row-based
+// builder (buildGameScreenGrid/buildStatsScreenGrid) instead of the
+// generic per-screen query, since both have at least one multi-item
+// row (the game screen's hand/pot cards; the stats screen's four
+// tabs) rather than one button per row throughout.
 const GAME_SCREEN_ID = "game-screen";
+const STATS_SCREEN_ID = "stats-screen";
 
 // TRADEABLE_CLASS is added by domActionPrompt.ts to #hand/#pot exactly
 // while their cards have click listeners attached (i.e. not the
@@ -39,15 +43,25 @@ const GAME_SCREEN_ID = "game-screen";
 // domActionPrompt.ts itself.
 const TRADEABLE_CLASS = "is-tradeable";
 
+// STATS_ACTIVE_TAB_SELECTOR finds the Stats screen's currently active
+// tab button -- statsScreen.ts toggles which one carries this class,
+// including remembering it across visits (specs/screens/stats.md), so
+// reading it straight from the DOM here (rather than duplicating that
+// state) always reflects whichever tab a returning player last had
+// open.
+const STATS_ACTIVE_TAB_SELECTOR = ".stats-tab.active";
+
 // SCREEN_DEFAULTS says which element each screen focuses first when
 // visited, per specs/controller.md's "Default Focus" rules: the id of
 // the button/select to fall back to once navUsed is true and the
 // previously focused element isn't part of the new screen's grid
-// (i.e. on every fresh visit). sticky screens (currently the main menu
-// and the difficulty screen) update their default to whichever button
-// was last clicked on them (see the click listener below); the rest
-// always reset to this same fixed id.
-const SCREEN_DEFAULTS: Readonly<Record<string, { id: string; sticky: boolean }>> = {
+// (i.e. on every fresh visit) -- or, for the Stats screen, a function
+// computing that id fresh each time (see STATS_ACTIVE_TAB_SELECTOR
+// above). sticky screens (currently the main menu and the difficulty
+// screen) update their default to whichever button was last clicked
+// on them (see the click listener below); the rest always resolve to
+// this same id/function.
+const SCREEN_DEFAULTS: Readonly<Record<string, { id: string | (() => string); sticky: boolean }>> = {
   "main-screen": { id: "new-game-btn", sticky: true },
   "difficulty-screen": { id: "difficulty-moderate-btn", sticky: true },
   "appinfo-screen": { id: "appinfo-proceed-btn", sticky: false },
@@ -55,8 +69,9 @@ const SCREEN_DEFAULTS: Readonly<Record<string, { id: string; sticky: boolean }>>
   "settings-screen": { id: "settings-back-btn", sticky: false },
   "about-screen": { id: "about-main-menu-btn", sticky: false },
   "licenses-screen": { id: "licenses-main-menu-btn", sticky: false },
-  "stats-screen": { id: "stats-main-menu-btn", sticky: false },
+  "stats-screen": { id: () => document.querySelector<HTMLElement>(STATS_ACTIVE_TAB_SELECTOR)?.id ?? "stats-tab-overall", sticky: false },
   "game-over-screen": { id: "play-again-btn", sticky: false },
+  "error-screen": { id: "error-stack", sticky: false },
 };
 
 // stickyDefaults holds the current default id for each sticky screen
@@ -68,11 +83,20 @@ const stickyDefaults = new Map<string, string>();
 
 const FOCUSED_CLASS = "is-focused";
 
-// LIST_ACTIVE_CLASS marks a <select> currently "activated" for D-pad
-// item selection (see activateList/handleListAction below) -- added
-// alongside FOCUSED_CLASS, which the select keeps the whole time it's
-// activated, so CSS can style the two states differently.
-const LIST_ACTIVE_CLASS = "is-list-active";
+// ACTIVE_CLASS marks a <select> or scrollable panel currently
+// "activated" for D-pad control beyond plain focus -- item selection
+// for a select (see activeListEl/handleListAction below), page-
+// scrolling for a panel (see activePanelEl/handlePanelAction below).
+// Added alongside FOCUSED_CLASS, which the element keeps the whole
+// time it's activated, so CSS can style the two states differently.
+const ACTIVE_CLASS = "is-active";
+
+// SCROLL_PANEL_IDS is the element ids of every screen's scrollable
+// panel (scrollNav.ts's SCROLL_TARGETS values) -- the same panels
+// computeGrid below inserts into the focus grid at their natural DOM
+// position, and the set activate() checks to decide whether to click
+// an element or activate it for panel scrolling instead.
+const SCROLL_PANEL_IDS = new Set(Object.values(SCROLL_TARGETS));
 
 // FocusGrid is the navigable layout of the current scope: a list of
 // rows, each a list of elements. left/right move within a row,
@@ -94,6 +118,14 @@ let cancelFallback: () => void = () => {};
 // screen's cancel behavior) until the player explicitly backs out.
 let activeListEl: HTMLSelectElement | null = null;
 
+// activePanelEl is the scrollable panel (SCROLL_PANEL_IDS) the D-pad
+// has "activated" for page-scrolling, if any -- set by activate() when
+// the focused element is one of a screen's scrollable panels, cleared
+// by handlePanelAction on cancel. While set, handleAction routes every
+// NavAction to handlePanelAction instead of the normal
+// move/activate/cancel dispatch, mirroring activeListEl above.
+let activePanelEl: HTMLElement | null = null;
+
 // navUsed marks whether the player has issued a real NavAction at
 // least once this session -- set unconditionally at the top of
 // handleAction and never reset. focusPotCenter/focusHandCenter below
@@ -112,13 +144,14 @@ export function registerCancelFallback(fn: () => void): void {
 
 // buildGameScreenGrid lays out the game screen's rows top-to-bottom,
 // matching their on-screen order (specs/screens/game.md): the Menu
-// button, the pot's cards, the Take Pot/Knock buttons, then the
-// hand's cards. Card rows are included only while TRADEABLE_CLASS
-// marks them as currently clickable (domActionPrompt.ts adds it
-// outside the round's first turn, and while a decide() is actually in
-// progress) -- on the first turn, or on any other seat's turn, they're
-// dropped, leaving just the always-present Menu (and Take Pot/Knock,
-// once enabled). Empty rows are dropped entirely.
+// button, the pot's cards, the Take Pot/Knock buttons, the hand's
+// cards, then the log panel last (it sits below the table on-screen).
+// Card rows are included only while TRADEABLE_CLASS marks them as
+// currently clickable (domActionPrompt.ts adds it outside the round's
+// first turn, and while a decide() is actually in progress) -- on the
+// first turn, or on any other seat's turn, they're dropped, leaving
+// just the always-present Menu and log (and Take Pot/Knock, once
+// enabled). Empty rows are dropped entirely.
 function buildGameScreenGrid(screen: HTMLElement): FocusGrid {
   const rows: HTMLElement[][] = [];
 
@@ -155,7 +188,42 @@ function buildGameScreenGrid(screen: HTMLElement): FocusGrid {
     rows.push(Array.from(hand.querySelectorAll<HTMLElement>(".card")));
   }
 
+  const logId = SCROLL_TARGETS[GAME_SCREEN_ID];
+  const logEl = logId ? screen.querySelector<HTMLElement>(`#${logId}`) : null;
+  if (logEl) {
+    rows.push([logEl]);
+  }
+
   return rows.filter((row) => row.length > 0);
+}
+
+// buildStatsScreenGrid returns the Stats screen's rows (specs/
+// controller.md's Focus section): its four tabs as one row (left/right
+// moves along it, wrapping at either end), then its stat panel, then
+// its Main Menu button -- so up/down from any tab goes straight to the
+// panel, and up from the tabs wraps around to Main Menu, matching
+// buildGameScreenGrid's row-based approach above rather than the
+// generic per-screen one-button-per-row query below.
+function buildStatsScreenGrid(screen: HTMLElement): FocusGrid {
+  const rows: HTMLElement[][] = [];
+
+  const tabs = Array.from(screen.querySelectorAll<HTMLElement>(".stats-tab:not(:disabled)"));
+  if (tabs.length > 0) {
+    rows.push(tabs);
+  }
+
+  const panelId = SCROLL_TARGETS[STATS_SCREEN_ID];
+  const panelEl = panelId ? screen.querySelector<HTMLElement>(`#${panelId}`) : null;
+  if (panelEl) {
+    rows.push([panelEl]);
+  }
+
+  const mainMenuBtn = screen.querySelector<HTMLButtonElement>("#stats-main-menu-btn");
+  if (mainMenuBtn && !mainMenuBtn.disabled) {
+    rows.push([mainMenuBtn]);
+  }
+
+  return rows;
 }
 
 // currentScreenId returns whichever top-level screen (SCREEN_IDS) is
@@ -188,7 +256,7 @@ function defaultPositionIn(grid: FocusGrid): [number, number] | null {
   if (!config) {
     return null;
   }
-  const id = stickyDefaults.get(screenId) ?? config.id;
+  const id = stickyDefaults.get(screenId) ?? (typeof config.id === "function" ? config.id() : config.id);
   for (let row = 0; row < grid.length; row++) {
     const col = grid[row]?.findIndex((el) => el.id === id) ?? -1;
     if (col !== -1) {
@@ -201,8 +269,14 @@ function defaultPositionIn(grid: FocusGrid): [number, number] | null {
 // computeGrid returns the currently navigable layout: an open
 // dialog's own buttons (one per row) if one is open, otherwise
 // whichever top-level screen is visible -- the game screen via
-// buildGameScreenGrid's rows, every other screen as one enabled
-// button/select per row (a plain vertical list).
+// buildGameScreenGrid's rows, the stats screen via
+// buildStatsScreenGrid's rows, every other screen as one enabled
+// button/select per row (a plain vertical list), plus that screen's
+// scrollable panel (if SCROLL_TARGETS names one) as its own row, in
+// DOM order alongside the buttons/select -- querySelectorAll returns
+// matches in document order regardless of how many selectors they
+// came from, so this naturally places the panel wherever it sits
+// on-screen relative to the buttons around it.
 function computeGrid(): FocusGrid {
   for (const id of DIALOG_IDS) {
     const dialog = document.getElementById(id) as HTMLDialogElement | null;
@@ -217,7 +291,12 @@ function computeGrid(): FocusGrid {
       if (id === GAME_SCREEN_ID) {
         return buildGameScreenGrid(screen);
       }
-      return Array.from(screen.querySelectorAll<HTMLElement>("button:not(:disabled), select")).map((el) => [el]);
+      if (id === STATS_SCREEN_ID) {
+        return buildStatsScreenGrid(screen);
+      }
+      const panelId = SCROLL_TARGETS[id];
+      const selector = panelId ? `button:not(:disabled), select, #${panelId}` : "button:not(:disabled), select";
+      return Array.from(screen.querySelectorAll<HTMLElement>(selector)).map((el) => [el]);
     }
   }
 
@@ -360,9 +439,10 @@ function moveFocus(dir: "up" | "down" | "left" | "right"): void {
 // click listener is already wired to it -- no gamepad/keyboard-specific
 // action logic needed per element (including cards: activating one
 // does exactly what clicking it does today, in domActionPrompt.ts).
-// A <select> is the one exception: clicking it doesn't let the D-pad
-// change its selected item, so this activates list mode instead (see
-// activeListEl above).
+// Two kinds of element are exceptions, since clicking them doesn't let
+// the D-pad drive them the way activating them should: a <select>
+// activates list mode (see activeListEl above), and a scrollable panel
+// activates panel-scroll mode (see activePanelEl above).
 function activate(): void {
   const grid = computeGrid();
   if (grid.length === 0) {
@@ -373,7 +453,12 @@ function activate(): void {
   const el = grid[row]?.[col];
   if (el instanceof HTMLSelectElement) {
     activeListEl = el;
-    el.classList.add(LIST_ACTIVE_CLASS);
+    el.classList.add(ACTIVE_CLASS);
+    return;
+  }
+  if (el && SCROLL_PANEL_IDS.has(el.id)) {
+    activePanelEl = el;
+    el.classList.add(ACTIVE_CLASS);
     return;
   }
   el?.click();
@@ -392,7 +477,7 @@ function handleListAction(action: NavAction): void {
     return;
   }
   if (action === "cancel") {
-    el.classList.remove(LIST_ACTIVE_CLASS);
+    el.classList.remove(ACTIVE_CLASS);
     activeListEl = null;
     return;
   }
@@ -403,6 +488,29 @@ function handleListAction(action: NavAction): void {
   if (newIndex !== el.selectedIndex) {
     el.selectedIndex = newIndex;
     el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
+
+// handlePanelAction is handleAction's dispatch while activePanelEl is
+// set: up/down page-scroll the panel via scrollNav.ts's pageScroll,
+// the same amount an L1/R1 bumper press would. cancel deactivates the
+// panel, returning the D-pad to normal screen navigation, without
+// triggering cancel's usual behavior elsewhere (closing a dialog, or
+// opening the Game Menu). left/right and confirm are no-ops, matching
+// specs/controller.md's Scrolling section: only up/down scrolling is
+// supported.
+function handlePanelAction(action: NavAction): void {
+  const el = activePanelEl;
+  if (!el) {
+    return;
+  }
+  if (action === "cancel") {
+    el.classList.remove(ACTIVE_CLASS);
+    activePanelEl = null;
+    return;
+  }
+  if (action === "up" || action === "down") {
+    pageScroll(action);
   }
 }
 
@@ -535,6 +643,10 @@ export function handleAction(action: NavAction): void {
   navUsed = true;
   if (activeListEl) {
     handleListAction(action);
+    return;
+  }
+  if (activePanelEl) {
+    handlePanelAction(action);
     return;
   }
   switch (action) {

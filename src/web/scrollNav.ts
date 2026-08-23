@@ -1,19 +1,22 @@
 // Controller scrolling for the app's read-only text panels, per
 // specs/controller.md: the left stick and L1/R1 bumpers (see
 // gamepadInput.ts's ScrollEvent) scroll whichever screen's panel is
-// currently visible, independent of focusNav.ts's button/select focus
-// grid -- these panels (the game log, license/how-to-play text, the
-// about screen's credits, the application info screen's instructions,
-// the stats screen's stat panel, the error screen's stack trace) were
-// never part of that grid, so there's no separate "focus the panel"
-// step.
+// currently visible, regardless of what focusNav.ts's button/select/
+// panel focus grid currently has focused or activated -- these panels
+// (the game log, license/how-to-play text, the about screen's
+// credits, the application info screen's instructions, the stats
+// screen's stat panel, the error screen's stack trace) are also each
+// their own cell in that grid (see focusNav.ts's SCROLL_TARGETS
+// import), but this stick/bumper path is independent of that: it
+// works no matter what's focused, or whether a panel is "activated".
 
 import type { ScrollEvent } from "./gamepadInput.ts";
 
 // SCROLL_TARGETS maps each screen with a scrollable panel to that
 // panel's element id. Screens not listed here (main, settings, menu,
-// game-over) have nothing to scroll.
-const SCROLL_TARGETS: Readonly<Record<string, string>> = {
+// game-over) have nothing to scroll. Also imported by focusNav.ts, so
+// the same panels take a place in the focus grid at this same id.
+export const SCROLL_TARGETS: Readonly<Record<string, string>> = {
   "game-screen": "log",
   "appinfo-screen": "appinfo-body",
   "licenses-screen": "licenses-text",

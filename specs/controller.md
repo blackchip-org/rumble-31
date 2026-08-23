@@ -6,14 +6,16 @@ mouse/touch.
 
 ## Focus
 
-Exactly one button, list box, or card on the current screen is
-"focused" at a time, shown with a colored outline distinct from any
-other highlight (such as a selected card).
+Exactly one button, list box, scrollable panel, or card on the current
+screen is "focused" at a time, shown with a colored outline distinct
+from any other highlight (such as a selected card).
 Most screens are a single column, where any direction moves to the
 next or previous item, wrapping back around at either end. The Game
-Screen is arranged in rows instead (Menu; the pot's cards; Take
-Pot/Knock; the hand's cards): within a row of cards, left/right moves
-along the row and wraps at either end; up/down always moves to the
+Screen and the Stats screen are arranged in rows instead: the Game
+Screen's rows are Menu; the pot's cards; Take Pot/Knock; the hand's
+cards; the Stats screen's rows are its four tabs; its stat panel;
+Main Menu. Within a row of cards or tabs, left/right moves along the
+row and wraps at either end; up/down always moves to the
 previous/next row, wrapping past the top/bottom row, and so does
 left/right on a row with nothing else in it (such as Menu).
 
@@ -39,11 +41,15 @@ visited, without waiting for a navigation input:
 - Difficulty defaults to "Moderate", but remembers whichever
   difficulty was last clicked on it and defaults to that instead the
   next time it's visited, same as the Main Menu above.
-- How to Play, Settings, About, Licenses, and Stats always default to
-  their "Main Menu" (or, on Settings entered from the Game Menu, "Game
+- How to Play, Settings, About, and Licenses always default to their
+  "Main Menu" (or, on Settings entered from the Game Menu, "Game
   Menu") button.
+- Stats defaults to its currently active tab (specs/screens/stats.md),
+  remembering that across visits the same way the tab itself does.
 - The Game Over screen defaults to "Play Again".
 - The Application Info screen defaults to "Proceed Anyway".
+- The Error screen defaults to its stack trace panel, since it has no
+  buttons of its own.
 
 Screens not listed above (the Game Screen, the Game Menu screen) fall
 back to the first item in their focus order, per Focus above; the Game
@@ -120,21 +126,39 @@ elsewhere, updating the shown license text immediately, the same as
 clicking a different item would. Pressing cancel deactivates the list
 box, without triggering cancel's usual behavior elsewhere (closing a
 dialog, or opening the Game Menu) -- the D-pad goes back to moving
-focus around the rest of the screen.
+focus around the rest of the screen. Scrollable panels use this same
+activation pattern -- see Scrolling below.
 
 ## Scrolling
 
 The Game Screen's log, the How to Play and Licenses screens' text, the
 About screen's credits, the Application Info screen's instructions,
 the Stats screen's stat panel, and the Error screen's stack trace are
-each a scrollable panel with no equivalent in the focus order above --
-instead of focusing them, the left stick scrolls whichever one belongs
-to the screen currently on-screen, proportionally to how far the stick
-is pushed up or down. This works regardless of what else has focus,
-and doesn't move focus itself.
+each a scrollable panel that also takes a place in the focus order,
+alongside that screen's buttons/list box in whatever position it
+occupies on-screen (e.g. the Stats screen's panel sits between its
+difficulty tabs and its Main Menu button). Its focus ring looks the
+same as any other focused item.
 
-For controllers without a stick usable for fine scrolling, the L1/R1
-shoulder bumpers page up/down the same panel a fixed amount per press.
+Moving focus onto a panel doesn't scroll it by itself. Pressing
+confirm while it's focused "activates" it instead (shown with the same
+differently colored focus ring List Boxes use): while active, the
+D-pad's up/down page-scroll the panel -- the same amount a single
+L1/R1 bumper press does (see below) -- instead of moving focus
+elsewhere. Pressing cancel deactivates the panel, without triggering
+cancel's usual behavior elsewhere (closing a dialog, or opening the
+Game Menu) -- the D-pad goes back to moving focus around the rest of
+the screen. Left/right and confirm have no effect while a panel is
+active.
 
-Only up/down scrolling is supported; the stick's left/right axis and
-the D-pad are unaffected and still only move focus.
+Independent of all of the above, the left stick scrolls whichever
+panel belongs to the screen currently on-screen, proportionally to how
+far the stick is pushed up or down. This works regardless of what has
+focus, or whether a panel is active, and never moves focus itself. For
+controllers without a stick usable for fine scrolling, the L1/R1
+shoulder bumpers page up/down the same panel a fixed amount per press,
+also regardless of focus.
+
+Only up/down scrolling is supported, whether via an active panel's
+D-pad, the stick, or the bumpers -- the stick's left/right axis and
+the D-pad's left/right always only move focus.

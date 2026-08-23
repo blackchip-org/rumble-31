@@ -633,12 +633,14 @@ body {
   outline-offset: 3px;
 }
 
-/* A <select> the D-pad has "activated" for item selection
-   (focusNav.ts's activeListEl) -- a distinct accent color from the
-   plain focus ring above, since the D-pad now steers the list's own
-   items instead of the rest of the screen. Same selector specificity
-   as .is-focused, so appearing later here is what makes it win. */
-.is-list-active {
+/* A <select> or scrollable panel the D-pad has "activated" beyond
+   plain focus -- item selection for a select, page-scrolling for a
+   panel (focusNav.ts's activeListEl/activePanelEl) -- a distinct
+   accent color from the plain focus ring above, since the D-pad now
+   drives that one element instead of moving focus around the rest of
+   the screen. Same selector specificity as .is-focused, so appearing
+   later here is what makes it win. */
+.is-active {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }

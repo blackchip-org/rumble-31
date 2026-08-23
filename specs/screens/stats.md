@@ -6,9 +6,9 @@ Main header shows "Stats".
 
 Below the header are four tabs: "Overall", "Easy", "Moderate", and
 "Hard". Exactly one tab is active at a time; clicking a tab switches
-which one's content is shown below it. The screen always opens on the
-"Overall" tab, regardless of which tab was showing the last time the
-screen was visited.
+which one's content is shown below it. The screen remembers which tab
+was showing the last time it was visited and reopens on that same
+tab; if it's never been visited this session, it opens on "Overall".
 
 Below the tabs is a single panel showing the active tab's content.
 This panel is a fixed height, so switching tabs never moves the

@@ -212,17 +212,14 @@ export function renderStatsScreen(root: HTMLElement, stats: BotVersionStats): vo
   }
 }
 
-// resetStatsToOverallTab switches root back to its Overall tab/pane
-// and scrolls cardEl back to the top -- called every time the Stats
-// screen is shown, so it never reopens on whichever tab/scroll
-// position the player left it on last (specs/screens/stats.md).
-export function resetStatsToOverallTab(root: HTMLElement, cardEl: HTMLElement): void {
-  for (const tab of root.querySelectorAll<HTMLElement>(".stats-tab")) {
-    tab.classList.toggle("active", tab.dataset.tab === "overall");
-  }
-  for (const pane of root.querySelectorAll<HTMLElement>(".stats-pane")) {
-    pane.classList.toggle("active", pane.dataset.tab === "overall");
-  }
+// scrollStatsToTop scrolls cardEl back to the top -- called every time
+// the Stats screen is shown, so it never reopens mid-scroll on
+// whichever position the player left it at. Which tab/pane is active
+// is left untouched, so (unlike scroll position) it carries over
+// between visits -- defaulting to the Overall tab/pane only because
+// that's what index.html marks active before any tab is ever clicked
+// (specs/screens/stats.md).
+export function scrollStatsToTop(cardEl: HTMLElement): void {
   cardEl.scrollTop = 0;
 }
 
