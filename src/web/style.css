@@ -58,10 +58,36 @@
 html {
   /* Scales rem-based text/padding together with the viewport. */
   font-size: var(--font-size-base);
+  /* Standard scrollbar styling (Firefox, and Chromium/Safari that
+     support it) -- inherited by every scrollable element, so no
+     per-container rule is needed. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* WebKit/Blink scrollbar styling -- unlike scrollbar-width/-color
+   above, these pseudo-elements don't inherit, so they're applied to
+   every element rather than enumerated per scroll container. */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 6px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 body {

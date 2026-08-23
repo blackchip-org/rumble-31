@@ -260,4 +260,15 @@
                                         hover -- a darker shade of
                                         --menu-abandon-bg */
   --menu-abandon-fg: #fff; /* Abandon button text color */
+
+  /* ---------- scrollbars (app-wide) ---------- */
+  --scrollbar-thumb: rgba(238, 238, 238, 0.25); /* scrollbar thumb, a
+                                                     faint tint of --ink so
+                                                     it reads against any
+                                                     panel background */
+  --scrollbar-thumb-hover: rgba(238, 238, 238, 0.45); /* scrollbar thumb on
+                                                           hover */
+  --scrollbar-track: rgba(0, 0, 0, 0.15); /* scrollbar track, a soft
+                                              inset shadow rather than a
+                                              hard-edged bar */
 }
