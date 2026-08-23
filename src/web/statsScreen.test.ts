@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatShortDate, formatStreakBestMeta, formatStreakCurrentMeta, isSkillSeatedInDifficulty } from "./statsScreen.ts";
+import { formatGamesAbandoned, formatShortDate, formatStreakBestMeta, formatStreakCurrentMeta, isSkillSeatedInDifficulty } from "./statsScreen.ts";
 import type { StreakState } from "./stats.ts";
 import type { Difficulty } from "../config.ts";
 import type { BotSkillLevel } from "../bot/factory.ts";
@@ -31,6 +31,18 @@ const shortDateCases = [
   { name: "January", iso: "2026-01-01", want: "Jan 1" },
   { name: "December", iso: "2025-12-31", want: "Dec 31" },
 ];
+
+const gamesAbandonedCases = [
+  { name: "none", count: 0, want: "0 games abandoned" },
+  { name: "singular", count: 1, want: "1 game abandoned" },
+  { name: "plural", count: 2, want: "2 games abandoned" },
+];
+
+test("formatGamesAbandoned", () => {
+  for (const c of gamesAbandonedCases) {
+    assert.equal(formatGamesAbandoned(c.count), c.want, c.name);
+  }
+});
 
 test("formatShortDate", () => {
   for (const c of shortDateCases) {

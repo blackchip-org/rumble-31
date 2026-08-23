@@ -18,9 +18,9 @@ content is taller than the panel scrolls within it.
 
 The "Overall" tab shows the Global Stats (specs/stats.md):
 
-- Games played, Rounds played (summed across Easy/Moderate/Hard,
-  specs/stats.md), and Bot opponents faced -- Games played multiplied
-  by three, since every game seats exactly three bots.
+- Totals: Games played, Rounds played (summed across Easy/Moderate/
+  Hard, specs/stats.md), and Bot opponents faced -- Games played
+  multiplied by three, since every game seats exactly three bots.
 - Games abandoned, shown as a small note below those numbers rather
   than as its own headline number.
 - Record vs. Bots: the total Wins, Losses, and Ties summed across
@@ -35,9 +35,9 @@ The "Overall" tab shows the Global Stats (specs/stats.md):
 Each of the "Easy", "Moderate", and "Hard" tabs shows that
 difficulty's Per Difficulty Setting stats (specs/stats.md):
 
-- Games played (the sum of the Wins per place counts below), Rounds
-  played, and Bot opponents faced -- Games played multiplied by three,
-  since every game seats exactly three bots.
+- Totals: Games played (the sum of the Wins per place counts below),
+  Rounds played, and Bot opponents faced -- Games played multiplied by
+  three, since every game seats exactly three bots.
 - Rating, shown as a number out of 1000 alongside a filled gauge bar
   proportional to that number.
 - Rankings, shown as four tiles -- First, Second, Third, and Fourth --

@@ -55,6 +55,13 @@ export function formatStreakBestMeta(streak: StreakState): string {
   return streak.best.endDate === undefined ? "—" : `through ${formatShortDate(streak.best.endDate)}`;
 }
 
+// formatGamesAbandoned renders the Overall tab's "Games abandoned"
+// footnote (specs/screens/stats.md), singularizing "game" for exactly
+// one.
+export function formatGamesAbandoned(count: number): string {
+  return `${count} ${count === 1 ? "game" : "games"} abandoned`;
+}
+
 function setText(root: ParentNode, selector: string, text: string): void {
   const el = root.querySelector<HTMLElement>(selector);
   if (el) {
@@ -169,7 +176,7 @@ export function renderStatsScreen(root: HTMLElement, stats: BotVersionStats): vo
   const overallPane = root.querySelector<HTMLElement>('.stats-pane[data-tab="overall"]');
   if (overallPane) {
     fillCounters(overallPane, stats.global.gamesPlayed, sumPerDifficulty(stats.perDifficulty, (d) => d.roundsPlayed));
-    setText(overallPane, ".stats-footnote", `${stats.global.gamesAbandoned} games abandoned`);
+    setText(overallPane, ".stats-footnote", formatGamesAbandoned(stats.global.gamesAbandoned));
     fillRecordVsBots(overallPane, totalWinLossTie(stats.global.recordsBySkill));
     fillSkillTable(overallPane, stats.global.recordsBySkill, () => true);
     fillWinsByStrikes(
