@@ -74,16 +74,26 @@ function fillResultsTable(root: HTMLElement, botResults: readonly [BotResult, Bo
 }
 
 // fillRankBadge fills root's rank badge (index.html's .rank-badge)
-// with South's 1-based finish for this game: "First Place" through
-// "Fourth Place", tinted per style.css's medal tier colors (the same
-// gold/silver/bronze the Stats screen's Rankings tiles use, plus a
-// fourth tier for last that the Stats screen deliberately omits).
-function fillRankBadge(root: HTMLElement, southPlace: 1 | 2 | 3 | 4): void {
+// with South's 1-based finish for this game -- "First Place" through
+// "Fourth Place" in .rank-badge-place, tinted per style.css's medal
+// tier colors (the same gold/silver/bronze the Stats screen's
+// Rankings tiles use, plus a fourth tier for last that the Stats
+// screen deliberately omits) -- and the difficulty the game was
+// played at (e.g. "Hard Difficulty") in .rank-badge-difficulty above
+// it.
+function fillRankBadge(root: HTMLElement, southPlace: 1 | 2 | 3 | 4, difficultyLabel: string): void {
   const badge = root.querySelector<HTMLElement>(".rank-badge");
   if (!badge) {
     return;
   }
-  badge.textContent = `${PLACE_ORDINALS[southPlace - 1]} Place`;
+  const difficultyEl = badge.querySelector<HTMLElement>(".rank-badge-difficulty");
+  if (difficultyEl) {
+    difficultyEl.textContent = `${difficultyLabel} Difficulty`;
+  }
+  const placeEl = badge.querySelector<HTMLElement>(".rank-badge-place");
+  if (placeEl) {
+    placeEl.textContent = `${PLACE_ORDINALS[southPlace - 1]} Place`;
+  }
   badge.classList.remove(...PLACE_TIER_CLASSES);
   badge.classList.add(PLACE_TIER_CLASSES[southPlace - 1] as string);
 }
@@ -112,9 +122,11 @@ function fillTally(root: HTMLElement, botResults: readonly [BotResult, BotResult
 // West/North/East order, matching BotSeats -- botLabels is each
 // bot's display label (main.ts's BOT_LABELS, already mapped from its
 // BotSeats skill levels, the same way it's already passed into
-// log.ts's gameEndLines).
-export function renderOverResults(root: HTMLElement, southPlace: 1 | 2 | 3 | 4, botResults: readonly [BotResult, BotResult, BotResult], botLabels: readonly [string, string, string]): void {
-  fillRankBadge(root, southPlace);
+// log.ts's gameEndLines). difficultyLabel is the difficulty the game
+// was played at (main.ts's DIFFICULTY_LABELS[settings.difficulty],
+// the same label already used for log.ts's gameStartLines).
+export function renderOverResults(root: HTMLElement, southPlace: 1 | 2 | 3 | 4, botResults: readonly [BotResult, BotResult, BotResult], botLabels: readonly [string, string, string], difficultyLabel: string): void {
+  fillRankBadge(root, southPlace, difficultyLabel);
   fillResultsTable(root, botResults, botLabels);
   fillTally(root, botResults);
 }

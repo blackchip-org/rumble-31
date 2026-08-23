@@ -861,28 +861,26 @@ body {
   display: block;
 }
 
-/* South's finish for this game (specs/screens/over.md), tinted per
-   tier same as the Stats screen's Rankings medal tiles
-   (.place-tile.first/.second/.third below) -- --tier-color is set by
-   the tier class, defaulting to fourth (no medal) so an unstyled
-   badge still reads sensibly. First also gets the glow other
-   highlighted states already use (see --accent-glow's own comment in
-   theme.css). */
+/* South's finish for this game (specs/screens/over.md) plus the
+   difficulty the game was played at, tinted per tier same as the
+   Stats screen's Rankings medal tiles (.place-tile.first/.second/
+   .third below) -- --tier-color is set by the tier class, defaulting
+   to fourth (no medal) so an unstyled badge still reads sensibly.
+   First also gets the glow other highlighted states already use (see
+   --accent-glow's own comment in theme.css). The background mixes in
+   var(--bg) rather than transparent -- against the felt, a mostly-
+   transparent tint left light tier colors and light body text both
+   too close to the felt's own mid luminance to read clearly. */
 .rank-badge {
   --tier-color: var(--stats-place-fourth);
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  padding: 0.55rem 1.4rem;
-  border-radius: 999px;
+  gap: 0.2rem;
+  padding: 0.5rem 1.5rem 0.6rem;
+  border-radius: 16px;
   border: 1px solid var(--tier-color);
-  background: color-mix(in srgb, var(--tier-color) 15%, transparent);
-  color: var(--tier-color);
-  font-family: var(--font-score);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-tag);
-  text-transform: uppercase;
-  font-size: 1rem;
-  white-space: nowrap;
+  background: color-mix(in srgb, var(--tier-color) 22%, var(--bg) 78%);
 }
 
 .rank-badge.first {
@@ -900,6 +898,25 @@ body {
 
 .rank-badge.fourth {
   --tier-color: var(--stats-place-fourth);
+}
+
+.rank-badge-difficulty {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.rank-badge-place {
+  font-family: var(--font-score);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-tag);
+  text-transform: uppercase;
+  font-size: 1.05rem;
+  color: var(--tier-color);
+  white-space: nowrap;
 }
 
 /* South's Win/Loss/Tie against each bot seat (specs/screens/over.md),
@@ -2420,10 +2437,31 @@ body {
   }
 
   /* rank-badge (added well after this breakpoint was last tuned)
-     shrinks the same way over-results does just below. */
+     shrinks the same way over-results does just below -- tighter than
+     a straight scale-down of the portrait sizing since the two-line
+     layout already costs a full extra line over the single-line
+     badge this breakpoint was originally tuned for. */
   .rank-badge {
-    padding: 0.3rem 0.9rem;
-    font-size: 0.72rem;
+    padding: 0.15rem 0.9rem 0.2rem;
+    gap: 0.05rem;
+  }
+
+  .rank-badge-difficulty {
+    font-size: 0.5rem;
+    line-height: 1.1;
+  }
+
+  .rank-badge-place {
+    font-size: 0.74rem;
+    line-height: 1.1;
+  }
+
+  /* Trims the panel's own child-to-child gap (1rem from the shared
+     .main-panel/.game-over-panel/.appinfo-panel rule above) back down
+     just for game-over, to buy back the rest of the two-line badge's
+     extra height on the shortest phones this breakpoint covers. */
+  .game-over-panel {
+    gap: 0.85rem;
   }
 
   /* over-results (specs/screens/over.md's results table + tally,

@@ -250,8 +250,11 @@
   /* Fourth has no medal -- the Stats screen's Rankings tiles
      deliberately omit it (specs/screens/stats.md), but the Game Over
      screen's rank badge (specs/screens/over.md) shows all four
-     finishes, so it needs a tier color too. */
-  --stats-place-fourth: var(--ink-dim);
+     finishes, so it needs a tier color too. A warm taupe rather than
+     a grey: --ink-dim read too close to --stats-place-second's cool
+     blue-silver once both were lightened enough to stay legible on
+     the badge's own background. */
+  --stats-place-fourth: #bfae9b;
 
   /* ---------- game menu screen (independently restylable) ---------- */
   --menu-bg: var(--main-bg); /* game menu screen background */

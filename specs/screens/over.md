@@ -8,9 +8,13 @@ The entire contents of the screen are in a panel that is centered both
 horizontally and vertically on the screen. In big white lettering, say either
 "You Won!" or "Game Over" with each word on its own line.
 
-Below the title is a badge naming South's finish for this game: "First
-Place", "Second Place", "Third Place", or "Fourth Place". This is the
-same 1-based place already tracked for the log (specs/log.md's "Game
+Below the title is a badge with two lines: a small caption naming the
+difficulty the game was played at (specs/screens/difficulty.md's
+"Easy", "Moderate", or "Hard" -- whichever difficulty was actually
+rolled, if it came from the Difficulty screen's "Random" button)
+above South's finish for this game in larger text: "First Place",
+"Second Place", "Third Place", or "Fourth Place". The place is the
+same 1-based value already tracked for the log (specs/log.md's "Game
 over: X place" line) and the Stats screen's Rankings tile
 (specs/screens/stats.md) -- including that spec's tie rule, where
 going out together with one or more bots places South as if they'd

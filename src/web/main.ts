@@ -1287,8 +1287,10 @@ const BOT_LABELS: Record<BotSkillLevel, string> = { novice: "Novice", advanced: 
 // the showBots debug parameter (specs/params.md).
 const BOT_INITIALS: Record<BotSkillLevel, string> = { novice: "N", advanced: "A", expert: "E" };
 
-// DIFFICULTY_LABELS maps a Difficulty to its game-log start line label
-// (specs/log.md, specs/screens/difficulty.md: "Easy", "Moderate", "Hard").
+// DIFFICULTY_LABELS maps a Difficulty to its display label -- the
+// game-log start line (specs/log.md, specs/screens/difficulty.md:
+// "Easy", "Moderate", "Hard") and the Game Over screen's rank badge
+// (specs/screens/over.md).
 const DIFFICULTY_LABELS: Record<Difficulty, string> = { easy: "Easy", moderate: "Moderate", hard: "Hard" };
 
 // SUIT_COLOR_LABELS maps a SuitColor to its Settings Screen button
@@ -1427,7 +1429,7 @@ function showGameOverScreen(southWon: boolean, southPlace: 1 | 2 | 3 | 4, botRes
   const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
   gameOverLine1El.textContent = line1;
   gameOverLine2El.textContent = line2;
-  renderOverResults(gameOverScreenEl, southPlace, botResults, botLabels);
+  renderOverResults(gameOverScreenEl, southPlace, botResults, botLabels, DIFFICULTY_LABELS[settings.difficulty]);
   hideAllScreens();
   gameOverScreenEl.hidden = false;
   if (playSound) {
