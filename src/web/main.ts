@@ -6,7 +6,7 @@ import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { createBot, snapshotBot, type BotMemory, type BotSkillLevel } from "../bot/factory.ts";
 import { botVersion } from "../bot/version.ts";
-import { DEAL_ANIMATION_DELAY, DIFFICULTIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, type Difficulty } from "../config.ts";
+import { DEAL_ANIMATION_DELAY, DIFFICULTIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, TAP_FEEDBACK_DELAY, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";
 import { seatName } from "../game/seat.ts";
@@ -1157,6 +1157,14 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
 // — so any screen is safe to enter directly (e.g. via
 // specs/params.md's screen debug param) regardless of which screen,
 // if any, was already showing.
+// onTap wraps a screen-swapping click handler so the swap itself
+// waits TAP_FEEDBACK_DELAY (specs/gui.md's Mobile section) before
+// running, giving the tapped button's pressed-down CSS feedback
+// (style.css) a chance to paint first.
+function onTap(action: () => void): () => void {
+  return () => setTimeout(action, TAP_FEEDBACK_DELAY);
+}
+
 function hideAllScreens(): void {
   mainScreenEl.hidden = true;
   difficultyScreenEl.hidden = true;
@@ -1506,28 +1514,31 @@ function logFilename(now: Date): string {
   return `rumble31-${yy}${mm}${dd}-${hh}${mi}.txt`;
 }
 
-playAgainBtn.addEventListener("click", () => showGameScreen());
-mainMenuBtn.addEventListener("click", showMainScreen);
-aboutMainMenuBtn.addEventListener("click", showMainScreen);
-licensesMainMenuBtn.addEventListener("click", showMainScreen);
-licensesBtn.addEventListener("click", showLicensesScreen);
-htpMainMenuBtn.addEventListener("click", showMainScreen);
-statsBtn.addEventListener("click", showStatsScreen);
-statsMainMenuBtn.addEventListener("click", showMainScreen);
+playAgainBtn.addEventListener("click", onTap(() => showGameScreen()));
+mainMenuBtn.addEventListener("click", onTap(showMainScreen));
+aboutMainMenuBtn.addEventListener("click", onTap(showMainScreen));
+licensesMainMenuBtn.addEventListener("click", onTap(showMainScreen));
+licensesBtn.addEventListener("click", onTap(showLicensesScreen));
+htpMainMenuBtn.addEventListener("click", onTap(showMainScreen));
+statsBtn.addEventListener("click", onTap(showStatsScreen));
+statsMainMenuBtn.addEventListener("click", onTap(showMainScreen));
 initStatsTabs(statsScreenEl, statsCardEl);
-htpBtn.addEventListener("click", showHtpScreen);
+htpBtn.addEventListener("click", onTap(showHtpScreen));
 
 // settingsBackBtn returns to wherever Settings was entered from
 // (specs/gui.md's Settings Screen section): the Main screen, or --
 // entered via the Game Menu -- that same Game Menu screen, with the
 // game it was showing carried back along with it.
-settingsBackBtn.addEventListener("click", () => {
-  if (currentSettingsOrigin.from === "menu") {
-    showGameMenuScreen(currentSettingsOrigin.game);
-  } else {
-    showMainScreen();
-  }
-});
+settingsBackBtn.addEventListener(
+  "click",
+  onTap(() => {
+    if (currentSettingsOrigin.from === "menu") {
+      showGameMenuScreen(currentSettingsOrigin.game);
+    } else {
+      showMainScreen();
+    }
+  }),
+);
 
 // menuBtn opens the Game Menu screen (specs/gui.md's Game Screen
 // section); Escape and a gamepad's cancel button do the same, routed
@@ -1537,7 +1548,7 @@ settingsBackBtn.addEventListener("click", () => {
 // only reachable from the Game Menu, is open -- the game screen is
 // already hidden by then, and a dialog open takes cancel priority
 // over this fallback regardless -- see focusNav.ts's cancel()).
-menuBtn.addEventListener("click", openGameMenu);
+menuBtn.addEventListener("click", onTap(openGameMenu));
 
 // registerCancelFallback/startKeyboardNav/startGamepadInput wire up
 // specs/controller.md's keyboard/gamepad navigation: both input
@@ -1555,8 +1566,8 @@ registerCancelFallback(() => {
 startKeyboardNav(handleAction);
 startGamepadInput(handleAction, () => settings.swapConfirmCancel, handleScrollEvent);
 
-menuResumeBtn.addEventListener("click", () => showGameScreen(currentMenuGame));
-menuSettingsBtn.addEventListener("click", () => showSettingsScreen({ from: "menu", game: currentMenuGame as GameState }));
+menuResumeBtn.addEventListener("click", onTap(() => showGameScreen(currentMenuGame)));
+menuSettingsBtn.addEventListener("click", onTap(() => showSettingsScreen({ from: "menu", game: currentMenuGame as GameState })));
 menuAbandonBtn.addEventListener("click", () => abandonDialogEl.showModal());
 
 // A native <dialog>'s own Escape-to-cancel behavior already dismisses
@@ -1606,11 +1617,14 @@ function startNewGame(difficulty: Difficulty): void {
   showGameScreen();
 }
 
-difficultyRandomBtn.addEventListener("click", () => startNewGame(DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] as Difficulty));
-difficultyEasyBtn.addEventListener("click", () => startNewGame("easy"));
-difficultyModerateBtn.addEventListener("click", () => startNewGame("moderate"));
-difficultyHardBtn.addEventListener("click", () => startNewGame("hard"));
-difficultyBackBtn.addEventListener("click", showMainScreen);
+difficultyRandomBtn.addEventListener(
+  "click",
+  onTap(() => startNewGame(DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] as Difficulty)),
+);
+difficultyEasyBtn.addEventListener("click", onTap(() => startNewGame("easy")));
+difficultyModerateBtn.addEventListener("click", onTap(() => startNewGame("moderate")));
+difficultyHardBtn.addEventListener("click", onTap(() => startNewGame("hard")));
+difficultyBackBtn.addEventListener("click", onTap(showMainScreen));
 
 // nextSuitColor cycles a SuitColor through SUIT_COLORS's order
 // (specs/screens/settings.md: "Four", "Two").
@@ -1636,11 +1650,11 @@ focusFirstToggleBtn.addEventListener("click", () => {
   syncFocusFirstToggleBtn();
 });
 
-newGameBtn.addEventListener("click", () => showDifficultyScreen());
-settingsBtn.addEventListener("click", () => showSettingsScreen({ from: "main" }));
-aboutBtn.addEventListener("click", showAboutScreen);
+newGameBtn.addEventListener("click", onTap(() => showDifficultyScreen()));
+settingsBtn.addEventListener("click", onTap(() => showSettingsScreen({ from: "main" })));
+aboutBtn.addEventListener("click", onTap(showAboutScreen));
 
-appinfoProceedBtn.addEventListener("click", showMainScreen);
+appinfoProceedBtn.addEventListener("click", onTap(showMainScreen));
 
 // specs/params.md's screen debug param picks the initial screen
 // directly. Without it, savedState (specs/state.md) picks up wherever

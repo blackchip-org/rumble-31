@@ -14,6 +14,12 @@ every panel stays reachable.
 For mobile devices, the GUI should expect that normal operation is with
 the phone in landscape mode.
 
+A button that swaps to a different screen waits TAP_FEEDBACK_DELAY
+(specs/config.md) before actually swapping, so the button's
+pressed-down feedback has time to paint first -- otherwise a touch tap
+can swap screens before the pressed state is ever visible, leaving no
+confirmation of which button was actually pressed.
+
 ## Screens
 
 - [Game Screen](screens/game.md) (game) — Player panels, the pot,

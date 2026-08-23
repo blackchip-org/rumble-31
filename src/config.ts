@@ -73,3 +73,10 @@ export const KNOCK_SOUND_WAIT = 256 + 200;
 // is shown before the next round starts automatically (clicking the
 // round-end button ends the pause early).
 export const ROUND_END_PAUSE = 6000;
+
+// TAP_FEEDBACK_DELAY is how long, in milliseconds, a button that
+// swaps screens waits before actually swapping -- giving the button's
+// own pressed-down CSS feedback (style.css) time to paint before it's
+// replaced out from under a still-pressed finger, which on a
+// touchscreen can otherwise happen too fast to ever be seen.
+export const TAP_FEEDBACK_DELAY = 100;

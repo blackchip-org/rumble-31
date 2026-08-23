@@ -19,4 +19,7 @@ whole hand plays this animation once per card, in sequence, not once
 for all three.
 - ROUND_END_PAUSE: The number of milliseconds the round-end recap is
 shown before the next round starts automatically.
+- TAP_FEEDBACK_DELAY: The number of milliseconds a button that swaps
+screens waits before actually swapping, so its pressed-down feedback
+has time to show first.
 
