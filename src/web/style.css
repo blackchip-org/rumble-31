@@ -2422,6 +2422,88 @@ body {
   .settings-screen {
     overflow-y: auto;
   }
+
+  /* Stats' title/tabs/card/buttons (see the base rules above) are
+     already taller than this breakpoint's shortest phones before even
+     counting a difficulty pane's own content -- centered as a whole
+     (.stats-screen's justify-content: center), the panel overflows
+     and clips symmetrically off both the top and bottom, cropping the
+     title and squeezing the Main Menu button into an unusable sliver.
+     Dropping the title outright buys back enough height that the
+     tabs/card/buttons below fit without clipping -- the tabs already
+     make clear which screen this is, so the heading isn't carrying
+     any meaning the rest of the panel doesn't. */
+  .stats-title {
+    display: none;
+  }
+
+  .stats-tabs button {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  /* Tightened from the base 1.5rem: once the panel fits inside the
+     viewport, its leftover height becomes slack centered above the
+     tabs and below the Main Menu button. Left at the base gap, that
+     slack reads much thinner than the gaps between the tabs, card,
+     and button row themselves; shrinking the gap keeps all of them
+     close to even. */
+  .stats-panel {
+    gap: 0.9rem;
+  }
+
+  /* Shrinks the scroll area's own text (roughly 15-20% down from the
+     base rules above) now that .stats-card has less height to work
+     with. */
+  .stats-block h2 {
+    font-size: 0.85rem;
+  }
+
+  .stats-counter .value,
+  .place-tile .value {
+    font-size: 1.15rem;
+  }
+
+  .stats-counter .label,
+  .place-tile .label {
+    font-size: 0.58rem;
+  }
+
+  .stats-footnote {
+    font-size: 0.62rem;
+  }
+
+  .stats-rating-row .value {
+    font-size: 1.8rem;
+  }
+
+  .stats-rating-row .of {
+    font-size: 0.72rem;
+  }
+
+  .stats-skill-table {
+    font-size: 0.72rem;
+  }
+
+  .stats-skill-table th {
+    font-size: 0.58rem;
+  }
+
+  .stats-streak-head {
+    font-size: 0.56rem;
+  }
+
+  .stats-streak-row .label {
+    font-size: 0.72rem;
+  }
+
+  .pill .n {
+    font-size: 0.85rem;
+  }
+
+  .pill .meta {
+    font-size: 0.56rem;
+  }
 }
 
 /* ---------- mobile portrait ---------- */
