@@ -91,6 +91,8 @@ test("loadState", () => {
     { name: "wrong schema version: no saved state", stored: { "rumble31.state": '{"version":99,"state":{"screen":"main","savedAt":100}}' }, want: undefined },
     { name: "unrecognized screen: no saved state", stored: { "rumble31.state": '{"version":8,"state":{"screen":"bogus","savedAt":100}}' }, want: undefined },
     { name: "screen missing entirely: no saved state", stored: { "rumble31.state": '{"version":8,"state":{"savedAt":100}}' }, want: undefined },
+    { name: "savedAt missing: no saved state", stored: { "rumble31.state": '{"version":8,"state":{"screen":"main"}}' }, want: undefined },
+    { name: "savedAt wrong type: no saved state", stored: { "rumble31.state": '{"version":8,"state":{"screen":"main","savedAt":"100"}}' }, want: undefined },
     { name: "valid main screen", stored: { "rumble31.state": '{"version":8,"state":{"screen":"main","savedAt":100}}' }, want: { screen: "main", savedAt: 100 } },
     {
       name: "valid difficulty screen",

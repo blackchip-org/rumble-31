@@ -117,8 +117,11 @@ export function loadState(storage: Storage): SavedState | undefined {
     if (version !== SCHEMA_VERSION || typeof state !== "object" || state === null) {
       return undefined;
     }
-    const screen = (state as { screen?: unknown }).screen;
+    const { screen, savedAt } = state as { screen?: unknown; savedAt?: unknown };
     if (typeof screen !== "string" || !(STATE_SCREEN_IDS as readonly string[]).includes(screen)) {
+      return undefined;
+    }
+    if (typeof savedAt !== "number") {
       return undefined;
     }
     return state as SavedState;
