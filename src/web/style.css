@@ -2360,6 +2360,79 @@ body {
     --font-size-game-over-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
   }
 
+  /* align-items: center (the base .game-over-screen rule) plus
+     overflow-y: auto above only ever extends the *bottom* of the
+     scrollable area to reach an overflowing panel -- the top stays
+     pinned above the viewport and permanently unreachable, since a
+     centered flex item overflows equally on both sides but a plain
+     scroll container only grows scrollHeight toward the end side.
+     flex-start plus auto vertical margins on the panel itself (below)
+     is the standard fix: the margins center the panel same as before
+     whenever it fits, but collapse to 0 instead of clipping once it's
+     taller than the viewport, so the whole panel -- title included --
+     stays scrollable into view on the shortest phones this breakpoint
+     covers. */
+  .game-over-screen {
+    align-items: flex-start;
+  }
+
+  .game-over-panel {
+    margin: auto 0;
+  }
+
+  /* over-results (specs/screens/over.md's results table + tally,
+     added well after this breakpoint was last tuned) didn't shrink
+     with the rest of the panel, and on its own was already taller
+     than this breakpoint's shortest phones -- tightening its padding,
+     gaps, and font sizes here (mirroring the Stats screen's own
+     landscape treatment above) closes most of that gap without
+     touching the base portrait/desktop sizing. */
+  .over-results {
+    padding: 0.6rem 0.8rem;
+    gap: 0.6rem;
+  }
+
+  .over-results-table {
+    font-size: 0.78rem;
+  }
+
+  .over-results-table th,
+  .over-results-table td {
+    padding: 0.3rem 0.35rem;
+  }
+
+  .over-results-table th {
+    font-size: 0.58rem;
+  }
+
+  .over-tally {
+    gap: 0.4rem;
+  }
+
+  .over-tally-tile {
+    padding: 0.35rem 0.4rem;
+    gap: 0.1rem;
+  }
+
+  .over-tally-tile .value {
+    font-size: 1.05rem;
+  }
+
+  .over-tally-tile .label {
+    font-size: 0.55rem;
+  }
+
+  /* Play Again/Main Menu/Save Log stacked (the base, portrait-style
+     layout inherited above) cost as much height on their own as the
+     results table and tally combined; row layout -- the same trick
+     .about-buttons above already uses -- buys most of that back,
+     since width, not height, is the plentiful dimension here. */
+  .game-over-buttons {
+    flex-direction: row;
+    width: auto;
+    gap: 0.6rem;
+  }
+
   /* About's and Application Info's bodies already shrink and scroll at
      the base level (see .about-body-wrap/.appinfo-body-wrap above);
      this breakpoint just tightens spacing for the shorter viewport. */
