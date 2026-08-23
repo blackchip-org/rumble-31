@@ -70,7 +70,7 @@ const STATE_TAG_TEXT: Record<PanelState, string> = {
   eliminated: "eliminated",
   knocked: "knocked",
   strike: "strike",
-  winner: "winner",
+  winner: "best",
   none: " ",
 };
 
