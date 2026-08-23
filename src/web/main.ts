@@ -34,6 +34,7 @@ import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, baselineBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
 import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordRoundPlayed, recordGamePlace, recordGameCompleted, todayDateString, viewStats, type StatsStore } from "./stats.ts";
+import { runStartupMigrations } from "./statsMigration.ts";
 import { initStatsTabs, renderStatsScreen, scrollStatsToTop } from "./statsScreen.ts";
 import { computeBotResults, renderOverResults, type BotResult } from "./overScreen.ts";
 import {
@@ -113,6 +114,14 @@ let settings: Settings = loadSettings(localStorage);
 // startup and kept in sync with localStorage as games are played,
 // abandoned, and won or lost.
 let stats: StatsStore = loadStats(localStorage);
+
+// One-time, version-gated corrections (statsMigration.ts) to whatever
+// stats were just loaded -- currently just the v6 -> v7 missing-tie
+// fix. Persisted immediately so a corrected store never gets
+// overwritten by an unmigrated one before the player's next game ends.
+if (runStartupMigrations(stats, localStorage, version)) {
+  saveStats(stats, localStorage);
+}
 
 // currentGameAbort controls whichever game main() is currently
 // running (if any). Opening the Game Menu, abandoning, or starting
@@ -862,6 +871,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   // round's outcome is in scope) and read after the loop exits, by
   // the closing showGameOverScreen call.
   let botResults: [BotResult, BotResult, BotResult] | undefined;
+  let southWonOutright = false;
 
   for (let roundNum = startRoundNum; ; roundNum++) {
     if (signal.aborted) {
@@ -996,7 +1006,15 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       return;
     }
 
-    recordRoundElimination(stats, botVersion, settings.difficulty, botSeats, eliminatedBeforeRound, outcome.eliminated);
+    // If the last remaining contenders (South included -- see
+    // southWonOutright below) all reached their threshold together,
+    // applyResult reports eliminated: [] to keep the game engine's own
+    // state intact (game.ts's "co-winners" comment), but specs/stats.md
+    // still credits the human with a tie against each of those bots --
+    // so recordRoundElimination needs the tied seats explicitly here,
+    // since outcome.eliminated alone won't show them.
+    const tiedFinish = !g.active() && g.winners().length > 1;
+    recordRoundElimination(stats, botVersion, settings.difficulty, botSeats, eliminatedBeforeRound, tiedFinish ? g.winners() : outcome.eliminated);
     const southBest = outcome.result.winners.includes(0);
     const southScore = outcome.result.players.find((pr) => pr.seat === 0)?.score;
     recordRoundPlayed(stats, botVersion, settings.difficulty, southBest, southScore);
@@ -1074,7 +1092,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       // together (game.ts) -- a tie, not an outright win, so per
       // specs/log.md it's placed as if South alone had been eliminated
       // rather than credited with first.
-      const southWonOutright = g.winners().length === 1 && g.winners().includes(0);
+      southWonOutright = g.winners().length === 1 && g.winners().includes(0);
       const southPlace = southWonOutright ? 1 : activeSeatsBeforeRound;
       for (const line of gameEndLines(southPlace, botSeats.map((n) => BOT_LABELS[n]))) {
         appendLogLine(logEl, line);
@@ -1094,7 +1112,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
             dealerSeat: g.dealerSeat as number,
             botSeats,
             log: logLines(),
-            southWon: g.winners().includes(0),
+            southWon: southWonOutright,
             botResults,
           },
         },
@@ -1128,7 +1146,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   }
 
   const botLabels = botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
-  showGameOverScreen(g.winners().includes(0), botResults as [BotResult, BotResult, BotResult], botLabels, true);
+  showGameOverScreen(southWonOutright, botResults as [BotResult, BotResult, BotResult], botLabels, true);
 }
 
 // hideAllScreens hides every top-level screen. Each show*Screen
