@@ -94,7 +94,7 @@ Then announce the scores for each player:
 
     Seat has 9 points with 1 strike
 
-If the human player wins, write:
+If the human player wins outright, write:
 
     South wins the game
 
@@ -102,9 +102,13 @@ When the game ends, write:
 
     Game over: X place
 
-Where X is either First, Second, Third, or Fourth depending on how the 
-player placed. If there is a tie (player and other bots eliminated too), 
-then it is placed as if only the player was eliminated. 
+Where X is either First, Second, Third, or Fourth depending on how the
+player placed. If there is a tie (the player and one or more bots are
+eliminated together, whether mid-game or as the game's last two
+contenders going out in the same final round), the player is placed as
+if only they had been eliminated -- e.g. two players tied as the last
+contenders both going out together places the player Second, not
+First, and "South wins the game" is not written.
 
 Then, the bot skill levels should be displayed starting with East and 
 moving clockwise using the following format:

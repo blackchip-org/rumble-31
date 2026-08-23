@@ -1,6 +1,6 @@
 import { cardToString } from "./card/card.ts";
 import type { Card } from "./card/card.ts";
-import type { Game, RoundOutcome } from "./game/game.ts";
+import type { RoundOutcome } from "./game/game.ts";
 import { seatName } from "./game/seat.ts";
 import type { Hand, TurnRecord } from "./game/types.ts";
 
@@ -109,13 +109,16 @@ const PLACE_ORDINALS = ["First", "Second", "Third", "Fourth"];
 const BOT_SKILL_REVEAL_SEATS = [3, 1, 2];
 
 // gameEndLines is written once the game is over. southPlace is South's
-// 1-based finish (1 if they won). botSkillLevelLabels names the three
+// 1-based finish (1 if they won outright; also 1 if they tied for the
+// win, per specs/log.md's "placed as if only the player was
+// eliminated" rule -- callers derive southPlace accordingly, so a tie
+// never reaches here as place 1). botSkillLevelLabels names the three
 // bot seats' skill levels (e.g. "Novice"), in the same West/North/East
 // seat order gameStartLines used to take (specs/log.md), unannounced
 // until now.
-export function gameEndLines(g: Game, southPlace: number, botSkillLevelLabels: readonly string[]): string[] {
+export function gameEndLines(southPlace: number, botSkillLevelLabels: readonly string[]): string[] {
   const lines: string[] = [];
-  if (g.winners().includes(0)) {
+  if (southPlace === 1) {
     lines.push("South wins the game");
   }
   lines.push(`Game over: ${PLACE_ORDINALS[southPlace - 1]} place`);

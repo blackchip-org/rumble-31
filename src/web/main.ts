@@ -1063,8 +1063,13 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       // finished round would call playRound() again and double-apply
       // its strikes. specs/state.md's Game Over screen state is saved
       // directly instead, so a reload during the pause resumes there.
-      const southPlace = g.winners().includes(0) ? 1 : activeSeatsBeforeRound;
-      for (const line of gameEndLines(g, southPlace, botSeats.map((n) => BOT_LABELS[n]))) {
+      // More than one winner means the last contenders were eliminated
+      // together (game.ts) -- a tie, not an outright win, so per
+      // specs/log.md it's placed as if South alone had been eliminated
+      // rather than credited with first.
+      const southWonOutright = g.winners().length === 1 && g.winners().includes(0);
+      const southPlace = southWonOutright ? 1 : activeSeatsBeforeRound;
+      for (const line of gameEndLines(southPlace, botSeats.map((n) => BOT_LABELS[n]))) {
         appendLogLine(logEl, line);
       }
       recordGamePlace(stats, botVersion, settings.difficulty, southPlace as 1 | 2 | 3 | 4, todayDateString());

@@ -2,7 +2,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseCard } from "./card/card.ts";
 import type { Card } from "./card/card.ts";
-import { Game } from "./game/game.ts";
 import type { RoundOutcome } from "./game/game.ts";
 import type { Hand, Pot, TurnRecord } from "./game/types.ts";
 import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnLines, turnStartLine } from "./log.ts";
@@ -208,22 +207,24 @@ test("gameEndLines", () => {
   // botSkillLevelLabels is West/North/East order (matches BotSeats),
   // revealed in gameEndLines' own East/West/North order.
   const botSkillLevelLabels = ["Novice", "Advanced", "Expert"];
-  const cases: Array<{ name: string; eliminated: [boolean, boolean, boolean, boolean]; southPlace: number; want: string[] }> = [
+  const cases: Array<{ name: string; southPlace: number; want: string[] }> = [
     {
-      name: "South among the winners",
-      eliminated: [false, true, true, false],
+      name: "South won outright",
       southPlace: 1,
       want: ["South wins the game", "Game over: First place", "East's skill level was Expert", "West's skill level was Novice", "North's skill level was Advanced"],
     },
     {
       name: "South not among the winners",
-      eliminated: [true, false, false, true],
       southPlace: 3,
       want: ["Game over: Third place", "East's skill level was Expert", "West's skill level was Novice", "North's skill level was Advanced"],
     },
+    {
+      name: "South tied for the win -- treated as eliminated, not a win",
+      southPlace: 2,
+      want: ["Game over: Second place", "East's skill level was Expert", "West's skill level was Novice", "North's skill level was Advanced"],
+    },
   ];
-  for (const { name, eliminated, southPlace, want } of cases) {
-    const g = new Game({ eliminated });
-    assert.deepEqual(gameEndLines(g, southPlace, botSkillLevelLabels), want, name);
+  for (const { name, southPlace, want } of cases) {
+    assert.deepEqual(gameEndLines(southPlace, botSkillLevelLabels), want, name);
   }
 });
