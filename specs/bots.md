@@ -22,7 +22,7 @@ this number, since not every app change touches bot behavior. This
 lets future stats tracking tell which games were played under which
 bot strategies.
 
-The current bot version is 2.
+The current bot version is 3.
 
 At the start of the game, the three bots' skill levels are chosen
 according to the Settings Screen's Difficulty setting (specs/screens/
@@ -68,6 +68,23 @@ cards), unknown cards count as zero value and match no suit.
 The strategies in the bulleted lists should be followed from top to
 bottom.
 
+## Blunder
+
+On any turn other than the round's first (Take Pot or Keep) or its
+last (another player has already knocked), each skill level has a
+percent chance -- rolled independently each such turn, before any
+other bullet in its checklist below -- to ignore its checklist
+entirely and trade a random pot card into a random hand slot instead,
+as if it misread its hand or picked the wrong strategy for a moment:
+
+- Novice: 14% chance
+- Advanced: 7% chance
+- Expert: never blunders
+
+A blundered turn still updates the bot's tracked best score and turn
+(see each skill level's "This bot tracks" list below) exactly like any
+other turn's outcome.
+
 ## Novice
 
 The Novice strategy mimics a new player to the game. They have familiarity
@@ -90,6 +107,8 @@ Strategy:
   score from exchanging for the whole pot, and the best score reachable
   by trading a single pot card for a hand card; take whichever of the
   three scores highest, preferring to knock on a tie, then to exchange
+- Blunder (see the Blunder section above): 14% chance to trade a
+  random card, skipping the rest of this checklist
 - Knock if it is the bot's own [25-30]th turn or later
 - Exchange all cards with the pot when its score is >= [27-29] and
   higher than the hand's own score (exchanging is itself a knock from
@@ -125,6 +144,8 @@ Strategy:
   score from exchanging for the whole pot, and the best score reachable
   by trading a single pot card for a hand card; take whichever of the
   three scores highest, preferring to knock on a tie, then to exchange
+- Blunder (see the Blunder section above): 7% chance to trade a
+  random card, skipping the rest of this checklist
 - Knock if it is the bot's own [25-30]th turn or later
 - Exchange all cards with the pot when its score is >= 26 and higher
   than the hand's own score (exchanging is itself a knock from the
@@ -173,6 +194,7 @@ Strategy:
   score from exchanging for the whole pot, and the best score reachable
   by trading a single pot card for a hand card; take whichever of the
   three scores highest, preferring to knock on a tie, then to exchange
+- Blunder (see the Blunder section above): Expert never blunders
 - Knock if it is the bot's own [25-30]th turn or later
 - Exchange all cards with the pot when its score is >= 24 and higher
   than the hand's own score (exchanging is itself a knock from the

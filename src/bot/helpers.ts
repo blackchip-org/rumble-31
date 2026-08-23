@@ -470,6 +470,12 @@ export interface SkeletonConfig {
   // below. Unused, and may be omitted, when chooseFirstTurn overrides
   // that bullet entirely.
   takePotScoreRange?: [number, number];
+  // blunderChance is the odds (0-1) that, on any turn other than the
+  // round's first or last, the bot ignores its own checklist and trades
+  // a random card instead -- per specs/bots.md's Blunder mechanic. 0
+  // (Expert) disables the roll entirely rather than just always missing
+  // it, so Expert's rng draw sequence is untouched by this feature.
+  blunderChance: number;
   knockTurnRange: [number, number];
   bestScoreTurnsAgoRange: [number, number];
   // knockScore is either a fixed threshold (Advanced, Expert) or a
@@ -529,6 +535,10 @@ export function chooseSkeletonAction(v: PlayerView, rng: Rng, cfg: SkeletonConfi
 
   if (v.isLastTurn) {
     return bestLastTurnAction(v);
+  }
+
+  if (cfg.blunderChance > 0 && chance(rng, cfg.blunderChance)) {
+    return trade(randInt(rng, 0, 2), randInt(rng, 0, 2));
   }
 
   if (v.ownTurnNumber >= randInt(rng, ...cfg.knockTurnRange)) {

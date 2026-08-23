@@ -48,6 +48,10 @@ const CONFIRMED_EDGE_MARGIN = 5;
 // DOWNSTREAM_RISK_DISCOUNT.
 const DOWNSTREAM_DANGER_MARGIN = 4;
 const DOWNSTREAM_RISK_DISCOUNT = 3;
+// BLUNDER_CHANCE is the odds Expert ignores its own checklist on any
+// given turn and trades a random card instead, per specs/bots.md's
+// Blunder mechanic. Expert never blunders.
+const BLUNDER_CHANCE = 0;
 
 // ExpertBot implements the Expert strategy described in
 // specs/bots.md, via the decision skeleton shared with AdvancedBot
@@ -129,6 +133,7 @@ export class ExpertBot implements Strategy {
       this.rng,
       {
         chooseFirstTurn: (view) => (allDifferentSuits(view.hand) ? exchange() : knock()),
+        blunderChance: BLUNDER_CHANCE,
         knockTurnRange: KNOCK_TURN_RANGE,
         bestScoreTurnsAgoRange: BEST_SCORE_TURNS_AGO_RANGE,
         knockScore: KNOCK_SCORE,

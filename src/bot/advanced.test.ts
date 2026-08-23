@@ -27,6 +27,26 @@ class FixedRng extends Rng {
   }
 }
 
+// QueueRng returns each queued value in turn, then repeats the last one
+// -- for tests that need to force two different chance() rolls (e.g.
+// blunder, then the bullet under test) within the same decide() call.
+class QueueRng extends Rng {
+  private values: number[];
+  constructor(values: number[]) {
+    super(0);
+    this.values = values;
+  }
+  next(): number {
+    return this.values.length > 1 ? (this.values.shift() as number) : (this.values[0] as number);
+  }
+}
+
+// NO_BLUNDER forces the blunder roll to miss (it's always < 1) without
+// landing on a range's exact boundary, so tests below can assert on a
+// specific bullet without the new blunder check picking a random trade
+// instead.
+const NO_BLUNDER = (): Rng => new FixedRng(0.999);
+
 function baseView(overrides: Partial<PlayerView>): PlayerView {
   return {
     hand: mustHand("7c", "8d", "9s"),
@@ -57,7 +77,7 @@ test("decide on the first turn: takes the pot only when the hand's three cards a
 
 test("knocks once the bot's own turn number reaches the [25-30] range, regardless of hand/pot", () => {
   const v = baseView({ ownTurnNumber: 100 });
-  const b = new AdvancedBot();
+  const b = new AdvancedBot({ rng: NO_BLUNDER() });
   assert.equal(b.decide(v).type, "knock");
 });
 
@@ -124,14 +144,14 @@ test("exchanges only when the pot is both knock-worthy (>= 26) and beats the han
   ];
   for (const c of cases) {
     const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), ownTurnNumber: 2 });
-    const b = new AdvancedBot();
+    const b = new AdvancedBot({ rng: NO_BLUNDER() });
     assert.equal(b.decide(v).type === "exchange", c.wantExchange, c.name);
   }
 });
 
 test("knocks when the hand ties its best-ever score and that best was reached more than [3-5] of its own turns ago", () => {
   const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 8 });
-  const b = new AdvancedBot({ bestScore: 9, bestTurn: 1 });
+  const b = new AdvancedBot({ rng: NO_BLUNDER(), bestScore: 9, bestTurn: 1 });
   assert.equal(b.decide(v).type, "knock");
 });
 
@@ -156,7 +176,7 @@ test("trades to improve the hand when a pot card would help it", () => {
   const hand = mustHand("7c", "8d", "9s");
   const pot = mustPot("Ah", "Kd", "7s");
   const v = baseView({ hand, pot, ownTurnNumber: 2 });
-  const b = new AdvancedBot();
+  const b = new AdvancedBot({ rng: NO_BLUNDER() });
   const action = b.decide(v);
 
   const want = bestImprovingSwap(v);
@@ -170,7 +190,7 @@ test("knocks once the hand score reaches 26, when no swap improves it further", 
   const v = baseView({ hand: mustHand("7h", "9h", "Th"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
   assert.equal(score(v.hand), 26);
   assert.equal(bestImprovingSwap(v), undefined);
-  const b = new AdvancedBot();
+  const b = new AdvancedBot({ rng: NO_BLUNDER() });
   assert.equal(b.decide(v).type, "knock");
 });
 
@@ -183,7 +203,7 @@ test("does not force a score-threshold knock below 26", () => {
 });
 
 test("records the resulting score as its best even from the round's first turn", () => {
-  const b = new AdvancedBot();
+  const b = new AdvancedBot({ rng: NO_BLUNDER() });
   b.onRoundStart();
 
   // 7c/8d/9s are three different suits, so the pot is always taken
@@ -203,14 +223,16 @@ test("takes a pair-maker trade on the 50% chance hit", () => {
   // 7c/8d remain unnecessary (9h is the sole best suit), no pot swap
   // improves the hand, and 7s (potIdx 0) pairs with 7c, outside the 8d
   // slot (handIdx 1) -- the lowest (potIdx, handIdx) pairing
-  // choosePairMaker finds. A FixedRng below 0.5 forces the PAIR_MAKER_CHANCE
-  // coin flip to hit.
+  // choosePairMaker finds. QueueRng's first roll (1, always a miss)
+  // forces the blunder check to fall through so the PAIR_MAKER_CHANCE
+  // roll is reached at all; its second roll (0) then forces that coin
+  // flip to hit.
   const hand = mustHand("7c", "8d", "9h");
   const pot = mustPot("7s", "8s", "9s");
   const v = baseView({ hand, pot, ownTurnNumber: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
-  const b = new AdvancedBot({ rng: new FixedRng(0) });
+  const b = new AdvancedBot({ rng: new QueueRng([1, 0]) });
   const action = b.decide(v);
   assert.equal(action.type, "trade");
   assert.equal(action.potIndex, 0);
@@ -218,16 +240,18 @@ test("takes a pair-maker trade on the 50% chance hit", () => {
 });
 
 test("falls through to a fully random trade on the 50% chance miss", () => {
-  // Same fixture as the chance-hit case above, but a FixedRng at or
-  // above 0.5 forces the coin flip to miss -- Advanced continues to the
-  // next bullet (the fully-random trade) as if no pairing card had been
-  // found, per specs/bots.md.
+  // Same fixture as the chance-hit case above: QueueRng's first roll
+  // (1) misses the blunder check, and its second roll (0.9, at or
+  // above 0.5) misses the PAIR_MAKER_CHANCE coin flip too -- Advanced
+  // continues to the next bullet (the fully-random trade) as if no
+  // pairing card had been found, per specs/bots.md. That final trade
+  // reuses the same 0.9 (QueueRng repeats its last value).
   const hand = mustHand("7c", "8d", "9h");
   const pot = mustPot("7s", "8s", "9s");
   const v = baseView({ hand, pot, ownTurnNumber: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
-  const b = new AdvancedBot({ rng: new FixedRng(0.9) });
+  const b = new AdvancedBot({ rng: new QueueRng([1, 0.9]) });
   const action = b.decide(v);
   assert.equal(action.type, "trade");
   assert.equal(action.potIndex, 2);

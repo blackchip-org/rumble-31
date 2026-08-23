@@ -29,6 +29,10 @@ const KNOCK_SCORE_RANGE: [number, number] = [27, 29];
 // gamble: take the unseen pot when the bot's own hand score is below a
 // number randomly rolled from this range.
 const TAKE_POT_SCORE_RANGE: [number, number] = [13, 16];
+// BLUNDER_CHANCE is the odds Novice ignores its own checklist on any
+// given turn and trades a random card instead, per specs/bots.md's
+// Blunder mechanic.
+const BLUNDER_CHANCE = 0.14;
 
 // NoviceBot implements the Novice strategy described in specs/bots.md,
 // via the decision skeleton shared with AdvancedBot and ExpertBot
@@ -69,6 +73,7 @@ export class NoviceBot implements Strategy {
       this.rng,
       {
         takePotScoreRange: TAKE_POT_SCORE_RANGE,
+        blunderChance: BLUNDER_CHANCE,
         knockTurnRange: KNOCK_TURN_RANGE,
         bestScoreTurnsAgoRange: BEST_SCORE_TURNS_AGO_RANGE,
         knockScore: KNOCK_SCORE_RANGE,

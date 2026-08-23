@@ -1,1 +1,1 @@
-export const botVersion = "2";
+export const botVersion = "3";

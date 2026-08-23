@@ -5,6 +5,26 @@ import { score } from "../card/score.ts";
 import type { Hand, Pot, PlayerView } from "../game/types.ts";
 import { NoviceBot } from "./novice.ts";
 import { bestImprovingSwap, unnecessaryIndices } from "./helpers.ts";
+import { Rng } from "../rng.ts";
+
+// FixedRng always returns the same next() value, for deterministically
+// forcing one side of a chance() coin flip in a test.
+class FixedRng extends Rng {
+  private value: number;
+  constructor(value: number) {
+    super(0);
+    this.value = value;
+  }
+  next(): number {
+    return this.value;
+  }
+}
+
+// NO_BLUNDER forces the blunder roll to miss (it's always < 1) without
+// landing on a range's exact boundary, so tests below can assert on a
+// specific bullet without the blunder check picking a random trade
+// instead.
+const NO_BLUNDER = (): Rng => new FixedRng(0.999);
 
 function mustHand(...notation: [string, string, string]): Hand {
   return [parseCard(notation[0]), parseCard(notation[1]), parseCard(notation[2])];
@@ -43,7 +63,7 @@ test("decide on the first turn: blind gamble on the pot based on the hand's own 
 
 test("knocks once the bot's own turn number reaches the [25-30] range, regardless of hand/pot", () => {
   const v = baseView({ ownTurnNumber: 100 });
-  const b = new NoviceBot();
+  const b = new NoviceBot({ rng: NO_BLUNDER() });
   assert.equal(b.decide(v).type, "knock");
 });
 
@@ -111,7 +131,7 @@ test("exchanges only when the pot is both knock-worthy (>= [27-29]) and beats th
   ];
   for (const c of cases) {
     const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), ownTurnNumber: 2 });
-    const b = new NoviceBot();
+    const b = new NoviceBot({ rng: NO_BLUNDER() });
     assert.equal(b.decide(v).type === "exchange", c.wantExchange, c.name);
   }
 });
@@ -121,7 +141,7 @@ test("knocks when the hand ties its best-ever score and more than 5 of its own t
   // fixed 5 turns, so the boundary is exact: 6 turns past the best
   // turn (bestTurn=1, ownTurnNumber=7) always knocks.
   const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 7 });
-  const b = new NoviceBot({ bestScore: 9, bestTurn: 1 });
+  const b = new NoviceBot({ rng: NO_BLUNDER(), bestScore: 9, bestTurn: 1 });
   assert.equal(b.decide(v).type, "knock");
 });
 
@@ -146,7 +166,7 @@ test("trades to improve the hand when a pot card would help it", () => {
   const hand = mustHand("7c", "8d", "9s");
   const pot = mustPot("Ah", "Kd", "7s");
   const v = baseView({ hand, pot, ownTurnNumber: 2 });
-  const b = new NoviceBot();
+  const b = new NoviceBot({ rng: NO_BLUNDER() });
   const action = b.decide(v);
 
   const want = bestImprovingSwap(v);
@@ -160,7 +180,7 @@ test("knocks once the hand score reaches the top of the [27-29] range, regardles
   const v = baseView({ hand: mustHand("9h", "Th", "Jh"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
   assert.equal(score(v.hand), 29);
   assert.equal(bestImprovingSwap(v), undefined);
-  const b = new NoviceBot();
+  const b = new NoviceBot({ rng: NO_BLUNDER() });
   assert.equal(b.decide(v).type, "knock");
 });
 
@@ -173,7 +193,7 @@ test("does not force a score-threshold knock below the [27-29] range's bottom", 
 });
 
 test("records the resulting score as its best even from the round's first turn", () => {
-  const b = new NoviceBot();
+  const b = new NoviceBot({ rng: NO_BLUNDER() });
   b.onRoundStart();
 
   // Hand score (9, mismatched suits) is well below the [13-16] blind-gamble

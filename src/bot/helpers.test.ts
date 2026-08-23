@@ -289,7 +289,7 @@ test("chooseSkeletonAction rolls a ranged knockScore once per turn and reuses it
   const action = chooseSkeletonAction(
     v,
     rng,
-    { knockTurnRange: [25, 30], bestScoreTurnsAgoRange: [3, 5], knockScore: [27, 29] },
+    { blunderChance: 0, knockTurnRange: [25, 30], bestScoreTurnsAgoRange: [3, 5], knockScore: [27, 29] },
     { score: 0, turn: 0 },
   );
   assert.equal(action.type, "knock", "must reuse the 27 already rolled for the exchange-all bullet, not re-roll to 29");

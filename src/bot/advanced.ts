@@ -23,6 +23,10 @@ const KNOCK_SCORE = 26;
 // always takes one it finds, Advanced only sometimes does, continuing to
 // the next bullet otherwise.
 const PAIR_MAKER_CHANCE = 0.5;
+// BLUNDER_CHANCE is the odds Advanced ignores its own checklist on any
+// given turn and trades a random card instead, per specs/bots.md's
+// Blunder mechanic.
+const BLUNDER_CHANCE = 0.07;
 
 // AdvancedBot implements the Advanced strategy described in specs/bots.md,
 // via the decision skeleton shared with ExpertBot
@@ -65,6 +69,7 @@ export class AdvancedBot implements Strategy {
       this.rng,
       {
         chooseFirstTurn: (view) => (allDifferentSuits(view.hand) ? exchange() : knock()),
+        blunderChance: BLUNDER_CHANCE,
         knockTurnRange: KNOCK_TURN_RANGE,
         bestScoreTurnsAgoRange: BEST_SCORE_TURNS_AGO_RANGE,
         knockScore: KNOCK_SCORE,
