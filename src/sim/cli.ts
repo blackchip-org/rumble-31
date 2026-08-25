@@ -4,7 +4,7 @@
 // this file only wires those to the process.
 
 import { parseCliArgs } from "./cliParams.ts";
-import { formatComboTable, formatReport, runAllCombos, runSimulation } from "./simulate.ts";
+import { formatComboTable, formatHeadsUpReport, formatReport, runAllCombos, runHeadsUpSimulation, runSimulation } from "./simulate.ts";
 
 export async function main(argv: readonly string[], stdout: NodeJS.WritableStream): Promise<void> {
   const config = parseCliArgs(argv);
@@ -12,6 +12,12 @@ export async function main(argv: readonly string[], stdout: NodeJS.WritableStrea
   if (config.mode === "all") {
     const combos = await runAllCombos(config.games, config.seed, config.botVersion);
     stdout.write(formatComboTable(config.games, config.seed, config.botVersion, combos).join("\n") + "\n");
+    return;
+  }
+
+  if (config.mode === "headsUp") {
+    const result = await runHeadsUpSimulation(config, (line) => stdout.write(line + "\n"));
+    stdout.write(formatHeadsUpReport(config, result).join("\n") + "\n");
     return;
   }
 

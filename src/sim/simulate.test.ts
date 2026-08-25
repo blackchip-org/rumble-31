@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { allBotCombos, formatComboTable, formatReport, runAllCombos, runSimulation } from "./simulate.ts";
-import type { ComboResult, SimulationConfig, SimulationResult } from "./simulate.ts";
+import { allBotCombos, formatComboTable, formatHeadsUpReport, formatReport, runAllCombos, runHeadsUpSimulation, runSimulation } from "./simulate.ts";
+import type { ComboResult, HeadsUpSimulationConfig, HeadsUpSimulationResult, SimulationConfig, SimulationResult } from "./simulate.ts";
 
 test("runSimulation: plays the requested number of games and tallies results", async () => {
   const config: SimulationConfig = { seed: 1, games: 20, botVersion: "v4", bots: ["novice", "advanced", "expert", "novice"] };
@@ -64,6 +64,67 @@ test("runSimulation: botLog writes [bot]-prefixed decision lines only for the na
   const noLog: string[] = [];
   await runSimulation({ seed: 3, games: 1, botVersion: "v4", bots }, (line) => noLog.push(line));
   assert.deepEqual(noLog, [], "no botLog: no decision lines written even with a write callback");
+});
+
+test("runHeadsUpSimulation: plays the requested number of games and tallies results", async () => {
+  const config: HeadsUpSimulationConfig = { seed: 1, games: 20, botVersion: "v4", bots: ["advanced", "expert"] };
+  const result = await runHeadsUpSimulation(config);
+
+  assert.equal(result.games, 20);
+  const totalWins = result.wins.reduce((a, b) => a + b, 0);
+  assert.ok(totalWins >= result.games, "every game credits at least one bot slot with a win");
+  assert.ok(result.totalRounds >= result.games, "every game plays at least one round");
+});
+
+test("runHeadsUpSimulation: same seed reproduces the same result", async () => {
+  const config: HeadsUpSimulationConfig = { seed: 42, games: 10, botVersion: "v4", bots: ["advanced", "expert"] };
+  const a = await runHeadsUpSimulation(config);
+  const b = await runHeadsUpSimulation(config);
+  assert.deepEqual(a, b);
+});
+
+test("runHeadsUpSimulation: identical bots in both slots win about equally often across seat reassignment", async () => {
+  const config: HeadsUpSimulationConfig = { seed: 7, games: 4000, botVersion: "v4", bots: ["advanced", "advanced"] };
+  const result = await runHeadsUpSimulation(config);
+
+  for (const wins of result.wins) {
+    const pct = wins / result.games;
+    assert.ok(pct > 0.4 && pct < 0.6, `slot win rate ${pct} should be close to 0.5 with no seat bias`);
+  }
+});
+
+test("runHeadsUpSimulation: botLog writes [bot]-prefixed decision lines only for the named seats, and only with a write callback", async () => {
+  const bots: HeadsUpSimulationConfig["bots"] = ["advanced", "expert"];
+  const botLog = new Map<number, "summary" | "full">([[1, "summary"]]);
+
+  const withoutWrite = await runHeadsUpSimulation({ seed: 3, games: 1, botVersion: "v4", bots, botLog });
+  assert.equal(withoutWrite.games, 1, "botLog without a write callback doesn't throw or change the result shape");
+
+  const lines: string[] = [];
+  await runHeadsUpSimulation({ seed: 3, games: 5, botVersion: "v4", bots, botLog }, (line) => lines.push(line));
+  assert.ok(lines.length > 0, "expected at least one decision line for the logged seat's turns across a few games");
+  for (const line of lines) {
+    assert.ok(line.startsWith("[bot] "), line);
+  }
+
+  const noLog: string[] = [];
+  await runHeadsUpSimulation({ seed: 3, games: 1, botVersion: "v4", bots }, (line) => noLog.push(line));
+  assert.deepEqual(noLog, [], "no botLog: no decision lines written even with a write callback");
+});
+
+test("formatHeadsUpReport", () => {
+  const config: HeadsUpSimulationConfig = { seed: 7, games: 4, botVersion: "v4", bots: ["advanced", "expert"] };
+  const result: HeadsUpSimulationResult = { games: 4, wins: [1, 3], ties: 1, totalRounds: 12 };
+
+  assert.deepEqual(formatHeadsUpReport(config, result), [
+    "Played 4 game(s) with seed 7 (bots v4, heads up)",
+    "",
+    "Bot 1 (advanced): 1 win(s), 25.0%",
+    "Bot 2 (expert): 3 win(s), 75.0%",
+    "",
+    "Ties: 1",
+    "Average rounds per game: 3.00",
+  ]);
 });
 
 test("allBotCombos: every distinct 4-bot multiset of novice/advanced/expert, no duplicates", () => {

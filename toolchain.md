@@ -55,6 +55,15 @@ table:
 npm run simulate -- --games=1000
 ```
 
+Pass a two-letter `--strat` to play just those two bots head-to-head
+instead: the other two seats start eliminated, so every round of
+every game uses the Heads Up strategy (specs/bots_v4.md) from its
+first turn:
+
+```bash
+npm run simulate -- --games=1000 --strat=ae
+```
+
 Bots play the v4 strategies (specs/bots_v4.md) by default. Pass
 `--bot-version=v3` to play the older v3 strategies (specs/bots_v3.md)
 instead:

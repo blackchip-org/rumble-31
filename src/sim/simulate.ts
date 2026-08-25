@@ -4,6 +4,7 @@
 
 import { newGame } from "../game/game.ts";
 import type { PlayerView, Strategy } from "../game/types.ts";
+import { strategyFunc } from "../game/types.ts";
 import { botDecisionLines } from "../log.ts";
 import { Rng } from "../rng.ts";
 import { BOT_SKILL_LEVELS, type BotSkillLevel, createBot as createBotV3 } from "../bot/v3/factory.ts";
@@ -127,6 +128,102 @@ export function formatReport(config: SimulationConfig, result: SimulationResult)
   const lines = [`Played ${result.games} game(s) with seed ${config.seed} (bots ${config.botVersion})`, ""];
 
   for (let slot = 0; slot < 4; slot++) {
+    const wins = result.wins[slot] as number;
+    const pct = ((wins / result.games) * 100).toFixed(1);
+    lines.push(`Bot ${slot + 1} (${config.bots[slot]}): ${wins} win(s), ${pct}%`);
+  }
+
+  lines.push("");
+  lines.push(`Ties: ${result.ties}`);
+  lines.push(`Average rounds per game: ${(result.totalRounds / result.games).toFixed(2)}`);
+  return lines;
+}
+
+// HeadsUpSimulationConfig configures a batch of independent 2-bot
+// games where the other two seats start pre-eliminated (Game's
+// `eliminated` init), so every round of every game is the Heads Up
+// strategy (specs/bots_v4.md) from the round's very first turn --
+// unlike a 4-bot combo, where a bot only reaches Heads Up once two
+// other seats have already been eliminated by play, if ever.
+export interface HeadsUpSimulationConfig {
+  seed: number;
+  games: number;
+  botVersion: BotVersion;
+  // bots[slot] is the skill level of the slot-th bot under test, same
+  // slot-vs-seat distinction as SimulationConfig.bots.
+  bots: [BotSkillLevel, BotSkillLevel];
+  botLog?: ReadonlyMap<number, LogDetail>;
+}
+
+// HeadsUpSimulationResult tallies the outcome of a HeadsUpSimulationConfig batch.
+export interface HeadsUpSimulationResult {
+  games: number;
+  wins: [number, number];
+  ties: number;
+  totalRounds: number;
+}
+
+// unreachablePlaceholder fills the two pre-eliminated seats' strategy
+// slots for runHeadsUpSimulation. Game never deals in, takes a turn
+// from, or otherwise calls decide() on a seat that started eliminated
+// (see Round's own "2 to 4 active seats" doc comment), so this should
+// never actually run.
+const unreachablePlaceholder: Strategy = strategyFunc(() => {
+  throw new Error("runHeadsUpSimulation: a pre-eliminated seat's strategy was called");
+});
+
+// runHeadsUpSimulation plays config.games independent games, each
+// between exactly two bots -- the other two seats start eliminated, so
+// the two bots under test play every round of the game head-to-head.
+// Each game, the two bots are dealt a fresh, random pair of seats out
+// of the four (rather than always sitting at 0/1), so seating alone
+// can't bias which one tends to act first.
+export async function runHeadsUpSimulation(config: HeadsUpSimulationConfig, write?: (line: string) => void): Promise<HeadsUpSimulationResult> {
+  const rng = new Rng(config.seed);
+  const result: HeadsUpSimulationResult = { games: config.games, wins: [0, 0], ties: 0, totalRounds: 0 };
+
+  for (let i = 0; i < config.games; i++) {
+    const shuffledSeats = [0, 1, 2, 3];
+    rng.shuffle(shuffledSeats);
+    const seatOfSlot: [number, number] = [shuffledSeats[0] as number, shuffledSeats[1] as number];
+
+    const eliminated: [boolean, boolean, boolean, boolean] = [true, true, true, true];
+    eliminated[seatOfSlot[0]] = false;
+    eliminated[seatOfSlot[1]] = false;
+
+    const botsBySeat = new Array<Strategy>(4).fill(unreachablePlaceholder) as [Strategy, Strategy, Strategy, Strategy];
+    for (let slot = 0; slot < 2; slot++) {
+      const seat = seatOfSlot[slot] as number;
+      const detail = config.botLog?.get(seat);
+      let bot = createBot(config.botVersion, config.bots[slot] as BotSkillLevel, rng, detail);
+      if (detail !== undefined && write) {
+        bot = withDecisionLog(seat, bot, detail, write);
+      }
+      botsBySeat[seat] = bot;
+    }
+
+    const game = newGame(rng.nextSeed(), botsBySeat, { strikes: [0, 0, 0, 0], secondChance: [false, false, false, false], eliminated });
+    const { winners, log } = await game.run();
+
+    result.totalRounds += log.length;
+    if (winners.length > 1) {
+      result.ties++;
+    }
+    for (const seat of winners) {
+      const slot = seatOfSlot.indexOf(seat);
+      result.wins[slot] = (result.wins[slot] as number) + 1;
+    }
+  }
+
+  return result;
+}
+
+// formatHeadsUpReport renders a HeadsUpSimulationResult as plain text
+// lines, matching formatReport's layout for the 4-bot case.
+export function formatHeadsUpReport(config: HeadsUpSimulationConfig, result: HeadsUpSimulationResult): string[] {
+  const lines = [`Played ${result.games} game(s) with seed ${config.seed} (bots ${config.botVersion}, heads up)`, ""];
+
+  for (let slot = 0; slot < 2; slot++) {
     const wins = result.wins[slot] as number;
     const pct = ((wins / result.games) * 100).toFixed(1);
     lines.push(`Bot ${slot + 1} (${config.bots[slot]}): ${wins} win(s), ${pct}%`);
