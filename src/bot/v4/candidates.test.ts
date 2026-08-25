@@ -151,7 +151,23 @@ test("tradeCandidates: disabled metrics are forced to 0 even when the raw value 
   for (const c of candidates) {
     assert.equal(c.dangerScore, 0);
     assert.equal(c.pairs, 0);
+    assert.equal(c.ace, 0);
   }
+});
+
+test("tradeCandidates: ace is 1 when the pot card taken is an Ace, 0 otherwise, only when enabled", () => {
+  const hand = mustHand("7c", "8d", "9s");
+  const pot = mustPot("Ah", "Qd", "Js");
+  const disabled = tradeCandidates(baseView({ hand, pot }), new FixedRng(0.5), { danger: false, pairs: false });
+  for (const c of disabled) {
+    assert.equal(c.ace, 0);
+  }
+
+  const enabled = tradeCandidates(baseView({ hand, pot }), new FixedRng(0.5), { danger: false, pairs: false, ace: true });
+  const takesAce = enabled.find((c) => c.potIdx === 0) as TradeCandidate;
+  assert.equal(takesAce.ace, 1);
+  const takesNonAce = enabled.find((c) => c.potIdx === 1) as TradeCandidate;
+  assert.equal(takesNonAce.ace, 0);
 });
 
 const sortCases: {
@@ -215,6 +231,7 @@ for (const c of sortCases) {
       dangerScore: 0,
       potScore: 0,
       pairs: 0,
+      ace: 0,
       random: 0,
       ...p,
     }));
@@ -223,6 +240,39 @@ for (const c of sortCases) {
     assert.deepEqual(gotOrder, c.wantOrder);
   });
 }
+
+test("sortCandidates: preferAce off (default) leaves an ace difference with no effect", () => {
+  const full: TradeCandidate[] = [
+    { potIdx: 0, handIdx: 0, handScore: 20, dangerScore: 0, potScore: 15, pairs: 0, ace: 0, random: 0 },
+    { potIdx: 1, handIdx: 1, handScore: 20, dangerScore: 0, potScore: 15, pairs: 0, ace: 1, random: 0 },
+  ];
+  const sorted = sortCandidates(full);
+  // Pot score ties (both 15) and ace is ignored, so random (also tied
+  // at 0) decides -- neither index is preferred over the other here,
+  // this just confirms preferAce's default doesn't reorder by ace.
+  assert.deepEqual(
+    sorted.map((c) => c.ace),
+    [0, 1],
+  );
+});
+
+test("sortCandidates: preferAce true prefers taking an Ace on a hand/danger/pairs tie, even if its pot score is worse", () => {
+  const full: TradeCandidate[] = [
+    { potIdx: 0, handIdx: 0, handScore: 20, dangerScore: 0, potScore: 10, pairs: 0, ace: 0, random: 0 },
+    { potIdx: 1, handIdx: 1, handScore: 20, dangerScore: 0, potScore: 20, pairs: 0, ace: 1, random: 0 },
+  ];
+  const sorted = sortCandidates(full, true);
+  assert.equal(sorted[0]?.ace, 1);
+});
+
+test("sortCandidates: preferAce true still ranks an actual pair above an ace-denying non-pair", () => {
+  const full: TradeCandidate[] = [
+    { potIdx: 0, handIdx: 0, handScore: 20, dangerScore: 0, potScore: 20, pairs: 1, ace: 0, random: 0 },
+    { potIdx: 1, handIdx: 1, handScore: 20, dangerScore: 0, potScore: 10, pairs: 0, ace: 1, random: 0 },
+  ];
+  const sorted = sortCandidates(full, true);
+  assert.equal(sorted[0]?.pairs, 1);
+});
 
 const suitCases: { name: string; hand: [string, string, string]; want: boolean }[] = [
   { name: "three different suits", hand: ["7c", "8d", "9h"], want: true },
@@ -263,6 +313,7 @@ for (const c of excludeDangerousCases) {
       dangerScore,
       potScore: 0,
       pairs: 0,
+      ace: 0,
       random: 0,
     }));
     const got = excludeDangerous(candidates).map((c) => c.dangerScore);
@@ -288,6 +339,7 @@ for (const c of forcedTradePoolCases) {
       dangerScore,
       potScore: 0,
       pairs: 0,
+      ace: 0,
       random: 0,
     }));
     const { pool, fellBack } = forcedTradePool(candidates);

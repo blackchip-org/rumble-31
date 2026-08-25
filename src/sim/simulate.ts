@@ -60,10 +60,27 @@ export interface BotMetrics {
   // terms of the single card given to the pot. Its six entries always
   // sum to trades.
   dangerCounts: [number, number, number, number, number, number];
+  // forcedTrades counts trades that didn't improve the hand. A phase
+  // -- rather than TurnRecord-derived -- distinction isn't available
+  // here (see this interface's own doc comment), but specs/bots_v4.md's
+  // Discard phase only ever runs when Improve Hand already found no
+  // improving candidate, so a non-improving trade is Discard's own
+  // forced trade whenever this turn had no Mistake (exact for Expert,
+  // whose mistakeChance is always 0 -- see specs/bots_v4.md's Mistake
+  // section -- and an approximation for Novice/Advanced, where a
+  // mistake landing on Knock or Discard skips Improve Hand
+  // unconditionally, occasionally letting an actually-improving trade
+  // reach Discard instead).
+  forcedTrades: number;
+  // forcedAceTrades counts, of forcedTrades, how many took an Ace from
+  // the pot -- specs/bots_v4.md's Discard section's Expert-only
+  // ace-hoarding heuristic, which denies that Ace to opponents for at
+  // least a lap.
+  forcedAceTrades: number;
 }
 
 export function newBotMetrics(): BotMetrics {
-  return { turns: 0, firstActorTurns: 0, firstActorPotTaken: 0, handImproved: 0, trades: 0, exchanges: 0, knocks: 0, pairsFormed: 0, dangerCounts: [0, 0, 0, 0, 0, 0] };
+  return { turns: 0, firstActorTurns: 0, firstActorPotTaken: 0, handImproved: 0, trades: 0, exchanges: 0, knocks: 0, pairsFormed: 0, dangerCounts: [0, 0, 0, 0, 0, 0], forcedTrades: 0, forcedAceTrades: 0 };
 }
 
 // recordTurn folds one TurnRecord into a bot slot's BotMetrics.
@@ -73,7 +90,8 @@ export function recordTurn(m: BotMetrics, rec: TurnRecord): void {
   if (isFirstTurn) {
     m.firstActorTurns++;
   }
-  if (score(rec.handBefore) < rec.scoreAfter) {
+  const improved = score(rec.handBefore) < rec.scoreAfter;
+  if (improved) {
     m.handImproved++;
   }
 
@@ -95,6 +113,13 @@ export function recordTurn(m: BotMetrics, rec: TurnRecord): void {
   m.dangerCounts[dangerTier] = (m.dangerCounts[dangerTier] as number) + 1;
   if (hasPair(rec.handAfter) && !hasPair(rec.handBefore)) {
     m.pairsFormed++;
+  }
+  if (!improved) {
+    m.forcedTrades++;
+    const takenCard = rec.potBefore[rec.action.potIndex] as Card;
+    if (takenCard.rank === "A") {
+      m.forcedAceTrades++;
+    }
   }
 }
 
@@ -121,6 +146,7 @@ function formatMetricsLines(bots: readonly BotSkillLevel[], metrics: readonly Bo
     lines.push(`  Knocks: ${m.knocks}`);
     lines.push(`  Trades forming a pair: ${m.pairsFormed}/${m.trades} (${pct(m.pairsFormed, m.trades)})`);
     lines.push(`  Trade danger score: avg ${avgDanger}, tiers 0-5: ${m.dangerCounts.join("/")}`);
+    lines.push(`  Aces taken on a forced trade: ${m.forcedAceTrades}/${m.forcedTrades} (${pct(m.forcedAceTrades, m.forcedTrades)})`);
   }
   return lines;
 }

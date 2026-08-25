@@ -195,6 +195,17 @@ When trade candidates are calculated, take into consideration:
 - Advanced: Danger score is calculated, Pairs is zero
 - Expert: Danger score is calculated, Pairs is calculated
 
+Expert only: candidates are also scored for ace denial -- 1 if the pot
+card taken is an Ace, 0 otherwise -- sorted directly below Pairs and
+above Pot score. Since a pair is only ever tied with another candidate
+on ace denial when neither forms one, this only ever decides between
+candidates that are already equally unable to make a pair: if a pair
+is available, it still wins as before; otherwise, taking an Ace out of
+the pot is preferred over a candidate that doesn't, denying it from
+being used against us for at least a lap even though it may end up
+back in the pot on a later trade. This has no effect on Novice or
+Advanced, who don't use this metric.
+
 If this phase is the mistake site, pick a candidate uniformly at random
 from all nine instead of the topmost one. Discard is always reached with
 a forced trade to make, so unlike Improve Hand this mistake always has
@@ -348,6 +359,14 @@ is still listed, marked to say so, e.g.:
 If every candidate is excluded and Discard falls back to the full
 list, none are marked excluded (they weren't actually excluded), and
 a line notes the fallback happened.
+
+Expert's Discard candidate lines carry one more figure than shown
+above -- the ace-denial metric (see "Discard" above) -- e.g.:
+
+    [bot] Seat (Discard):   [7c]->[Ah]: hand 24, danger 0, pot 20, pairs 0, ace 1
+
+This does not appear in Improve Hand's lines, or in Discard's lines
+for Novice/Advanced, since none of them use this metric.
 
 The final line for whichever phase produces the turn's action states
 the action taken and doubles as Full Trace's own summary -- no

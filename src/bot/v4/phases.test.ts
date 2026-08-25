@@ -363,6 +363,31 @@ test("discardPhase: pairs beats a lower pot score when every candidate ties on h
   assert.equal(action.handIndex, 2, "should discard Qh, the card not part of the spade pair");
 });
 
+// hoardAce (specs/bots_v4.md's Discard section, Expert only): wires
+// CandidateMetrics.ace/sortCandidates' preferAce into discardPhase's
+// own candidate scoring and Decision Logging, on top of whatever
+// metrics the caller passed in. The comparator itself is covered
+// directly in candidates.test.ts; these confirm discardPhase actually
+// enables it when asked, and only then.
+test("discardPhase: hoardAce logs the ace figure on every candidate line, omitted when off", () => {
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Ah", "Qd", "Js") });
+  const withHoard: Trace = [];
+  discardPhase(v, new FixedRng(0.5), expertMetrics, "normal", withHoard, false, true);
+  const rankedLines = withHoard.filter((e) => e.detail.startsWith("  ["));
+  assert.equal(rankedLines.length, 9);
+  assert.ok(
+    rankedLines.every((e) => /, ace [01]/.test(e.detail)),
+    "expected every ranked candidate line to include an ace figure",
+  );
+
+  const withoutHoard: Trace = [];
+  discardPhase(v, new FixedRng(0.5), expertMetrics, "normal", withoutHoard, false, false);
+  assert.ok(
+    withoutHoard.filter((e) => e.detail.startsWith("  [")).every((e) => !e.detail.includes("ace ")),
+    "expected no ace figure logged when hoardAce is off",
+  );
+});
+
 // Decision Logging (specs/bots_v4.md): each phase's trace has exactly
 // one acted=true entry (the one whose phase produced the returned
 // action), and every entry names that same phase -- except Mistake,

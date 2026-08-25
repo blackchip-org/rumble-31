@@ -83,7 +83,7 @@ test("recordTurn: folds one TurnRecord into a bot's BotMetrics", () => {
         potBefore: mustPot("7c", "Qc", "9c"),
         potAfter: mustPot("Kc", "Qc", "9c"),
       }),
-      want: metricsWith({ turns: 1, trades: 1, dangerCounts: [0, 0, 1, 0, 0, 0] }),
+      want: metricsWith({ turns: 1, trades: 1, dangerCounts: [0, 0, 1, 0, 0, 0], forcedTrades: 1 }),
     },
     {
       name: "trade forming a pair: pairsFormed counted",
@@ -95,7 +95,7 @@ test("recordTurn: folds one TurnRecord into a bot's BotMetrics", () => {
         potBefore: mustPot("9h", "Qd", "Jh"),
         potAfter: mustPot("7c", "Qd", "Jh"),
       }),
-      want: metricsWith({ turns: 1, trades: 1, handImproved: 0, pairsFormed: 1, dangerCounts: [1, 0, 0, 0, 0, 0] }),
+      want: metricsWith({ turns: 1, trades: 1, handImproved: 0, pairsFormed: 1, dangerCounts: [1, 0, 0, 0, 0, 0], forcedTrades: 1 }),
     },
     {
       name: "trade that keeps an existing pair: not newly formed",
@@ -107,7 +107,7 @@ test("recordTurn: folds one TurnRecord into a bot's BotMetrics", () => {
         potBefore: mustPot("9c", "Qd", "Jh"),
         potAfter: mustPot("9h", "Qd", "Jh"),
       }),
-      want: metricsWith({ turns: 1, trades: 1, dangerCounts: [1, 0, 0, 0, 0, 0] }),
+      want: metricsWith({ turns: 1, trades: 1, dangerCounts: [1, 0, 0, 0, 0, 0], forcedTrades: 1 }),
     },
     {
       name: "trade danger tier 5: resulting pot scores 31",
@@ -119,7 +119,7 @@ test("recordTurn: folds one TurnRecord into a bot's BotMetrics", () => {
         handBefore: mustHand("Ac", "8d", "9s"),
         handAfter: mustHand("7c", "8d", "9s"),
       }),
-      want: metricsWith({ turns: 1, trades: 1, dangerCounts: [0, 0, 0, 0, 0, 1] }),
+      want: metricsWith({ turns: 1, trades: 1, dangerCounts: [0, 0, 0, 0, 0, 1], forcedTrades: 1 }),
     },
     {
       name: "trade danger tier 4: resulting pot scores 32 (three aces)",
@@ -156,6 +156,38 @@ test("recordTurn: folds one TurnRecord into a bot's BotMetrics", () => {
         handAfter: mustHand("7d", "9d", "9s"),
       }),
       want: metricsWith({ turns: 1, trades: 1, handImproved: 1, dangerCounts: [0, 1, 0, 0, 0, 0] }),
+    },
+    {
+      // Kd/8d already score 18 (same-suit sum) before the trade, so
+      // swapping the Ace in for the unrelated 7s ties at 18 rather than
+      // improving -- forcedAceTrades counts it since it's a forced
+      // (non-improving) trade that happens to take an Ace.
+      name: "forced trade taking an Ace: forcedAceTrades counted",
+      rec: baseTurn({
+        turnIndex: 3,
+        action: trade(0, 2),
+        potBefore: mustPot("Ac", "7h", "9h"),
+        potAfter: mustPot("7s", "7h", "9h"),
+        handBefore: mustHand("Kd", "8d", "7s"),
+        handAfter: mustHand("Kd", "8d", "Ac"),
+      }),
+      want: metricsWith({ turns: 1, trades: 1, dangerCounts: [1, 0, 0, 0, 0, 0], forcedTrades: 1, forcedAceTrades: 1 }),
+    },
+    {
+      // Taking the Ace here raises the hand score (9 -> 11), so this
+      // is an ordinary improving trade, not a forced one -- confirms
+      // forcedAceTrades only counts Aces taken on a non-improving
+      // trade, not every Ace pickup.
+      name: "improving trade taking an Ace: not counted as forced",
+      rec: baseTurn({
+        turnIndex: 3,
+        action: trade(0, 0),
+        potBefore: mustPot("Ac", "Qd", "Jh"),
+        potAfter: mustPot("7c", "Qd", "Jh"),
+        handBefore: mustHand("7c", "8d", "9s"),
+        handAfter: mustHand("Ac", "8d", "9s"),
+      }),
+      want: metricsWith({ turns: 1, trades: 1, handImproved: 1, dangerCounts: [1, 0, 0, 0, 0, 0] }),
     },
   ];
 
@@ -244,6 +276,8 @@ test("runSimulation: metrics, when requested, tallies every slot's turns and are
     assert.ok(m.firstActorPotTaken <= m.firstActorTurns);
     assert.ok(m.handImproved <= m.turns);
     assert.ok(m.pairsFormed <= m.trades);
+    assert.ok(m.forcedTrades <= m.trades);
+    assert.ok(m.forcedAceTrades <= m.forcedTrades);
   }
 });
 
@@ -316,7 +350,7 @@ test("formatHeadsUpReport: appends a Metrics section when the result carries one
     ties: 1,
     totalRounds: 12,
     metrics: [
-      metricsWith({ turns: 10, firstActorTurns: 4, firstActorPotTaken: 1, handImproved: 5, trades: 6, exchanges: 2, knocks: 2, pairsFormed: 1, dangerCounts: [3, 1, 1, 0, 1, 0] }),
+      metricsWith({ turns: 10, firstActorTurns: 4, firstActorPotTaken: 1, handImproved: 5, trades: 6, exchanges: 2, knocks: 2, pairsFormed: 1, dangerCounts: [3, 1, 1, 0, 1, 0], forcedTrades: 3, forcedAceTrades: 1 }),
       metricsWith({ turns: 8 }),
     ],
   };
@@ -337,12 +371,14 @@ test("formatHeadsUpReport: appends a Metrics section when the result carries one
     "  Knocks: 2",
     "  Trades forming a pair: 1/6 (16.7%)",
     "  Trade danger score: avg 1.17, tiers 0-5: 3/1/1/0/1/0",
+    "  Aces taken on a forced trade: 1/3 (33.3%)",
     "Bot 2 (expert):",
     "  Took pot as first actor: 0/0 (n/a)",
     "  Hand improved: 0/8 (0.0%)",
     "  Knocks: 0",
     "  Trades forming a pair: 0/0 (n/a)",
     "  Trade danger score: avg n/a, tiers 0-5: 0/0/0/0/0/0",
+    "  Aces taken on a forced trade: 0/0 (n/a)",
   ]);
 });
 

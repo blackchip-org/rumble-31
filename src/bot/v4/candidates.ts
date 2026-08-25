@@ -11,10 +11,15 @@ import type { Rng } from "../../rng.ts";
 
 // CandidateMetrics selects which of specs/bots_v4.md's Trade
 // Candidates metrics a skill level evaluates -- danger and pairs are
-// forced to 0 for a disabled metric rather than computed.
+// forced to 0 for a disabled metric rather than computed. ace is the
+// Discard phase's Expert-only ace-hoarding metric (specs/bots_v4.md's
+// Discard section) -- optional and left unset everywhere except
+// discardPhase's own internal use, since it's never part of a skill
+// level's shared candidateMetrics (see SkillConfig in strategies.ts).
 export interface CandidateMetrics {
   danger: boolean;
   pairs: boolean;
+  ace?: boolean;
 }
 
 // TradeCandidate is one of the nine possible pot-card/hand-card swaps,
@@ -27,6 +32,7 @@ export interface TradeCandidate {
   dangerScore: number;
   potScore: number;
   pairs: number;
+  ace: number;
   random: number;
 }
 
@@ -88,6 +94,7 @@ export function tradeCandidates(v: PlayerView, rng: Rng, metrics: CandidateMetri
         dangerScore: metrics.danger ? dangerScoreFor(potScoreAfter, handCard) : 0,
         potScore: potScoreAfter,
         pairs: metrics.pairs ? (hasPair(hand) ? 1 : 0) : 0,
+        ace: metrics.ace ? (potCard.rank === "A" ? 1 : 0) : 0,
         random: rng.next(),
       });
     }
@@ -102,12 +109,20 @@ export function tradeCandidates(v: PlayerView, rng: Rng, metrics: CandidateMetri
 // score -- a live shot at 30.5 is worth more than shaving points off
 // an already-safe pot -- but still behind danger, so it never
 // overrides a candidate danger already flagged as genuinely risky.
-export function sortCandidates(candidates: readonly TradeCandidate[]): TradeCandidate[] {
+//
+// preferAce adds Discard's Expert-only ace-hoarding tiebreak (specs/
+// bots_v4.md's Discard section) directly below pairs: when neither
+// candidate in a comparison forms a pair (pairs is tied), one that
+// takes an Ace from the pot outranks one that doesn't, denying that
+// Ace to opponents for at least a lap. Off by default so it never
+// changes ordering for callers that don't ask for it.
+export function sortCandidates(candidates: readonly TradeCandidate[], preferAce = false): TradeCandidate[] {
   return [...candidates].sort(
     (a, b) =>
       b.handScore - a.handScore ||
       a.dangerScore - b.dangerScore ||
       b.pairs - a.pairs ||
+      (preferAce ? b.ace - a.ace : 0) ||
       a.potScore - b.potScore ||
       b.random - a.random,
   );

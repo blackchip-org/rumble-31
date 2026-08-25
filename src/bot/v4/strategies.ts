@@ -13,8 +13,10 @@ import type { Trace } from "./trace.ts";
 // (whether to exchange for the pot on the round's first turn), the
 // Improve Hand phase's pot exchange threshold (the minimum pot score
 // worth exchanging the whole hand for), which Trade Candidates metrics
-// (Danger score, Pairs) that phase's candidates evaluate, and the
-// Knock phase's repeat-counter and hand-score thresholds.
+// (Danger score, Pairs) that phase's candidates evaluate, the Knock
+// phase's repeat-counter and hand-score thresholds, and whether
+// Discard applies the ace-hoarding tiebreak (specs/bots_v4.md's
+// Discard section -- Expert only).
 // handSelection takes the rng too since Novice's rule is now a random
 // roll rather than a function of the hand.
 export interface SkillConfig {
@@ -24,6 +26,7 @@ export interface SkillConfig {
   candidateMetrics: CandidateMetrics;
   knockRepeatThreshold: number;
   knockScoreThreshold: number;
+  hoardAce: boolean;
 }
 
 // SKILL_CONFIGS holds each skill level's Mistake chance, Hand Selection
@@ -37,6 +40,7 @@ export const SKILL_CONFIGS: Record<"novice" | "advanced" | "expert", SkillConfig
     candidateMetrics: { danger: false, pairs: false },
     knockRepeatThreshold: 2,
     knockScoreThreshold: 27,
+    hoardAce: false,
   },
   advanced: {
     mistakeChance: 0.05,
@@ -45,6 +49,7 @@ export const SKILL_CONFIGS: Record<"novice" | "advanced" | "expert", SkillConfig
     candidateMetrics: { danger: true, pairs: false },
     knockRepeatThreshold: 3,
     knockScoreThreshold: 26,
+    hoardAce: false,
   },
   expert: {
     mistakeChance: 0,
@@ -53,6 +58,7 @@ export const SKILL_CONFIGS: Record<"novice" | "advanced" | "expert", SkillConfig
     candidateMetrics: { danger: true, pairs: true },
     knockRepeatThreshold: 5,
     knockScoreThreshold: 25,
+    hoardAce: true,
   },
 };
 
@@ -88,7 +94,7 @@ function standardStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillC
   return (
     improveHandPhase(v, rng, cfg.potExchangeThreshold, cfg.candidateMetrics, improveMode, trace) ??
     knockPhase(v, best, cfg.knockRepeatThreshold, cfg.knockScoreThreshold, failsafeLap, knockMode, trace) ??
-    discardPhase(v, rng, cfg.candidateMetrics, discardMode, trace)
+    discardPhase(v, rng, cfg.candidateMetrics, discardMode, trace, false, cfg.hoardAce)
   );
 }
 
@@ -102,7 +108,7 @@ function headsUpStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillCo
   return (
     improveHandPhase(v, rng, cfg.potExchangeThreshold, cfg.candidateMetrics, improveMode, trace, true) ??
     knockPhase(v, best, cfg.knockRepeatThreshold, cfg.knockScoreThreshold, failsafeLap, knockMode, trace) ??
-    discardPhase(v, rng, cfg.candidateMetrics, discardMode, trace, true)
+    discardPhase(v, rng, cfg.candidateMetrics, discardMode, trace, true, cfg.hoardAce)
   );
 }
 

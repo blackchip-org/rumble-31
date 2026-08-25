@@ -95,6 +95,12 @@ test("decideV4: First strategy exchanges/keeps per each skill level's Hand Selec
   }
 });
 
+test("SKILL_CONFIGS: hoardAce (specs/bots_v4.md's Discard section) is Expert only", () => {
+  assert.equal(SKILL_CONFIGS.novice.hoardAce, false);
+  assert.equal(SKILL_CONFIGS.advanced.hoardAce, false);
+  assert.equal(SKILL_CONFIGS.expert.hoardAce, true);
+});
+
 test("decideV4: Novice's Hand Selection is a 25% random roll, but only when the hand scores below 28", () => {
   // mistakeChance forced to 0 -- this isolates Novice's own Hand
   // Selection skill rule from the Mistake mechanic (covered by its own

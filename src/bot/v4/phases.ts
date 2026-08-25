@@ -60,11 +60,15 @@ export function handSelectionPhase(v: PlayerView, mistake: boolean, rng: Rng, sk
 // candidateLine formats one TradeCandidate as specs/bots_v4.md's
 // Decision Logging ranked-candidate-list line: the hand card leaving
 // and pot card arriving, then its metrics in "Trade Candidates" order.
-function candidateLine(v: PlayerView, c: TradeCandidate, excluded = false): string {
+// showAce appends the ace-hoarding figure (Discard's Expert-only
+// metric, see sortCandidates' preferAce) -- omitted elsewhere so it
+// doesn't appear in logs for phases/skill levels that don't use it.
+function candidateLine(v: PlayerView, c: TradeCandidate, excluded = false, showAce = false): string {
   const given = cardToString(v.hand[c.handIdx] as Card);
   const taken = cardToString(v.pot[c.potIdx] as Card);
+  const aceSuffix = showAce ? `, ace ${c.ace}` : "";
   const suffix = excluded ? " -- excluded, would let opponent win" : "";
-  return `  [${given}]->[${taken}]: hand ${c.handScore}, danger ${c.dangerScore}, pot ${c.potScore}, pairs ${c.pairs}${suffix}`;
+  return `  [${given}]->[${taken}]: hand ${c.handScore}, danger ${c.dangerScore}, pot ${c.potScore}, pairs ${c.pairs}${aceSuffix}${suffix}`;
 }
 
 // improveHandPhase implements specs/bots_v4.md's Improve Hand phase:
@@ -265,12 +269,20 @@ export function alwaysKnockPhase(trace?: Trace): Action {
 // a candidate is only flagged excluded when it was actually left out
 // of the pool (never during the fallback case), per Decision
 // Logging's Heads Up exception.
-export function discardPhase(v: PlayerView, rng: Rng, metrics: CandidateMetrics, mode: PhaseMode = "normal", trace?: Trace, headsUp = false): Action {
-  const sorted = sortCandidates(tradeCandidates(v, rng, metrics));
+//
+// hoardAce implements the Discard section's Expert-only ace-hoarding
+// tiebreak: candidates are scored and sorted with the ace metric
+// enabled (see CandidateMetrics.ace/sortCandidates' preferAce), so
+// among candidates tied on Pairs (neither forms one), one that takes
+// an Ace from the pot outranks one that doesn't -- denying that Ace
+// to opponents for at least a lap. false for Novice/Advanced.
+export function discardPhase(v: PlayerView, rng: Rng, metrics: CandidateMetrics, mode: PhaseMode = "normal", trace?: Trace, headsUp = false, hoardAce = false): Action {
+  const metricsUsed: CandidateMetrics = hoardAce ? { ...metrics, ace: true } : metrics;
+  const sorted = sortCandidates(tradeCandidates(v, rng, metricsUsed), hoardAce);
   const { pool, fellBack } = headsUp ? forcedTradePool(sorted) : { pool: sorted, fellBack: false };
   record(trace, "Discard", "candidates ranked --");
   for (const c of sorted) {
-    record(trace, "Discard", candidateLine(v, c, headsUp && !fellBack && c.dangerScore >= 4));
+    record(trace, "Discard", candidateLine(v, c, headsUp && !fellBack && c.dangerScore >= 4, hoardAce));
   }
   if (fellBack) {
     record(trace, "Discard", "no safe trade available (all candidates danger 4/5) -- using full list");
