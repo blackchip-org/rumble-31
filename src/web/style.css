@@ -1962,7 +1962,13 @@ body {
 }
 
 .menu-buttons button {
-  padding: 0.75rem 1rem;
+  padding: 1rem;
+}
+
+/* A small visual break between Resume and the rest of the menu,
+   mirroring .main-buttons > *:first-child above. */
+.menu-buttons > *:first-child {
+  margin-bottom: 0.75rem;
 }
 
 .menu-buttons button.menu-abandon-btn {
