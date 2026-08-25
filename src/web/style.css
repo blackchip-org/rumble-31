@@ -817,7 +817,13 @@ body {
 }
 
 .main-buttons button {
-  padding: 0.75rem 1rem;
+  padding: 1rem;
+}
+
+/* A small visual break between New Game and the rest of the menu,
+   mirroring .difficulty-buttons button:last-child above. */
+.main-buttons > *:first-child {
+  margin-bottom: 0.75rem;
 }
 
 /* ---------- game over screen ---------- */
@@ -1446,7 +1452,14 @@ body {
 }
 
 .difficulty-buttons button {
-  padding: 0.75rem 1rem;
+  padding: 1rem;
+}
+
+/* A small visual break between the difficulty choices and Main Menu,
+   mirroring the extra margin-top the mobile-landscape breakpoint below
+   already gives this same button once it's on its own row. */
+.difficulty-buttons button:last-child {
+  margin-top: 0.75rem;
 }
 
 /* ---------- stats screen ---------- */
@@ -2399,16 +2412,44 @@ body {
     gap: 1rem;
   }
 
-  .main-buttons,
   .game-over-buttons,
   .appinfo-buttons {
     gap: 0.85rem;
   }
 
-  .main-buttons button,
   .game-over-buttons button,
   .appinfo-buttons button {
     padding: 0.5rem 1rem;
+  }
+
+  /* Main's five buttons (see index.html's .main-buttons markup -- New
+     Game, How to Play, Stats, Settings, About in that DOM order),
+     stacked in a single column at every other breakpoint, don't fit
+     this breakpoint's shortest phones alongside the title (scaled
+     down separately below, but still the tallest thing in the
+     panel). Widening to a 2-column grid puts New Game on its own
+     full-width row up top (with margin-bottom for a visual break from
+     the pair below it), then leaves How to Play/Stats/Settings/About
+     to the grid's own row-major auto-placement -- unlike the
+     difficulty screen's equivalent block below, no explicit
+     nth-child placement is needed for them since New Game is already
+     first in DOM order and the remaining four already want row-major
+     (not column-major) packing: How to Play/Stats fill row 2 left to
+     right, then Settings/About fill row 3. */
+  .main-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: min(85vw, 420px);
+    gap: 0.6rem 1rem;
+  }
+
+  .main-buttons button {
+    padding: 0.85rem 1rem;
+  }
+
+  .main-buttons > *:first-child {
+    grid-column: 1 / -1;
+    margin-bottom: 0.5rem;
   }
 
   :root {
@@ -2604,6 +2645,65 @@ body {
   }
 
   .settings-screen {
+    overflow-y: auto;
+  }
+
+  /* Difficulty's five buttons (see index.html's .difficulty-buttons
+     markup -- Random, Easy, Moderate, Hard, Main Menu in that DOM
+     order), stacked in a single column at every other breakpoint,
+     don't fit this breakpoint's shortest phones alongside the fixed
+     2.25rem title (.difficulty-title doesn't scale with the viewport --
+     same as .settings-title/.stats-title above). Widening to a
+     2-column grid and explicitly placing each child repacks Random/
+     Easy into the left column and Moderate/Hard into the right column,
+     with Main Menu dropped to its own row spanning both (and given
+     extra margin-top for a visual break from the pair above it)
+     instead of one column of 5 -- roughly halving the grid's height.
+     Explicit placement below assumes exactly this DOM order -- if a
+     button is ever added, removed, or reordered, these nth-child
+     rules need updating to match. */
+  .difficulty-panel {
+    gap: 1rem;
+  }
+
+  .difficulty-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: min(85vw, 420px);
+    gap: 0.6rem 1rem;
+  }
+
+  .difficulty-buttons button {
+    padding: 0.85rem 1rem;
+  }
+
+  .difficulty-buttons > *:nth-child(1),
+  .difficulty-buttons > *:nth-child(3) {
+    grid-row: 1;
+  }
+
+  .difficulty-buttons > *:nth-child(2),
+  .difficulty-buttons > *:nth-child(4) {
+    grid-row: 2;
+  }
+
+  .difficulty-buttons > *:nth-child(1),
+  .difficulty-buttons > *:nth-child(2) {
+    grid-column: 1;
+  }
+
+  .difficulty-buttons > *:nth-child(3),
+  .difficulty-buttons > *:nth-child(4) {
+    grid-column: 2;
+  }
+
+  .difficulty-buttons > *:nth-child(5) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 0.5rem;
+  }
+
+  .difficulty-screen {
     overflow-y: auto;
   }
 
