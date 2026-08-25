@@ -7,9 +7,10 @@ description: Run the headless bot-vs-bot simulator (npm run simulate) to compare
 
 The simulator (`src/sim/`) plays many independent bot-vs-bot games
 headlessly and reports win rates. It has no build step — run it
-directly with `npm run simulate`. Run `nvm use v24.19.0` first if the
-shell isn't already on the right Node version — the system Node fails
-`npm` commands in this project.
+directly with `npm run simulate`. On Ubuntu, run `nvm use v24.19.0`
+first if the shell isn't already on the right Node version — the
+system Node fails `npm` commands in this project on that platform.
+This doesn't apply on other platforms.
 
 ## Step 1: Decide single combo vs. the full table
 
@@ -114,8 +115,12 @@ head-to-head, then summary. Don't skip straight to a summary even for
 a narrow question; the reader needs the numbers, not just the
 conclusion.
 
-1. **Full table.** Show the complete 15-combo output from Step 1
-   (or the before/after tables from Step 4) as-is.
+1. **Full table.** Reformat the complete 15-combo output from Step 1
+   (or the before/after tables from Step 4) into a proper Markdown
+   table (pipe-delimited, header separator row) — never paste the
+   raw CLI output verbatim or drop it into a fenced code block. Keep
+   every column and row from the CLI output; only the presentation
+   changes.
 2. **Head-to-head.** Pull out the three combos that pit exactly two
    skill levels against each other two-seats-apiece — `nnaa` (novice vs.
    advanced), `nnee` (novice vs. expert), and `aaee` (advanced vs.
@@ -123,15 +128,13 @@ conclusion.
    win rates for each skill level, then report the gap between them
    (the stronger skill level's combined win % minus the weaker's; 0pp
    is an even matchup, since two evenly-matched bots would split
-   50/50). For example:
+   50/50). Present this as a Markdown table too, for example:
 
-   ```
-   Pairing          Novice  Advanced  Expert  Edge
-   ----------------------------------------------------------
-   nnaa (n v a)     41.2%   58.8%     --      Advanced +17.6pp
-   nnee (n v e)     33.0%   --        67.0%   Expert +34.0pp
-   aaee (a v e)     --      44.5%     55.5%   Expert +11.0pp
-   ```
+   | Pairing         | Novice | Advanced | Expert | Edge            |
+   | --------------- | -----: | -------: | -----: | ---------------- |
+   | nnaa (n v a)    | 41.2%  | 58.8%    | --     | Advanced +17.6pp |
+   | nnee (n v e)    | 33.0%  | --       | 67.0%  | Expert +34.0pp   |
+   | aaee (a v e)    | --     | 44.5%    | 55.5%  | Expert +11.0pp   |
 
    These three rows are the cleanest read on relative skill-level
    strength, since every other combo mixes in a third or fourth

@@ -44,7 +44,8 @@ you get a permission denied error, ask before running sudo.
 When asked to commit, first generate a commit message for review. Do the
 actual commit once that message is approved.
 
-Use nvm to install and use node.
+On Ubuntu, use nvm to install and use node. This guidance doesn't yet
+apply to other platforms.
 
 When a spec describes a value that's actually a config.ts constant
 (specs/config.md), reference the constant by name (e.g. "pauses for
