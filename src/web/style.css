@@ -2231,10 +2231,11 @@ body {
      is display: none) and stops growing once its content fits --
      leaving leftover viewport height stranded below it on any phone
      taller than the shortest one this breakpoint was budgeted for.
-     Centering body's flow vertically splits that leftover space above
-     and below #table instead. Every other screen (.main-screen,
-     .settings-screen, etc.) is position: fixed; inset: 0 and centers
-     itself already, so it's unaffected by body's own layout here. */
+     margin: auto 0 on #table itself (below) splits that leftover
+     space above and below it instead. Every other screen
+     (.main-screen, .settings-screen, etc.) is position: fixed;
+     inset: 0 and centers itself already, so it's unaffected by
+     body's own layout here. */
   html,
   body {
     height: 100%;
@@ -2243,7 +2244,6 @@ body {
   body {
     display: flex;
     flex-direction: column;
-    justify-content: center;
   }
 
   /* The title bar is gone (specs/screens/game.md's Mobile section) --
@@ -2297,23 +2297,40 @@ body {
 
   /* Budget for the two rows still sized off the full --card-w (Pot and
      South, now stacked in their own column -- see #table below): each
-     needs --card-h plus that row's own fixed chrome -- 4.5rem for
+     needs --card-h plus that row's own fixed chrome -- 4.7rem for
      South (full panel: padding, label, score/strikes rows -- see the
      desktop clamp()'s comment near the top of this file), ~2.5rem for
      the pot panel (lighter chrome: no score/strikes/dealer/state-tag
      row, just padding + label), plus Actions' own ~2.2rem (plus its
-     own 0.4rem margin, see .actions below) and the column's two
-     0.3rem gaps -- 10.2rem combined, plus #table's own 0.3rem top/
-     bottom padding, rounded up to 10.5rem for slack. West/
-     North/East no longer share a row with this column (see below), so
-     their own height doesn't factor in here at all. Below the 64px
-     floor, the layout accepts the same scrolling fallback as
-     everywhere else in this file rather than shrinking Pot/South's
-     cards past legibility -- the shortest common phones still land
-     just past that floor and scroll a little, same as any viewport
-     below this file's documented minimums. */
+     own 0.3rem margin, see .actions below) and the column's two
+     0.3rem gaps -- 10.6rem combined, plus #table's own 0.3rem top/
+     bottom padding (0.15rem per side, see #table below), rounded up
+     to 11rem for slack. West/North/East no longer share a row with
+     this column (see below), so their own height doesn't factor in
+     here at all. Below the 64px floor, the layout accepts the same
+     scrolling fallback as everywhere else in this file rather than
+     shrinking Pot/South's cards past legibility -- the shortest
+     common phones still land just past that floor and scroll a
+     little, same as any viewport below this file's documented
+     minimums.
+
+     That floor binds far more often than height alone would suggest:
+     the other term in the clamp, 7vw, is below 64px for any viewport
+     under ~914px wide -- every phone, in other words -- so on a
+     phone this row's real height is fixed (2 floor-sized cards plus
+     the chrome above) regardless of how much taller than 500px this
+     breakpoint's max-height the device actually is. That total grows
+     with the viewport too, though indirectly: html's own font-size
+     (theme.css) is a clamp on vw, so a wider-but-still-short phone
+     (e.g. a Galaxy S10 at 760x360) gets a larger root font-size and
+     so more real pixels of rem-based chrome, without --card-w growing
+     to match. #table's padding and .actions' margin were trimmed
+     (below) to buy back enough of that chrome for exactly this case
+     -- a device that's comfortably within this breakpoint's own
+     max-height budget was still landing a couple pixels past this
+     row's real height and scrolling for it. */
   :root {
-    --card-w: clamp(64px, min(7vw, calc((100vh - 10.5rem) / 2 / var(--tile-aspect))), var(--tile-w));
+    --card-w: clamp(64px, min(7vw, calc((100vh - 11rem) / 2 / var(--tile-aspect))), var(--tile-w));
   }
 
   /* West/North/East and Pot/Actions/South become two independent flex
@@ -2340,11 +2357,29 @@ body {
     /* Flex's default justify-content leaves leftover space after the
        last item rather than stretching items to fill it (unlike
        grid's "auto" columns above), so #table naturally shrinks to
-       fit its two columns -- margin: 0 auto (set unconditionally
-       above) then centers that pair, with real empty space left in
-       the corners for the fixed #header/menu button. */
+       fit its two columns -- margin: auto (below) then centers that
+       pair on both axes, with real empty space left in the corners
+       for the fixed #header/menu button. */
     width: fit-content;
-    padding: 0.3rem;
+    /* 0.15rem, not the more typical 0.3rem -- trimmed to help this
+       row's real, mostly-fixed height (see the --card-w budget
+       comment above) fit within common real phone heights. */
+    padding: 0.15rem;
+    /* Overrides the base rule's margin: 0 auto (horizontal-only) with
+       auto on every side: body is a flex column here (see above) with
+       no explicit align-items, so #table -- the only flex child that
+       takes flow space -- is body's sole source of vertical centering
+       too. On phones tall enough for #table to fit, this splits the
+       leftover height evenly above and below it, same as the
+       horizontal split the base rule already gives every width. Once
+       #table doesn't fit (this breakpoint's shortest phones, past
+       --card-w's 64px floor below), auto margins on the overflowing
+       axis collapse to 0 instead of going negative, so #table's top
+       lands flush with the viewport's -- unlike a plain centered flex
+       item, which pushes the *same* amount off-screen above and below
+       and leaves the top half permanently unreachable no matter how
+       far the page scrolls. */
+    margin: auto;
   }
 
   /* West and Pot are each their column's first item, and Pot/Actions/
@@ -2374,10 +2409,12 @@ body {
      (.panel.is-turn's box-shadow, 2px solid ring plus a soft outer
      blur) right up against the action buttons. This adds to that gap
      on both sides of Actions specifically, without touching West/
-     North/East's own spacing in the other column. Counted in the
-     --card-w budget comment above as part of Actions' ~2.2rem. */
+     North/East's own spacing in the other column -- 0.15rem, not the
+     rounder 0.2rem it started at, trimmed alongside #table's own
+     padding above for the same real-phone-height reason. Counted in
+     the --card-w budget comment above as part of Actions' ~2.2rem. */
   .actions {
-    margin: 0.2rem 0;
+    margin: 0.15rem 0;
   }
 
   .seat-west,
