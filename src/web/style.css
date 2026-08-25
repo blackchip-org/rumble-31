@@ -3053,4 +3053,18 @@ body {
   .licenses-body {
     flex-direction: column;
   }
+
+  /* A streak pill's own column is too narrow here for the base row
+     layout (.n and .meta side by side, baseline-aligned) to fit "N
+     through Mon D" on one line -- .meta wraps but stays put beside
+     .n, leaving the count stranded at the top-left of a multi-line
+     block instead of reading as a unit. Stacking .n above .meta and
+     centering both makes the wrap (when .meta still needs one) look
+     intentional either way. */
+  .pill {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.1rem;
+  }
 }
