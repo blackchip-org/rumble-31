@@ -11,7 +11,7 @@ import { score } from "../../card/score.ts";
 import type { Action, Hand, PlayerView } from "../../game/types.ts";
 import { exchange, knock, trade } from "../../game/types.ts";
 import type { Rng } from "../../rng.ts";
-import { allDifferentSuits, chance, sortCandidates, tradeCandidates, type CandidateMetrics, type TradeCandidate } from "./candidates.ts";
+import { allDifferentSuits, chance, excludeDangerous, forcedTradePool, sortCandidates, tradeCandidates, type CandidateMetrics, type TradeCandidate } from "./candidates.ts";
 import { record, recordAction, type Trace } from "./trace.ts";
 
 // mistakePhase rolls once per decide() call, per specs/bots_v4.md's
@@ -60,10 +60,11 @@ export function handSelectionPhase(v: PlayerView, mistake: boolean, rng: Rng, sk
 // candidateLine formats one TradeCandidate as specs/bots_v4.md's
 // Decision Logging ranked-candidate-list line: the hand card leaving
 // and pot card arriving, then its metrics in "Trade Candidates" order.
-function candidateLine(v: PlayerView, c: TradeCandidate): string {
+function candidateLine(v: PlayerView, c: TradeCandidate, excluded = false): string {
   const given = cardToString(v.hand[c.handIdx] as Card);
   const taken = cardToString(v.pot[c.potIdx] as Card);
-  return `  [${given}]->[${taken}]: hand ${c.handScore}, danger ${c.dangerScore}, pot ${c.potScore}, pairs ${c.pairs}`;
+  const suffix = excluded ? " -- excluded, would let opponent win" : "";
+  return `  [${given}]->[${taken}]: hand ${c.handScore}, danger ${c.dangerScore}, pot ${c.potScore}, pairs ${c.pairs}${suffix}`;
 }
 
 // improveHandPhase implements specs/bots_v4.md's Improve Hand phase:
@@ -81,24 +82,41 @@ function candidateLine(v: PlayerView, c: TradeCandidate): string {
 // picks uniformly at random among the same improving candidates
 // instead of the top one; with no improving candidates to pick from,
 // it falls through same as normal.
-export function improveHandPhase(v: PlayerView, rng: Rng, potExchangeThreshold: number, metrics: CandidateMetrics, mode: PhaseMode = "normal", trace?: Trace): Action | undefined {
+//
+// headsUp implements the Heads Up strategy's exclusion (specs/
+// bots_v4.md's Heads Up section): danger 4/5 candidates are dropped
+// from the pool used to decide/pick, with no fallback (Improve Hand
+// is optional, so if every improving candidate is danger 4/5 the
+// phase just falls through). The full improving list -- including
+// excluded candidates -- is still what gets logged, per Decision
+// Logging's Heads Up exception, with excluded lines flagged.
+export function improveHandPhase(v: PlayerView, rng: Rng, potExchangeThreshold: number, metrics: CandidateMetrics, mode: PhaseMode = "normal", trace?: Trace, headsUp = false): Action | undefined {
   if (mode === "skipped") {
     record(trace, "Improve Hand", "skipped (mistake happens at a later phase this turn)");
     return undefined;
   }
 
   const handScore = score(v.hand);
-  const improving = sortCandidates(tradeCandidates(v, rng, metrics).filter((c) => c.handScore > handScore));
+  const allImproving = sortCandidates(tradeCandidates(v, rng, metrics).filter((c) => c.handScore > handScore));
+  const improving = headsUp ? excludeDangerous(allImproving) : allImproving;
+  const logCandidates = () => {
+    record(trace, "Improve Hand", "candidates ranked --");
+    for (const c of allImproving) {
+      record(trace, "Improve Hand", candidateLine(v, c, headsUp && c.dangerScore >= 4));
+    }
+  };
 
   if (mode === "mistake") {
     if (improving.length === 0) {
-      record(trace, "Improve Hand", "mistake -- no improving candidate to pick from, falls through");
+      if (allImproving.length > 0) {
+        logCandidates();
+        record(trace, "Improve Hand", "mistake -- every improving candidate is danger 4/5, falls through");
+      } else {
+        record(trace, "Improve Hand", "mistake -- no improving candidate to pick from, falls through");
+      }
       return undefined;
     }
-    record(trace, "Improve Hand", "candidates ranked --");
-    for (const c of improving) {
-      record(trace, "Improve Hand", candidateLine(v, c));
-    }
+    logCandidates();
     const pick = improving[rng.intn(improving.length)] as TradeCandidate;
     const given = cardToString(v.hand[pick.handIdx] as Card);
     const taken = cardToString(v.pot[pick.potIdx] as Card);
@@ -120,10 +138,7 @@ export function improveHandPhase(v: PlayerView, rng: Rng, potExchangeThreshold: 
     record(trace, "Improve Hand", `pot exchange not eligible (pot score ${potScore} < ${potExchangeThreshold})`);
   }
   if (improving.length > 0) {
-    record(trace, "Improve Hand", "candidates ranked --");
-    for (const c of improving) {
-      record(trace, "Improve Hand", candidateLine(v, c));
-    }
+    logCandidates();
     const top = improving[0] as TradeCandidate;
     const given = cardToString(v.hand[top.handIdx] as Card);
     const taken = cardToString(v.pot[top.potIdx] as Card);
@@ -131,7 +146,12 @@ export function improveHandPhase(v: PlayerView, rng: Rng, potExchangeThreshold: 
     recordAction(trace, "Improve Hand", detail, `${detail} (hand ${handScore} -> ${top.handScore})`);
     return trade(top.potIdx, top.handIdx);
   }
-  record(trace, "Improve Hand", "no improving trade or pot exchange");
+  if (allImproving.length > 0) {
+    logCandidates();
+    record(trace, "Improve Hand", "no safe improving trade or pot exchange (all improving candidates danger 4/5)");
+  } else {
+    record(trace, "Improve Hand", "no improving trade or pot exchange");
+  }
   return undefined;
 }
 
@@ -235,13 +255,27 @@ export function alwaysKnockPhase(trace?: Trace): Action {
 // reached with a forced trade to make, so unlike Improve Hand/Knock it
 // has no "skipped" mode and its mistake always has candidates to pick
 // from.
-export function discardPhase(v: PlayerView, rng: Rng, metrics: CandidateMetrics, mode: PhaseMode = "normal", trace?: Trace): Action {
+//
+// headsUp implements the Heads Up strategy's exclusion (specs/
+// bots_v4.md's Heads Up section): danger 4/5 candidates are dropped
+// from the pool used to decide/pick (both the normal top pick and a
+// mistake's random pick), unless that would leave nothing to choose
+// from for this forced trade -- in that case the exclusion is dropped
+// and the pool falls back to all nine. All nine are always logged;
+// a candidate is only flagged excluded when it was actually left out
+// of the pool (never during the fallback case), per Decision
+// Logging's Heads Up exception.
+export function discardPhase(v: PlayerView, rng: Rng, metrics: CandidateMetrics, mode: PhaseMode = "normal", trace?: Trace, headsUp = false): Action {
   const sorted = sortCandidates(tradeCandidates(v, rng, metrics));
+  const { pool, fellBack } = headsUp ? forcedTradePool(sorted) : { pool: sorted, fellBack: false };
   record(trace, "Discard", "candidates ranked --");
   for (const c of sorted) {
-    record(trace, "Discard", candidateLine(v, c));
+    record(trace, "Discard", candidateLine(v, c, headsUp && !fellBack && c.dangerScore >= 4));
   }
-  const chosen = mode === "mistake" ? (sorted[rng.intn(sorted.length)] as TradeCandidate) : (sorted[0] as TradeCandidate);
+  if (fellBack) {
+    record(trace, "Discard", "no safe trade available (all candidates danger 4/5) -- using full list");
+  }
+  const chosen = mode === "mistake" ? (pool[rng.intn(pool.length)] as TradeCandidate) : (pool[0] as TradeCandidate);
   const given = cardToString(v.hand[chosen.handIdx] as Card);
   const taken = cardToString(v.pot[chosen.potIdx] as Card);
   const detail = mode === "mistake" ? `mistake -- trades [${given}] for [${taken}]` : `trades [${given}] for [${taken}]`;

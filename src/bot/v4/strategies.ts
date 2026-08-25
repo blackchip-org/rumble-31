@@ -93,15 +93,16 @@ function standardStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillC
 }
 
 // headsUpStrategy implements specs/bots_v4.md's Heads Up strategy (1
-// opponent remains): Mistake, Improve Hand, Knock, Discard. Currently
-// identical to standardStrategy -- kept as its own function since the
-// spec models these as distinct strategies expected to diverge later.
+// opponent remains): Mistake, Improve Hand, Knock, Discard. Like
+// standardStrategy, except Improve Hand and Discard both exclude
+// danger 4/5 trade candidates (headsUp: true) -- those would let the
+// sole remaining opponent win the round immediately.
 function headsUpStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillConfig, best: BestScoreState, failsafeLap: number, trace?: Trace): Action {
   const [improveMode, knockMode, discardMode] = mistakeSiteModes(rng, mistake, 3) as [PhaseMode, PhaseMode, PhaseMode];
   return (
-    improveHandPhase(v, rng, cfg.potExchangeThreshold, cfg.candidateMetrics, improveMode, trace) ??
+    improveHandPhase(v, rng, cfg.potExchangeThreshold, cfg.candidateMetrics, improveMode, trace, true) ??
     knockPhase(v, best, cfg.knockRepeatThreshold, cfg.knockScoreThreshold, failsafeLap, knockMode, trace) ??
-    discardPhase(v, rng, cfg.candidateMetrics, discardMode, trace)
+    discardPhase(v, rng, cfg.candidateMetrics, discardMode, trace, true)
   );
 }
 

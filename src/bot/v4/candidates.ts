@@ -105,6 +105,24 @@ export function sortCandidates(candidates: readonly TradeCandidate[]): TradeCand
   );
 }
 
+// excludeDangerous drops candidates scoring danger 4 or 5, per
+// specs/bots_v4.md's Heads Up strategy -- those trades would leave
+// the pot at 31 or 32, letting the sole remaining opponent win the
+// round immediately. No-op for Novice, whose danger score is always
+// forced to zero.
+export function excludeDangerous(candidates: readonly TradeCandidate[]): TradeCandidate[] {
+  return candidates.filter((c) => c.dangerScore < 4);
+}
+
+// forcedTradePool applies excludeDangerous for a phase that must pick
+// something no matter what (Discard's forced trade): the danger-4/5
+// exclusion is dropped -- and fellBack reports true -- when it would
+// otherwise leave nothing to choose from.
+export function forcedTradePool(candidates: readonly TradeCandidate[]): { pool: TradeCandidate[]; fellBack: boolean } {
+  const safe = excludeDangerous(candidates);
+  return safe.length > 0 ? { pool: safe, fellBack: false } : { pool: [...candidates], fellBack: true };
+}
+
 // allDifferentSuits reports whether a hand's three cards each belong
 // to a distinct suit -- the weakest possible hand shape, since no two
 // cards can share a suit to sum together (specs/bots_v4.md, Expert's

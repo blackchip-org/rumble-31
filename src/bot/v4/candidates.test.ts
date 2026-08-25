@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { parseCard } from "../../card/card.ts";
 import type { Hand, PlayerView, Pot } from "../../game/types.ts";
 import { Rng } from "../../rng.ts";
-import { allDifferentSuits, chance, randInt, sortCandidates, tradeCandidates, type CandidateMetrics, type TradeCandidate } from "./candidates.ts";
+import { allDifferentSuits, chance, excludeDangerous, forcedTradePool, randInt, sortCandidates, tradeCandidates, type CandidateMetrics, type TradeCandidate } from "./candidates.ts";
 
 const noMetrics: CandidateMetrics = { danger: false, pairs: false };
 
@@ -239,3 +239,54 @@ test("chance compares the roll against the probability", () => {
   assert.equal(chance(new FixedRng(0.1), 0.5), true);
   assert.equal(chance(new FixedRng(0.9), 0.5), false);
 });
+
+const excludeDangerousCases: { name: string; dangerScores: number[]; wantDangerScores: number[] }[] = [
+  { name: "keeps every candidate below danger 4", dangerScores: [0, 1, 2, 3], wantDangerScores: [0, 1, 2, 3] },
+  { name: "drops danger 5 and 4, keeps the rest", dangerScores: [5, 4, 3, 0], wantDangerScores: [3, 0] },
+  { name: "all candidates danger 4/5 -- returns empty", dangerScores: [5, 4, 4, 5], wantDangerScores: [] },
+];
+
+for (const c of excludeDangerousCases) {
+  test(`excludeDangerous: ${c.name}`, () => {
+    const candidates: TradeCandidate[] = c.dangerScores.map((dangerScore, i) => ({
+      potIdx: i,
+      handIdx: i,
+      handScore: 0,
+      dangerScore,
+      potScore: 0,
+      pairs: 0,
+      random: 0,
+    }));
+    const got = excludeDangerous(candidates).map((c) => c.dangerScore);
+    assert.deepEqual(got, c.wantDangerScores);
+  });
+}
+
+// A real 9-candidate deal can never be all danger 4/5 (at most one of
+// a pot slot's three possible hand-card swaps can hit the exact rank
+// needed), so forcedTradePool's fallback branch is only exercisable
+// with a synthetic all-dangerous list like this one.
+const forcedTradePoolCases: { name: string; dangerScores: number[]; wantPoolDangerScores: number[]; wantFellBack: boolean }[] = [
+  { name: "some safe candidates -- pool excludes danger 4/5, no fallback", dangerScores: [5, 4, 3, 0], wantPoolDangerScores: [3, 0], wantFellBack: false },
+  { name: "every candidate danger 4/5 -- falls back to the full list", dangerScores: [5, 4, 4, 5], wantPoolDangerScores: [5, 4, 4, 5], wantFellBack: true },
+];
+
+for (const c of forcedTradePoolCases) {
+  test(`forcedTradePool: ${c.name}`, () => {
+    const candidates: TradeCandidate[] = c.dangerScores.map((dangerScore, i) => ({
+      potIdx: i,
+      handIdx: i,
+      handScore: 0,
+      dangerScore,
+      potScore: 0,
+      pairs: 0,
+      random: 0,
+    }));
+    const { pool, fellBack } = forcedTradePool(candidates);
+    assert.deepEqual(
+      pool.map((c) => c.dangerScore),
+      c.wantPoolDangerScores,
+    );
+    assert.equal(fellBack, c.wantFellBack);
+  });
+}

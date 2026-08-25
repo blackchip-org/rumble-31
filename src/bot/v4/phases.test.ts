@@ -185,6 +185,58 @@ test("improveHandPhase: mistake mode with no improving candidate falls through s
   assert.equal(improveHandPhase(v, new FixedRng(0.5), 27, noMetrics, "mistake"), undefined);
 });
 
+// Heads Up danger-4/5 exclusion (specs/bots_v4.md's Heads Up section).
+// Fixture: hand As/9c/Ac (score 21), pot Ks/Js/Qc. The single best
+// improving candidate trades As for Qc, making the hand all clubs
+// (score 30) -- but it leaves the pot Ks/Js/As, all spades summing to
+// 31 (danger 5). The next-best improving candidate (danger 0) trades
+// 9c for Ks, making the hand As/Ks/Ac (score 21).
+const dangerousTopFixture = { hand: mustHand("As", "9c", "Ac"), pot: mustPot("Ks", "Js", "Qc") } as const;
+const dangerMetrics: CandidateMetrics = { danger: true, pairs: false };
+
+test("improveHandPhase: without headsUp, trades into the top candidate even though it's danger 5", () => {
+  const v = baseView(dangerousTopFixture);
+  const action = improveHandPhase(v, new FixedRng(0.5), 99, dangerMetrics);
+  assert.equal(action?.type, "trade");
+  if (action?.type === "trade") {
+    assert.equal(action.potIndex, 2);
+    assert.equal(action.handIndex, 0);
+  }
+});
+
+test("improveHandPhase: headsUp excludes the danger 5 top candidate, trading into the next-best safe one", () => {
+  const v = baseView(dangerousTopFixture);
+  const action = improveHandPhase(v, new FixedRng(0.5), 99, dangerMetrics, "normal", undefined, true);
+  assert.equal(action?.type, "trade");
+  if (action?.type === "trade") {
+    assert.equal(action.potIndex, 0);
+    assert.equal(action.handIndex, 1);
+  }
+});
+
+test("improveHandPhase: headsUp mistake mode never draws the excluded danger 5 candidate", () => {
+  const v = baseView(dangerousTopFixture);
+  for (const roll of [0, 0.25, 0.5, 0.75, 0.999]) {
+    const action = improveHandPhase(v, new FixedRng(roll), 99, dangerMetrics, "mistake", undefined, true);
+    assert.equal(action?.type, "trade");
+    if (action?.type === "trade") {
+      assert.ok(!(action.potIndex === 2 && action.handIndex === 0), `roll ${roll} picked the excluded danger 5 candidate`);
+    }
+  }
+});
+
+test("improveHandPhase: headsUp falls through when the only improving candidate is danger 5", () => {
+  // Fixture: hand Ts/Qd/As (score 21), pot Ad/Qs/Jd. The only
+  // improving candidate trades Qd for Qs, making the hand all spades
+  // (score 31) -- but it leaves the pot Ad/Qd/Jd, all diamonds
+  // summing to 31 (danger 5).
+  const v = baseView({ hand: mustHand("Ts", "Qd", "As"), pot: mustPot("Ad", "Qs", "Jd") });
+  const withoutHeadsUp = improveHandPhase(v, new FixedRng(0.5), 99, dangerMetrics);
+  assert.equal(withoutHeadsUp?.type, "trade");
+  const withHeadsUp = improveHandPhase(v, new FixedRng(0.5), 99, dangerMetrics, "normal", undefined, true);
+  assert.equal(withHeadsUp, undefined);
+});
+
 const knockCases: {
   name: string;
   hand?: [string, string, string];
@@ -271,6 +323,28 @@ test("discardPhase: mistake mode's rng draw can pick a candidate other than the 
   assert.deepEqual(topMistake, top, "an rng draw of 0 selects the same topmost candidate as normal mode");
   const other = discardPhase(v, new FixedRng(0.999), noMetrics, "mistake");
   assert.ok(other.potIndex !== top.potIndex || other.handIndex !== top.handIndex, "a different rng draw should be able to pick a different candidate than the top one");
+});
+
+test("discardPhase: without headsUp, picks the top candidate even though it's danger 5", () => {
+  const v = baseView(dangerousTopFixture);
+  const action = discardPhase(v, new FixedRng(0.5), dangerMetrics);
+  assert.equal(action.potIndex, 2);
+  assert.equal(action.handIndex, 0);
+});
+
+test("discardPhase: headsUp excludes the danger 5 top candidate, picking the next-best safe one", () => {
+  const v = baseView(dangerousTopFixture);
+  const action = discardPhase(v, new FixedRng(0.5), dangerMetrics, "normal", undefined, true);
+  assert.equal(action.potIndex, 0);
+  assert.equal(action.handIndex, 1);
+});
+
+test("discardPhase: headsUp mistake mode never draws the excluded danger 5 candidate", () => {
+  const v = baseView(dangerousTopFixture);
+  for (const roll of [0, 0.25, 0.5, 0.75, 0.999]) {
+    const action = discardPhase(v, new FixedRng(roll), dangerMetrics, "mistake", undefined, true);
+    assert.ok(!(action.potIndex === 2 && action.handIndex === 0), `roll ${roll} picked the excluded danger 5 candidate`);
+  }
 });
 
 // Decision Logging (specs/bots_v4.md): each phase's trace has exactly
@@ -418,4 +492,29 @@ test("discardPhase: mistake mode's acted entry names the mistake in Full Trace d
   const acted = trace.find((e) => e.acted);
   assert.ok(acted?.detail.startsWith("mistake --"));
   assert.ok(!acted?.summary?.startsWith("mistake"));
+});
+
+// Heads Up's exception to Decision Logging's "only list survivors"
+// rule: a danger 4/5 candidate is still listed, flagged as excluded,
+// even though it's dropped from the pool that's actually picked from
+// (specs/bots_v4.md's Decision Logging, Full Trace).
+test("improveHandPhase: headsUp Full Trace lists the excluded danger 5 candidate, flagged", () => {
+  const trace: Trace = [];
+  const v = baseView(dangerousTopFixture);
+  improveHandPhase(v, new FixedRng(0.5), 99, dangerMetrics, "normal", trace, true);
+  const excludedLine = trace.find((e) => e.detail.includes("danger 5"));
+  assert.ok(excludedLine, "expected a logged line for the danger 5 candidate");
+  assert.ok(excludedLine?.detail.includes("excluded"));
+  const chosenLine = trace.find((e) => e.detail.includes("danger 0") && e.detail.startsWith("  ["));
+  assert.ok(chosenLine, "expected a logged line for a safe candidate");
+  assert.ok(!chosenLine?.detail.includes("excluded"));
+});
+
+test("discardPhase: headsUp Full Trace lists the excluded danger 5 candidate, flagged", () => {
+  const trace: Trace = [];
+  const v = baseView(dangerousTopFixture);
+  discardPhase(v, new FixedRng(0.5), dangerMetrics, "normal", trace, true);
+  const excludedLine = trace.find((e) => e.detail.includes("danger 5"));
+  assert.ok(excludedLine, "expected a logged line for the danger 5 candidate");
+  assert.ok(excludedLine?.detail.includes("excluded"));
 });

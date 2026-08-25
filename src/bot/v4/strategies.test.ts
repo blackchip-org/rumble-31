@@ -199,6 +199,30 @@ test("decideV4: Knocked strategy's only mistake-eligible point is Improve Hand -
   assert.ok(["trade", "knock"].includes(action.type));
 });
 
+// Heads Up's danger-4/5 exclusion (specs/bots_v4.md's Heads Up
+// section) is what's supposed to make it diverge from Standard --
+// same fixture as candidates/phases.test.ts's dangerousTopFixture:
+// the single best trade (As for Qc) makes the hand all clubs (score
+// 30), but leaves the pot Ks/Js/As all spades summing to 31 (danger
+// 5). Standard takes it anyway; Heads Up must not.
+for (const skillLevel of ["advanced", "expert"] as const) {
+  test(`decideV4 (${skillLevel}): Heads Up excludes a danger 5 trade that Standard would take`, () => {
+    const view = { hand: mustHand("As", "9c", "Ac"), pot: mustPot("Ks", "Js", "Qc") };
+    const standard = decideV4(baseView({ ...view, opponentCount: 2 }), new FixedRng(0.999), SKILL_CONFIGS[skillLevel], noRepeat, farFailsafeLap);
+    assert.equal(standard.type, "trade");
+    if (standard.type === "trade") {
+      assert.equal(standard.potIndex, 2);
+      assert.equal(standard.handIndex, 0);
+    }
+
+    const headsUp = decideV4(baseView({ ...view, opponentCount: 1 }), new FixedRng(0.999), SKILL_CONFIGS[skillLevel], noRepeat, farFailsafeLap);
+    assert.equal(headsUp.type, "trade");
+    if (headsUp.type === "trade") {
+      assert.ok(!(headsUp.potIndex === 2 && headsUp.handIndex === 0), "Heads Up must not take the danger 5 trade Standard took");
+    }
+  });
+}
+
 test("decideV4: First strategy's only point is Hand Selection, reached directly with no skip entries", () => {
   const trace: Trace = [];
   const v = baseView({ isFirstTurnOfRound: true });

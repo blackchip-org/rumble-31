@@ -20,7 +20,7 @@ strategies.ts, or factory.ts -- rather than a v3 file. v3 keeps its
 last version number frozen (specs/bots_v3.md), since from here on it
 is only run by the simulator's `--bot-version=v3` comparison mode.
 
-The current bot version is 5.
+The current bot version is 6.
 
 ## Trade Candidates
 
@@ -230,6 +230,17 @@ and that opponent has not yet knocked. The phases in this strategy are:
 - Knock
 - Discard
 
+This is exactly like the Standard strategy except that trade
+candidates with a danger score of 5 or 4 are never considered in
+either the Improve Hand or Discard phase (those would cause the
+opponent to win the round). If excluding those candidates would leave
+Discard with nothing to choose from for its forced trade, the
+exclusion is dropped and Discard picks from the full candidate list
+as normal. Improve Hand has no such fallback, since it is optional --
+if every improving candidate is danger 4 or 5, the phase simply falls
+through with nothing to act on. This has no effect for Novice, whose
+danger score is always zero
+
 ### Knocked
 
 This strategy is used when a player has knocked. At this point, there is
@@ -316,6 +327,19 @@ When a trade-candidate list is logged (Improve Hand and Discard), list
 every candidate that survives that phase's own filtering (for Improve
 Hand, that's candidates whose hand score improves -- see "Improve
 Hand" above), sorted per "Trade Candidates" above, one per line.
+
+Heads Up's danger-4/5 exclusion (see "Heads Up" above) is the one
+exception to only listing survivors: a candidate excluded for danger
+is still listed, marked to say so, e.g.:
+
+    [bot] Seat (Discard): candidates ranked --
+    [bot] Seat (Discard):   [7h]->[8d]: hand 24, danger 5, pot 31, pairs 0 -- excluded, would let opponent win
+    [bot] Seat (Discard):   [7h]->[9d]: hand 22, danger 0, pot 24, pairs 0
+    [bot] Seat (Discard): trades [7h] for [9d]
+
+If every candidate is excluded and Discard falls back to the full
+list, none are marked excluded (they weren't actually excluded), and
+a line notes the fallback happened.
 
 The final line for whichever phase produces the turn's action states
 the action taken and doubles as Full Trace's own summary -- no
