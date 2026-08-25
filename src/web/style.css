@@ -1058,8 +1058,12 @@ body {
   width: min(60vw, 260px);
 }
 
+/* Matches Main's/Difficulty's own button padding (1rem, taller than
+   every other screen's 0.75rem 1rem default) rather than this
+   screen's old, smaller padding -- chunkier buttons are easier to
+   hit, and Game Over's buttons have the room to spare for it. */
 .game-over-buttons button {
-  padding: 0.75rem 1rem;
+  padding: 1rem;
 }
 
 /* ---------- error screen ---------- */
@@ -1388,7 +1392,7 @@ body {
    panel -- as those buttons' text changes length. */
 .settings-grid button {
   justify-self: stretch;
-  padding: 0.5rem 1rem;
+  padding: 1rem;
   min-width: 6rem;
 }
 
@@ -1399,8 +1403,11 @@ body {
   width: min(60vw, 260px);
 }
 
+/* Matches Main's own button padding (1rem, taller than most other
+   screens' 0.75rem 1rem default) -- chunkier buttons are easier to
+   hit, and Settings' single Main Menu button has the room for it. */
 .settings-buttons button {
-  padding: 0.75rem 1rem;
+  padding: 1rem;
 }
 
 .settings-grid button.settings-reset-btn {
@@ -2457,6 +2464,18 @@ body {
     --font-size-game-over-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
   }
 
+  /* The base rule stacks "You"/"Won!" (or "Game"/"Over") on their own
+     lines (.game-over-title span's display: block) -- on this
+     breakpoint's shortest phones that costs a full extra line this
+     already-cramped screen can't spare. display: flex here
+     blockifies both spans into flex items on one row regardless of
+     their own display value, so no span-level override is needed. */
+  .game-over-title {
+    display: flex;
+    justify-content: center;
+    gap: 0.4em;
+  }
+
   /* align-items: center (the base .game-over-screen rule) plus
      overflow-y: auto above only ever extends the *bottom* of the
      scrollable area to reach an overflowing panel -- the top stays
@@ -2481,10 +2500,17 @@ body {
      shrinks the same way over-results does just below -- tighter than
      a straight scale-down of the portrait sizing since the two-line
      layout already costs a full extra line over the single-line
-     badge this breakpoint was originally tuned for. */
+     badge this breakpoint was originally tuned for. justify-self:
+     center undoes the grid column's default item stretch (see
+     .game-over-panel below) -- .rank-badge's own inline-flex sizes it
+     to content everywhere else, but as a grid item with no explicit
+     width it would otherwise stretch to fill column 1's full track
+     width, matching .over-results' 360px even though the badge's own
+     text needs nowhere near that. */
   .rank-badge {
     padding: 0.15rem 0.9rem 0.2rem;
     gap: 0.05rem;
+    justify-self: center;
   }
 
   .rank-badge-difficulty {
@@ -2497,12 +2523,45 @@ body {
     line-height: 1.1;
   }
 
-  /* Trims the panel's own child-to-child gap (1rem from the shared
-     .main-panel/.game-over-panel/.appinfo-panel rule above) back down
-     just for game-over, to buy back the rest of the two-line badge's
-     extra height on the shortest phones this breakpoint covers. */
+  /* Title, badge, and results all stack in a narrow column that
+     tops out around 360px (.over-results' own width: min(90vw,
+     360px)), leaving a wide strip of unused felt beside them on
+     anything but the narrowest phones this breakpoint covers --
+     exactly where Play Again/Main Menu/Save Log (stacked below,
+     in the base portrait layout) would otherwise cost a full extra
+     row of scarce height. A two-column grid puts that stack in
+     column 1 and the buttons in column 2 instead: title/badge/
+     results are left with only grid-column: 1 each (see below) and
+     fall into rows 1-3 by plain DOM order, while the buttons take
+     an explicit grid-column: 2; grid-row: 1 / -1 so the auto-
+     placement algorithm (which resolves explicit placements first)
+     reserves that whole span for them before the other three ever
+     get placed. Trims the row gap (1rem from the shared .main-panel/
+     .game-over-panel/.appinfo-panel rule above) back down too, to
+     buy back the rest of the two-line badge's extra height on the
+     shortest phones this breakpoint covers; the second gap value
+     is the new column gap between the two columns. */
   .game-over-panel {
-    gap: 0.85rem;
+    display: grid;
+    grid-template-columns: auto auto;
+    /* Must be explicit, not left implicit -- grid-row: 1 / -1 below
+       resolves -1 against the *explicit* grid's last line only, and
+       with no grid-template-rows at all that explicit grid has just
+       one row, collapsing the buttons' span back down to row 1. */
+    grid-template-rows: repeat(3, auto);
+    align-items: center;
+    gap: 0.85rem 2rem;
+  }
+
+  .game-over-title,
+  .rank-badge,
+  .over-results {
+    grid-column: 1;
+  }
+
+  .game-over-buttons {
+    grid-column: 2;
+    grid-row: 1 / -1;
   }
 
   /* over-results (specs/screens/over.md's results table + tally,
@@ -2547,15 +2606,32 @@ body {
     font-size: 0.55rem;
   }
 
-  /* Play Again/Main Menu/Save Log stacked (the base, portrait-style
-     layout inherited above) cost as much height on their own as the
-     results table and tally combined; row layout -- the same trick
-     .about-buttons above already uses -- buys most of that back,
-     since width, not height, is the plentiful dimension here. */
+  /* Stays a column (the base, portrait-style direction) since the
+     buttons now sit in their own grid column beside the results
+     panel (see .game-over-panel above) rather than below it --
+     width, not height, is the plentiful dimension in that column, so
+     unlike .about-buttons' row layout below there's no need to fight
+     for vertical space here. justify-content: center plus the grid
+     row's own align-items: center (set on .game-over-panel above)
+     centers the button stack against the taller title/badge/results
+     column beside it. Narrower than the base min(60vw, 260px) --
+     that width assumed the buttons were the widest thing in a
+     single centered column; here they only need to be as wide as a
+     comfortable tap target in half the panel. */
   .game-over-buttons {
-    flex-direction: row;
-    width: auto;
+    justify-content: center;
+    width: min(30vw, 200px);
     gap: 0.6rem;
+  }
+
+  /* Matches Difficulty's own landscape button padding (0.85rem 1rem,
+     down from the base 1rem above but still taller than every other
+     screen's landscape padding) rather than shrinking all the way
+     back to some smaller value -- the button column has height to
+     spare here (see .game-over-panel above), so there's no need to
+     give up the chunkier, easier-to-hit target Difficulty gets. */
+  .game-over-buttons button {
+    padding: 0.85rem 1rem;
   }
 
   /* About's and Application Info's bodies already shrink and scroll at
@@ -2644,8 +2720,24 @@ body {
     grid-row: 3;
   }
 
+  /* align-items: center (the base .settings-screen rule) plus
+     overflow-y: auto above only ever extends the *bottom* of the
+     scrollable area to reach an overflowing panel -- the top stays
+     pinned above the viewport and permanently unreachable, since a
+     centered flex item overflows equally on both sides but a plain
+     scroll container only grows scrollHeight toward the end side.
+     flex-start plus auto vertical margins on the panel itself (below)
+     is the standard fix -- same pattern as .game-over-screen's own
+     copy of this comment -- and only actually bites on the shortest
+     phones this breakpoint covers, now that the buttons above are
+     tall enough to occasionally push the panel past that height. */
   .settings-screen {
+    align-items: flex-start;
     overflow-y: auto;
+  }
+
+  .settings-panel {
+    margin: auto 0;
   }
 
   /* Difficulty's five buttons (see index.html's .difficulty-buttons
