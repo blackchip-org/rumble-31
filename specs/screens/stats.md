@@ -28,10 +28,11 @@ The "Overall" tab shows the Global Stats (specs/stats.md):
   row each for Novice, Advanced, and Expert showing that skill's own
   Wins, Losses, Ties, and Win%. Win% is Wins divided by total games
   (Wins + Losses + Ties), shown as a percentage to one decimal place.
-- Wins by strikes, summed across Easy/Moderate/Hard (specs/stats.md):
-  Zero strikes, One strike, Two strikes, and Second chance.
-- Rounds, summed across Easy/Moderate/Hard (specs/stats.md): Best,
-  with its Best with 32 / Best with 31 / Best with 30.5 breakdown.
+- Wins by strikes, summed across Easy/Moderate/Hard (specs/stats.md),
+  labeled Zero, One, Two, and Second Chance.
+- Best Hands of Round, summed across Easy/Moderate/Hard
+  (specs/stats.md): Overall, with its Best with 32 / Best with 31 /
+  Best with 30.5 breakdown.
 
 Each of the "Easy", "Moderate", and "Hard" tabs shows that
 difficulty's Per Difficulty Setting stats (specs/stats.md):
@@ -55,10 +56,10 @@ difficulty's Per Difficulty Setting stats (specs/stats.md):
   started, the date it started) and its best streak (its length, and,
   once one has been reached, the date it was last extended). A current
   streak still going is visually distinct from one that has broken.
-- Wins by strikes (specs/stats.md): Zero strikes, One strike, Two
-  strikes, and Second chance.
-- Rounds (specs/stats.md): Best, with its Best with 32 / Best with 31
-  / Best with 30.5 breakdown.
+- Wins by strikes (specs/stats.md), labeled Zero, One, Two, and
+  Second Chance.
+- Best Hands of Round (specs/stats.md): Overall, with its Best with
+  32 / Best with 31 / Best with 30.5 breakdown.
 
 A "Main Menu" button is shown below the tabbed panel. Clicking it
 navigates back to the Main Screen.
