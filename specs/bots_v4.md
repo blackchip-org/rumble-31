@@ -48,11 +48,19 @@ danger score. Those values are as follows:
 Not all skill levels will use all metrics and those values should be set
 to zero in that case -- see each phase's per-skill breakdown below.
 
-Candidates should be sorted according to the above metrics in the order
-listed above. Higher value is better for all values except for pot score
-and danger score, where lower is better (danger score is a risk scale --
-0 is safest, 5 is worst). Highest scoring candidate should be first in
-the list.
+Candidates should be sorted in this order: hand score, danger score,
+pairs, pot score, random. Higher value is better for all values except
+for pot score and danger score, where lower is better (danger score is
+a risk scale -- 0 is safest, 5 is worst). Highest scoring candidate
+should be first in the list.
+
+Pairs is ordered ahead of pot score because a pair is a live shot at
+a 30.5 three-of-a-kind on a future turn, which outranks all but a 32
+-- worth preferring over shaving a few points off an already-safe
+pot. Danger is still checked first, so this preference never walks
+into a candidate that was otherwise filtered for being genuinely
+dangerous (pot score 27 or higher, 30.5, 31, or 32); it only decides
+between candidates that danger already considers equally safe.
 
 ## Random Values
 

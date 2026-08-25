@@ -193,6 +193,7 @@ test("improveHandPhase: mistake mode with no improving candidate falls through s
 // 9c for Ks, making the hand As/Ks/Ac (score 21).
 const dangerousTopFixture = { hand: mustHand("As", "9c", "Ac"), pot: mustPot("Ks", "Js", "Qc") } as const;
 const dangerMetrics: CandidateMetrics = { danger: true, pairs: false };
+const expertMetrics: CandidateMetrics = { danger: true, pairs: true };
 
 test("improveHandPhase: without headsUp, trades into the top candidate even though it's danger 5", () => {
   const v = baseView(dangerousTopFixture);
@@ -345,6 +346,21 @@ test("discardPhase: headsUp mistake mode never draws the excluded danger 5 candi
     const action = discardPhase(v, new FixedRng(roll), dangerMetrics, "mistake", undefined, true);
     assert.ok(!(action.potIndex === 2 && action.handIndex === 0), `roll ${roll} picked the excluded danger 5 candidate`);
   }
+});
+
+// Pairs-before-pot-score (specs/bots_v4.md's Trade Candidates order).
+// Hand As/Ks/Qh scores 21 (As+Ks spades); Kc/Jd/Th are all off-suit
+// from spades, so every trade discarding Qh ties at 21 -- none of the
+// 9 trades improve the hand, forcing this into Discard. Among the
+// three ties (all danger 0, since Qh isn't an Ace and no resulting
+// pot hits a danger tier), taking Kc pairs with Ks (a live shot at
+// 30.5) even though it leaves a worse pot (20, Qh+Th hearts) than
+// taking Th would (10, all different suits).
+test("discardPhase: pairs beats a lower pot score when every candidate ties on hand score and danger", () => {
+  const v = baseView({ hand: mustHand("As", "Ks", "Qh"), pot: mustPot("Kc", "Jd", "Th") });
+  const action = discardPhase(v, new FixedRng(0.5), expertMetrics);
+  assert.equal(action.potIndex, 0, "should take Kc, not the safer-potscore Th");
+  assert.equal(action.handIndex, 2, "should discard Qh, the card not part of the spade pair");
 });
 
 // Decision Logging (specs/bots_v4.md): each phase's trace has exactly

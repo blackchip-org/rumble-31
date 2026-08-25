@@ -173,7 +173,7 @@ const sortCases: {
     wantOrder: [1, 0],
   },
   {
-    name: "lower pot score sorts first on a hand/danger score tie",
+    name: "lower pot score sorts first on a hand/danger/pairs score tie",
     candidates: [
       { handScore: 20, potScore: 15 },
       { handScore: 20, potScore: 10 },
@@ -185,6 +185,14 @@ const sortCases: {
     candidates: [
       { handScore: 20, potScore: 10, pairs: 0 },
       { handScore: 20, potScore: 10, pairs: 1 },
+    ],
+    wantOrder: [1, 0],
+  },
+  {
+    name: "higher pairs sorts first on a hand/danger score tie, even if its pot score is worse",
+    candidates: [
+      { handScore: 20, potScore: 10, pairs: 0 },
+      { handScore: 20, potScore: 20, pairs: 1 },
     ],
     wantOrder: [1, 0],
   },

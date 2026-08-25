@@ -93,14 +93,17 @@ export function tradeCandidates(v: PlayerView, rng: Rng, metrics: CandidateMetri
 // sortCandidates orders candidates best-first, per specs/bots_v4.md:
 // handScore, pairs, and random sort with higher values first; potScore
 // and dangerScore sort with lower values first (dangerScore is a risk
-// scale -- 0 is safest, 5 is worst).
+// scale -- 0 is safest, 5 is worst). Pairs is ordered ahead of pot
+// score -- a live shot at 30.5 is worth more than shaving points off
+// an already-safe pot -- but still behind danger, so it never
+// overrides a candidate danger already flagged as genuinely risky.
 export function sortCandidates(candidates: readonly TradeCandidate[]): TradeCandidate[] {
   return [...candidates].sort(
     (a, b) =>
       b.handScore - a.handScore ||
       a.dangerScore - b.dangerScore ||
-      a.potScore - b.potScore ||
       b.pairs - a.pairs ||
+      a.potScore - b.potScore ||
       b.random - a.random,
   );
 }
