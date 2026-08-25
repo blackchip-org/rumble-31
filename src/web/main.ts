@@ -33,7 +33,7 @@ import { renderStrikes, setDealer, setKnocker, setPanelState, setScore, setStruc
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, baselineBotSeats, type BotSeats } from "./botAssignment.ts";
 import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
-import { loadStats, saveStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordRoundPlayed, recordGamePlace, recordGameCompleted, todayDateString, viewStats, type StatsStore } from "./stats.ts";
+import { loadStats, saveStats, seedDebugStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordRoundPlayed, recordGamePlace, recordGameCompleted, todayDateString, viewStats, type StatsStore } from "./stats.ts";
 import { runStartupMigrations } from "./statsMigration.ts";
 import { initStatsTabs, renderStatsScreen, scrollStatsToTop } from "./statsScreen.ts";
 import { computeBotResults, renderOverResults, type BotResult } from "./overScreen.ts";
@@ -217,6 +217,16 @@ installGlobalErrorHandlers();
 // during module init, which installGlobalErrorHandlers (installed just
 // above) still routes to the error screen.
 const debugParams = parseDebugParams(window.location.search);
+
+// seedStats=true (specs/params.md) replaces botVersion's stats with a
+// plausible, fully-populated test dataset and persists it immediately
+// -- same as the migration save above, so it survives reload without
+// the parameter still present, and is visible in time for the Stats
+// screen dispatch below when combined with screen=stats.
+if (debugParams.seedStats) {
+  seedDebugStats(stats, botVersion);
+  saveStats(stats, localStorage);
+}
 
 // age (specs/params.md) exists to test the stale-Over-screen behavior
 // below against real saved state, which every other debug parameter

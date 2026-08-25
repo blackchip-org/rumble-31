@@ -480,3 +480,96 @@ export function todayDateString(now: () => Date = () => new Date()): string {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
+
+// daysAgoString returns the calendar date daysAgo days before today, so
+// seedDebugStats' streak dates read as recent no matter when it runs.
+function daysAgoString(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return todayDateString(() => d);
+}
+
+// seedDebugStats replaces botVersion's stats in store with a
+// plausible, fully-populated dataset -- specs/params.md's seedStats
+// debug parameter, for checking the Stats screen's layout
+// (specs/screens/stats.md) without having to actually play games.
+// Every cross-field invariant the real recording functions above
+// maintain (global.recordsBySkill summing its per-difficulty
+// counterparts, a difficulty's strike-win buckets summing to its
+// first-place count, and so on) holds here too, so the seeded data
+// looks like it came from real games.
+export function seedDebugStats(store: StatsStore, botVersion: string): void {
+  store.byBotVersion[botVersion] = {
+    global: {
+      gamesPlayed: 43,
+      gamesAbandoned: 3,
+      recordsBySkill: {
+        novice: { wins: 14, losses: 4, ties: 1 },
+        advanced: { wins: 9, losses: 8, ties: 0 },
+        expert: { wins: 5, losses: 9, ties: 1 },
+      },
+    },
+    perDifficulty: {
+      easy: {
+        winsPerPlace: [10, 3, 2, 1],
+        recordsBySkill: {
+          novice: { wins: 12, losses: 3, ties: 1 },
+          advanced: { wins: 2, losses: 1, ties: 0 },
+          expert: { wins: 0, losses: 1, ties: 0 },
+        },
+        firstPlaceStreak: { current: { count: 3, startDate: daysAgoString(5) }, best: { count: 5, endDate: daysAgoString(15) } },
+        topTwoStreak: { current: { count: 3, startDate: daysAgoString(5) }, best: { count: 8, endDate: daysAgoString(10) } },
+        notLastStreak: { current: { count: 9, startDate: daysAgoString(12) }, best: { count: 9, endDate: daysAgoString(3) } },
+        roundsPlayed: 58,
+        zeroStrikeWins: 6,
+        oneStrikeWins: 3,
+        twoStrikeWins: 1,
+        secondChanceWins: 0,
+        best: 14,
+        bestWith32: 2,
+        bestWith31: 5,
+        bestWith305: 1,
+      },
+      moderate: {
+        winsPerPlace: [6, 5, 3, 2],
+        recordsBySkill: {
+          novice: { wins: 2, losses: 1, ties: 0 },
+          advanced: { wins: 6, losses: 5, ties: 0 },
+          expert: { wins: 1, losses: 3, ties: 0 },
+        },
+        firstPlaceStreak: { current: { count: 0 }, best: { count: 3, endDate: daysAgoString(20) } },
+        topTwoStreak: { current: { count: 1, startDate: daysAgoString(1) }, best: { count: 4, endDate: daysAgoString(7) } },
+        notLastStreak: { current: { count: 2, startDate: daysAgoString(2) }, best: { count: 6, endDate: daysAgoString(9) } },
+        roundsPlayed: 72,
+        zeroStrikeWins: 2,
+        oneStrikeWins: 2,
+        twoStrikeWins: 1,
+        secondChanceWins: 1,
+        best: 11,
+        bestWith32: 1,
+        bestWith31: 3,
+        bestWith305: 2,
+      },
+      hard: {
+        winsPerPlace: [2, 3, 2, 4],
+        recordsBySkill: {
+          novice: { wins: 0, losses: 0, ties: 0 },
+          advanced: { wins: 1, losses: 2, ties: 0 },
+          expert: { wins: 4, losses: 5, ties: 1 },
+        },
+        firstPlaceStreak: { current: { count: 1, startDate: daysAgoString(1) }, best: { count: 2, endDate: daysAgoString(14) } },
+        topTwoStreak: { current: { count: 1, startDate: daysAgoString(1) }, best: { count: 3, endDate: daysAgoString(14) } },
+        notLastStreak: { current: { count: 1, startDate: daysAgoString(1) }, best: { count: 4, endDate: daysAgoString(18) } },
+        roundsPlayed: 33,
+        zeroStrikeWins: 1,
+        oneStrikeWins: 1,
+        twoStrikeWins: 0,
+        secondChanceWins: 0,
+        best: 4,
+        bestWith32: 0,
+        bestWith31: 1,
+        bestWith305: 1,
+      },
+    },
+  };
+}

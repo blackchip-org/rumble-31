@@ -37,6 +37,11 @@ export interface DebugParams {
   // showBots shows each bot seat's skill level (specs/bots_v3.md) next to
   // its seat name on the Game screen (specs/screens/game.md).
   showBots: boolean;
+  // seedStats replaces the current bot version's saved stats
+  // (specs/stats.md) with a plausible, fully-populated test dataset,
+  // for exercising the Stats screen (specs/screens/stats.md) without
+  // having to actually play games.
+  seedStats: boolean;
   // botLogBySeat enables bot decision logging (specs/bots_v4.md's
   // "Decision Logging") for the named seats, keyed by seat number,
   // valued by the detail level their name's case selected. Seat 0
@@ -148,6 +153,12 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
   }
   const showBots = showBotsRaw === "true";
 
+  const seedStatsRaw = q.get("seedStats");
+  if (seedStatsRaw !== null && seedStatsRaw !== "true" && seedStatsRaw !== "false") {
+    throw new Error(`params: seedStats=${seedStatsRaw} must be "true" or "false"`);
+  }
+  const seedStats = seedStatsRaw === "true";
+
   const botLogRaw = q.get("botLog");
   const botLogBySeat = new Map<number, "summary" | "full">();
   if (botLogRaw !== null && botLogRaw !== "") {
@@ -173,7 +184,7 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
     ageMinutes = parsed;
   }
 
-  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, showBots, botLogBySeat, ageMinutes };
+  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, showBots, seedStats, botLogBySeat, ageMinutes };
 }
 
 // parseCardGroup parses paramName's raw value as exactly three

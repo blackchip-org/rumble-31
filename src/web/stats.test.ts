@@ -15,11 +15,13 @@ import {
   gamesPlayedFor,
   sumPerDifficulty,
   viewStats,
+  seedDebugStats,
   type StatsStore,
   type WinLossTie,
   type DifficultyStats,
 } from "./stats.ts";
-import type { BotSkillLevel } from "../bot/v4/factory.ts";
+import { DIFFICULTIES } from "../config.ts";
+import { BOT_SKILL_LEVELS, type BotSkillLevel } from "../bot/v4/factory.ts";
 import type { BotSeats } from "./botAssignment.ts";
 
 // memoryStorage returns a minimal in-memory Storage, same as
@@ -479,4 +481,37 @@ test("gamesPlayedFor sums winsPerPlace", () => {
     const dStats: DifficultyStats = { ...emptyDStats(), winsPerPlace };
     assert.equal(gamesPlayedFor(dStats), want, name);
   }
+});
+
+test("seedDebugStats produces internally consistent, non-empty data", () => {
+  const store = loadStats(memoryStorage());
+  seedDebugStats(store, "5");
+  const bvStats = store.byBotVersion["5"];
+  assert.ok(bvStats, "seeded entry must exist");
+
+  const summedPerDifficulty = sumPerDifficulty(bvStats.perDifficulty, gamesPlayedFor);
+  assert.equal(bvStats.global.gamesPlayed, summedPerDifficulty, "global gamesPlayed must equal every difficulty's games played, summed");
+  assert.ok(bvStats.global.gamesAbandoned <= bvStats.global.gamesPlayed);
+
+  for (const skill of BOT_SKILL_LEVELS) {
+    let summed: WinLossTie = wlt(0, 0, 0);
+    for (const difficulty of DIFFICULTIES) {
+      const rec = bvStats.perDifficulty[difficulty].recordsBySkill[skill];
+      summed = { wins: summed.wins + rec.wins, losses: summed.losses + rec.losses, ties: summed.ties + rec.ties };
+    }
+    assert.deepEqual(bvStats.global.recordsBySkill[skill], summed, `${skill}: global must equal per-difficulty summed`);
+  }
+
+  for (const difficulty of DIFFICULTIES) {
+    const dStats = bvStats.perDifficulty[difficulty];
+    const strikeWinsTotal = dStats.zeroStrikeWins + dStats.oneStrikeWins + dStats.twoStrikeWins + dStats.secondChanceWins;
+    assert.ok(strikeWinsTotal <= dStats.winsPerPlace[0], `${difficulty}: strike-win buckets must not exceed first-place finishes`);
+    assert.ok(dStats.bestWith32 + dStats.bestWith31 + dStats.bestWith305 <= dStats.best, `${difficulty}: exact-score bests must not exceed best`);
+    assert.ok(dStats.best <= dStats.roundsPlayed, `${difficulty}: best must not exceed rounds played`);
+  }
+
+  // Seeding again for a different bot version must not disturb "5"'s
+  // entry, mirroring statsFor's per-version isolation.
+  seedDebugStats(store, "6");
+  assert.equal(store.byBotVersion["5"]?.global.gamesPlayed, bvStats.global.gamesPlayed);
 });

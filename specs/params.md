@@ -119,6 +119,17 @@ Novice, " (A)" for Advanced, " (E)" for Expert -- for example "West
 (A)". South's seat label is never affected, since South is always the
 human player.
 
+## seedStats
+
+Value should be "true" or "false" (default "false" if omitted).
+seedStats=true replaces the current bot version's saved stats
+(specs/stats.md) with a plausible, fully-populated test dataset
+covering every difficulty and bot skill level, then saves it
+immediately -- for checking the Stats screen's (specs/screens/stats.md)
+layout without having to actually play games. Combine with
+screen=stats to land there directly, for example
+"?seedStats=true&screen=stats".
+
 ## botLog
 
 Value should be a comma-separated list of bot seat names (north,
