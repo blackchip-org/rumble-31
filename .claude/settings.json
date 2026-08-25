@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck *)",
+      "Bash(npm test *)",
+      "Bash(npm run simulate *)",
+      "Bash(node --test *)",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__read_page",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__read_network_requests",
+      "mcp__Claude_Browser__find",
+      "mcp__Claude_Browser__tabs_context"
+    ]
+  }
+}
