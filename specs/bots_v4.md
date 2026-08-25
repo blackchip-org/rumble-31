@@ -69,6 +69,73 @@ to the human as "locked" to a certain value which can then be exploited.
 When there is rand(x) notated, that means to choose a random integer
 between 0 and x inclusive.
 
+## Opponent Tracking
+
+Expert bots track, for each active opponent, which of that opponent's
+three hand cards are currently known. This is not a probability --
+it's an exact deduction: the pot is fully public from the round's
+second turn onward, so every trade an opponent makes reveals exactly
+which card left their hand (the card they gave to the pot) and which
+one entered it (the card they took from the pot). Every opponent
+starts each round fully unknown; the tracker resets at the start of
+every round.
+
+Updated after every opponent action:
+
+- Trade: if the card given to the pot matches one of that opponent's
+  currently-known cards, that known card is replaced by the card
+  taken from the pot -- the known count doesn't change. Otherwise,
+  the given card must have come from an unknown slot (a known card
+  can't be given away without it being recognized), so the taken card
+  becomes newly known and the known count increases by one.
+- Exchange (including a knock that exchanges the whole hand -- see
+  "Knock" below): every one of the opponent's three cards is now
+  known -- it's exactly the pot's contents immediately before the
+  exchange.
+- Knock (without exchanging) and the round's first turn's Keep: no
+  cards move, so nothing is revealed.
+
+This has no effect for Novice or Advanced, who don't track opponents
+at all.
+
+## Win Probability
+
+Expert bots use Opponent Tracking to estimate the probability that
+knocking right now would avoid a strike. Per specs/rules.md, the
+lowest score is struck (all tied lowest scores are struck together),
+so avoiding a strike means beating at least one other active player
+-- not necessarily all of them.
+
+For each active opponent, independently:
+
+- Build every possibility for that opponent's hidden cards: every way
+  to fill their unknown slots (0 to 3 cards, per Opponent Tracking
+  above) from the cards not currently visible anywhere -- not in the
+  bot's own hand, the live pot, or any opponent's known cards.
+- For each possibility, compute that opponent's best achievable score
+  against the live pot on their one remaining turn: the best of
+  keeping the hand as-is, each of the nine single-card trades, or
+  exchanging for the whole pot -- the same options any bot's own turn
+  considers.
+- That opponent's beat probability is the fraction of their
+  possibilities whose best achievable score is lower than the bot's
+  own current hand score (ties don't count as beaten).
+
+Combine every opponent's beat probability into a single win
+probability, treating them as independent:
+
+    1 - (1 - beatProbability_1) * (1 - beatProbability_2) * ...
+
+This is the probability of not being beaten by every active opponent
+at once. It's deliberately not exact joint enumeration across
+opponents' hidden cards (which is also correct, but combinatorially
+expensive once more than one opponent still has unknown cards) -- the
+independent combination costs a small fraction as much to compute and
+loses effectively no accuracy.
+
+This has no effect for Novice or Advanced, who don't compute a win
+probability.
+
 ## Phases
 
 Strategies have sequence of phases that are checked to determine what
@@ -177,6 +244,11 @@ Next check the knock thresholds:
 - Novice: Hand score is >= 27
 - Advanced: Hand score is >= 26
 - Expert: Hand score is >= 25
+
+Expert only: next check the win probability (see "Win Probability"
+above). Knock if it is greater than 0.5 -- more likely than not to
+avoid a strike by locking in the hand now. This has no effect on
+Novice or Advanced, who don't compute a win probability.
 
 As a failsafe, the bot should knock on lap 10 + rand(3)
 
@@ -302,6 +374,7 @@ figure that justified it:
     [bot] Seat: Improve Hand -- exchange for pot (pot score 27)
     [bot] Seat: Improve Hand -- trades [7h] for [8d] (hand 24 -> 27)
     [bot] Seat: Knock -- knocks (repeat counter 3 >= 3)
+    [bot] Seat: Knock -- knocks (win probability 0.62 > 0.50)
     [bot] Seat: Knock -- knocks (failsafe lap 11)
     [bot] Seat: Always Knock -- knocks
     [bot] Seat: Discard -- trades [Ah] for [2c]
@@ -367,6 +440,15 @@ above -- the ace-denial metric (see "Discard" above) -- e.g.:
 
 This does not appear in Improve Hand's lines, or in Discard's lines
 for Novice/Advanced, since none of them use this metric.
+
+Expert's Knock line carries one more comparison than shown above --
+the win probability check (see "Win Probability" and "Knock" above)
+-- placed between the hand score comparison and the failsafe, e.g.:
+
+    [bot] Seat (Knock): repeat counter 1 < 5, hand score 24 < 25, win probability 0.31 <= 0.50
+
+This does not appear for Novice/Advanced, who don't compute a win
+probability.
 
 The final line for whichever phase produces the turn's action states
 the action taken and doubles as Full Trace's own summary -- no

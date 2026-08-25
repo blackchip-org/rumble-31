@@ -6,6 +6,7 @@ import type { Action, Hand, PlayerView } from "../../game/types.ts";
 import type { Rng } from "../../rng.ts";
 import { allDifferentSuits, chance, type CandidateMetrics } from "./candidates.ts";
 import { alwaysKnockPhase, discardPhase, handSelectionPhase, improveHandPhase, knockPhase, mistakePhase, type BestScoreState, type PhaseMode } from "./phases.ts";
+import type { OpponentTracker } from "./opponentTracking.ts";
 import type { Trace } from "./trace.ts";
 
 // SkillConfig is what differs between skill levels right now:
@@ -14,9 +15,11 @@ import type { Trace } from "./trace.ts";
 // Improve Hand phase's pot exchange threshold (the minimum pot score
 // worth exchanging the whole hand for), which Trade Candidates metrics
 // (Danger score, Pairs) that phase's candidates evaluate, the Knock
-// phase's repeat-counter and hand-score thresholds, and whether
-// Discard applies the ace-hoarding tiebreak (specs/bots_v4.md's
-// Discard section -- Expert only).
+// phase's repeat-counter and hand-score thresholds, the Knock phase's
+// win probability threshold (specs/bots_v4.md's Win Probability
+// section -- Expert only, undefined for Novice/Advanced so the check
+// is skipped entirely), and whether Discard applies the ace-hoarding
+// tiebreak (specs/bots_v4.md's Discard section -- Expert only).
 // handSelection takes the rng too since Novice's rule is now a random
 // roll rather than a function of the hand.
 export interface SkillConfig {
@@ -26,6 +29,7 @@ export interface SkillConfig {
   candidateMetrics: CandidateMetrics;
   knockRepeatThreshold: number;
   knockScoreThreshold: number;
+  winProbabilityThreshold?: number;
   hoardAce: boolean;
 }
 
@@ -58,6 +62,7 @@ export const SKILL_CONFIGS: Record<"novice" | "advanced" | "expert", SkillConfig
     candidateMetrics: { danger: true, pairs: true },
     knockRepeatThreshold: 5,
     knockScoreThreshold: 25,
+    winProbabilityThreshold: 0.5,
     hoardAce: true,
   },
 };
@@ -89,11 +94,13 @@ function mistakeSiteModes(rng: Rng, mistake: boolean, pointCount: number): Phase
 
 // standardStrategy implements specs/bots_v4.md's Standard strategy
 // (2-3 opponents remain): Mistake, Improve Hand, Knock, Discard.
-function standardStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillConfig, best: BestScoreState, failsafeLap: number, trace?: Trace): Action {
+// tracker is Opponent Tracking's per-round state (specs/bots_v4.md),
+// read by knockPhase's Expert-only win probability check.
+function standardStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillConfig, best: BestScoreState, failsafeLap: number, tracker: OpponentTracker, trace?: Trace): Action {
   const [improveMode, knockMode, discardMode] = mistakeSiteModes(rng, mistake, 3) as [PhaseMode, PhaseMode, PhaseMode];
   return (
     improveHandPhase(v, rng, cfg.potExchangeThreshold, cfg.candidateMetrics, improveMode, trace) ??
-    knockPhase(v, best, cfg.knockRepeatThreshold, cfg.knockScoreThreshold, failsafeLap, knockMode, trace) ??
+    knockPhase(v, best, cfg.knockRepeatThreshold, cfg.knockScoreThreshold, failsafeLap, knockMode, trace, cfg.winProbabilityThreshold, tracker) ??
     discardPhase(v, rng, cfg.candidateMetrics, discardMode, trace, false, cfg.hoardAce)
   );
 }
@@ -103,11 +110,11 @@ function standardStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillC
 // standardStrategy, except Improve Hand and Discard both exclude
 // danger 4/5 trade candidates (headsUp: true) -- those would let the
 // sole remaining opponent win the round immediately.
-function headsUpStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillConfig, best: BestScoreState, failsafeLap: number, trace?: Trace): Action {
+function headsUpStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillConfig, best: BestScoreState, failsafeLap: number, tracker: OpponentTracker, trace?: Trace): Action {
   const [improveMode, knockMode, discardMode] = mistakeSiteModes(rng, mistake, 3) as [PhaseMode, PhaseMode, PhaseMode];
   return (
     improveHandPhase(v, rng, cfg.potExchangeThreshold, cfg.candidateMetrics, improveMode, trace, true) ??
-    knockPhase(v, best, cfg.knockRepeatThreshold, cfg.knockScoreThreshold, failsafeLap, knockMode, trace) ??
+    knockPhase(v, best, cfg.knockRepeatThreshold, cfg.knockScoreThreshold, failsafeLap, knockMode, trace, cfg.winProbabilityThreshold, tracker) ??
     discardPhase(v, rng, cfg.candidateMetrics, discardMode, trace, true, cfg.hoardAce)
   );
 }
@@ -134,8 +141,10 @@ function knockedStrategy(v: PlayerView, mistake: boolean, rng: Rng, cfg: SkillCo
 // bookkeeping (see phases.ts:BestScoreState/updateBestScore), owned
 // and updated by the caller (factory.ts) -- decideV4 only reads them.
 // trace, if given, collects this call's decision trace (specs/
-// bots_v4.md's Decision Logging).
-export function decideV4(v: PlayerView, rng: Rng, cfg: SkillConfig, best: BestScoreState, failsafeLap: number, trace?: Trace): Action {
+// bots_v4.md's Decision Logging). tracker is Opponent Tracking's
+// per-round state (specs/bots_v4.md), owned by factory.ts -- only
+// standardStrategy/headsUpStrategy's Knock phase reads it.
+export function decideV4(v: PlayerView, rng: Rng, cfg: SkillConfig, best: BestScoreState, failsafeLap: number, tracker: OpponentTracker, trace?: Trace): Action {
   const mistake = mistakePhase(rng, cfg.mistakeChance, trace);
 
   if (v.isFirstTurnOfRound) {
@@ -145,7 +154,7 @@ export function decideV4(v: PlayerView, rng: Rng, cfg: SkillConfig, best: BestSc
     return knockedStrategy(v, mistake, rng, cfg, trace);
   }
   if (v.opponentCount === 1) {
-    return headsUpStrategy(v, mistake, rng, cfg, best, failsafeLap, trace);
+    return headsUpStrategy(v, mistake, rng, cfg, best, failsafeLap, tracker, trace);
   }
-  return standardStrategy(v, mistake, rng, cfg, best, failsafeLap, trace);
+  return standardStrategy(v, mistake, rng, cfg, best, failsafeLap, tracker, trace);
 }

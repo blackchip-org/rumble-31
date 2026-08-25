@@ -5,6 +5,7 @@ import { score } from "../../card/score.ts";
 import { exchange, knock, trade, type Hand, type PlayerView, type Pot } from "../../game/types.ts";
 import { Rng } from "../../rng.ts";
 import type { CandidateMetrics } from "./candidates.ts";
+import { newOpponentTracker } from "./opponentTracking.ts";
 import {
   alwaysKnockPhase,
   discardPhase,
@@ -278,6 +279,37 @@ test("knockPhase: skipped mode falls through even when every threshold is met", 
 test("knockPhase: mistake mode never knocks even when every threshold is met", () => {
   const v = baseView({ hand: mustHand("7c", "Tc", "Jc"), lap: 13 });
   const action = knockPhase(v, { score: 9, repeatCount: 5 }, 2, 27, 13, "mistake");
+  assert.equal(action, undefined);
+});
+
+// weakOpponent's best achievable score against weakPot is 17 (see
+// winProbability.test.ts, which verifies this by hand) -- a fully-
+// known opponent, so estimateWinProbability needs no enumeration:
+// exactly beaten or not, for a deterministic knockPhase test.
+const weakOpponent: [string, string, string] = ["7c", "8d", "9s"];
+const weakPot: [string, string, string] = ["7d", "8s", "9c"];
+
+test("knockPhase: win probability above threshold knocks, even with repeat counter and hand score both below their own thresholds", () => {
+  const tracker = newOpponentTracker();
+  tracker.set(1, mustHand(...weakOpponent));
+  const v = baseView({ hand: mustHand("7h", "8h", "Th"), pot: mustPot(...weakPot), opponentCount: 1 }); // hand score 25 > opponent's ceiling of 17
+  const action = knockPhase(v, { score: 0, repeatCount: 0 }, 99, 99, 99, "normal", undefined, 0.5, tracker);
+  assert.equal(action?.type, "knock");
+});
+
+test("knockPhase: win probability at or below threshold falls through to the failsafe check", () => {
+  const tracker = newOpponentTracker();
+  tracker.set(1, mustHand(...weakOpponent));
+  const v = baseView({ pot: mustPot(...weakPot), opponentCount: 1 }); // default hand scores 9, below opponent's ceiling of 17
+  const action = knockPhase(v, { score: 0, repeatCount: 0 }, 99, 99, 99, "normal", undefined, 0.5, tracker);
+  assert.equal(action, undefined);
+});
+
+test("knockPhase: winProbabilityThreshold/tracker undefined skips the win probability check entirely (Novice/Advanced)", () => {
+  const tracker = newOpponentTracker();
+  tracker.set(1, mustHand(...weakOpponent));
+  const v = baseView({ hand: mustHand("7h", "8h", "Th"), pot: mustPot(...weakPot), opponentCount: 1 });
+  const action = knockPhase(v, { score: 0, repeatCount: 0 }, 99, 99, 99, "normal", undefined, undefined, tracker);
   assert.equal(action, undefined);
 });
 

@@ -13,6 +13,8 @@ import { exchange, knock, trade } from "../../game/types.ts";
 import type { Rng } from "../../rng.ts";
 import { allDifferentSuits, chance, excludeDangerous, forcedTradePool, sortCandidates, tradeCandidates, type CandidateMetrics, type TradeCandidate } from "./candidates.ts";
 import { record, recordAction, type Trace } from "./trace.ts";
+import type { OpponentTracker } from "./opponentTracking.ts";
+import { estimateWinProbability } from "./winProbability.ts";
 
 // mistakePhase rolls once per decide() call, per specs/bots_v4.md's
 // Mistake section: whether this turn has a mistake at all. Which
@@ -214,7 +216,14 @@ export function updateBestScore(best: BestScoreState, newScore: number): BestSco
 // (this phase sits before this turn's mistake site). mode "mistake"
 // (this phase is the site) never knocks, regardless of whether any of
 // the above conditions are met.
-export function knockPhase(v: PlayerView, best: BestScoreState, knockRepeatThreshold: number, knockScoreThreshold: number, failsafeLap: number, mode: PhaseMode = "normal", trace?: Trace): Action | undefined {
+//
+// winProbabilityThreshold/tracker implement specs/bots_v4.md's
+// Expert-only win probability check, evaluated after the repeat
+// counter and hand score threshold (cheap comparisons) and before the
+// failsafe lap. Both are undefined for Novice/Advanced, which skips
+// the check entirely -- estimateWinProbability is never called for
+// them.
+export function knockPhase(v: PlayerView, best: BestScoreState, knockRepeatThreshold: number, knockScoreThreshold: number, failsafeLap: number, mode: PhaseMode = "normal", trace?: Trace, winProbabilityThreshold?: number, tracker?: OpponentTracker): Action | undefined {
   if (mode === "skipped") {
     record(trace, "Knock", "skipped (mistake happens at a later phase this turn)");
     return undefined;
@@ -234,12 +243,24 @@ export function knockPhase(v: PlayerView, best: BestScoreState, knockRepeatThres
     recordAction(trace, "Knock", msg, msg);
     return knock();
   }
+
+  let winProbability: number | undefined;
+  if (winProbabilityThreshold !== undefined && tracker !== undefined) {
+    winProbability = estimateWinProbability(v, handScore, tracker);
+    if (winProbability > winProbabilityThreshold) {
+      const msg = `knocks (win probability ${winProbability.toFixed(2)} > ${winProbabilityThreshold.toFixed(2)})`;
+      recordAction(trace, "Knock", msg, msg);
+      return knock();
+    }
+  }
+
   if (v.lap >= failsafeLap) {
     const msg = `knocks (failsafe lap ${failsafeLap})`;
     recordAction(trace, "Knock", msg, msg);
     return knock();
   }
-  record(trace, "Knock", `repeat counter ${best.repeatCount} < ${knockRepeatThreshold}, hand score ${handScore} < ${knockScoreThreshold}`);
+  const winProbabilitySuffix = winProbability !== undefined ? `, win probability ${winProbability.toFixed(2)} <= ${(winProbabilityThreshold as number).toFixed(2)}` : "";
+  record(trace, "Knock", `repeat counter ${best.repeatCount} < ${knockRepeatThreshold}, hand score ${handScore} < ${knockScoreThreshold}${winProbabilitySuffix}`);
   return undefined;
 }
 

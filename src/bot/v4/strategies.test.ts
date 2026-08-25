@@ -4,6 +4,7 @@ import { parseCard } from "../../card/card.ts";
 import type { Hand, PlayerView, Pot } from "../../game/types.ts";
 import { Rng } from "../../rng.ts";
 import type { BestScoreState } from "./phases.ts";
+import { newOpponentTracker } from "./opponentTracking.ts";
 import { decideV4, SKILL_CONFIGS } from "./strategies.ts";
 import type { Trace } from "./trace.ts";
 
@@ -72,7 +73,7 @@ for (const skillLevel of skillLevels) {
   for (const c of strategyCases) {
     test(`decideV4 (${skillLevel}): ${c.name}`, () => {
       const v = baseView(c.view);
-      const action = decideV4(v, new FixedRng(0.999), SKILL_CONFIGS[skillLevel], noRepeat, farFailsafeLap);
+      const action = decideV4(v, new FixedRng(0.999), SKILL_CONFIGS[skillLevel], noRepeat, farFailsafeLap, newOpponentTracker());
       assert.ok(["trade", "exchange", "knock"].includes(action.type));
       if (v.isFirstTurnOfRound) {
         assert.notEqual(action.type, "trade");
@@ -90,7 +91,7 @@ test("decideV4: First strategy exchanges/keeps per each skill level's Hand Selec
   ];
   for (const c of cases) {
     const v = baseView({ isFirstTurnOfRound: true, hand: mustHand(...c.hand) });
-    const action = decideV4(v, new FixedRng(c.rng), SKILL_CONFIGS[c.skillLevel], noRepeat, farFailsafeLap);
+    const action = decideV4(v, new FixedRng(c.rng), SKILL_CONFIGS[c.skillLevel], noRepeat, farFailsafeLap, newOpponentTracker());
     assert.equal(action.type, c.want, `${c.skillLevel} with ${c.hand.join(",")}`);
   }
 });
@@ -110,20 +111,20 @@ test("decideV4: Novice's Hand Selection is a 25% random roll, but only when the 
   const cfg = { ...SKILL_CONFIGS.novice, mistakeChance: 0 };
   const weakHand = mustHand("7c", "8d", "9s"); // score 9 -- below the 28 gate
 
-  const exchanges = decideV4(baseView({ isFirstTurnOfRound: true, hand: weakHand }), new FixedRng(0.1), cfg, noRepeat, farFailsafeLap);
+  const exchanges = decideV4(baseView({ isFirstTurnOfRound: true, hand: weakHand }), new FixedRng(0.1), cfg, noRepeat, farFailsafeLap, newOpponentTracker());
   assert.equal(exchanges.type, "exchange");
 
-  const keeps = decideV4(baseView({ isFirstTurnOfRound: true, hand: weakHand }), new FixedRng(0.5), cfg, noRepeat, farFailsafeLap);
+  const keeps = decideV4(baseView({ isFirstTurnOfRound: true, hand: weakHand }), new FixedRng(0.5), cfg, noRepeat, farFailsafeLap, newOpponentTracker());
   assert.equal(keeps.type, "knock");
 
   const strongHand = mustHand("9c", "Tc", "Jc"); // score 29 -- at/above the 28 gate, always keeps
-  const gated = decideV4(baseView({ isFirstTurnOfRound: true, hand: strongHand }), new FixedRng(0.1), cfg, noRepeat, farFailsafeLap);
+  const gated = decideV4(baseView({ isFirstTurnOfRound: true, hand: strongHand }), new FixedRng(0.1), cfg, noRepeat, farFailsafeLap, newOpponentTracker());
   assert.equal(gated.type, "knock");
 });
 
 test("decideV4: Knocked strategy knocks (via Always Knock) when Improve Hand can't act", () => {
   const v = baseView({ isLastTurn: true, hand: mustHand("9c", "9d", "9s"), pot: mustPot("7c", "8d", "Th") });
-  const action = decideV4(v, new FixedRng(0.999), SKILL_CONFIGS.novice, noRepeat, farFailsafeLap);
+  const action = decideV4(v, new FixedRng(0.999), SKILL_CONFIGS.novice, noRepeat, farFailsafeLap, newOpponentTracker());
   assert.equal(action.type, "knock");
 });
 
@@ -140,7 +141,7 @@ for (const skillLevel of skillLevels) {
     const v = baseView({ opponentCount: 2, hand: mustHand(...stuckHand), pot: mustPot(...stuckPot) });
     const cfg = SKILL_CONFIGS[skillLevel];
     const stuckAtThreshold: BestScoreState = { score: 10, repeatCount: cfg.knockRepeatThreshold };
-    const action = decideV4(v, new FixedRng(0.999), cfg, stuckAtThreshold, farFailsafeLap);
+    const action = decideV4(v, new FixedRng(0.999), cfg, stuckAtThreshold, farFailsafeLap, newOpponentTracker());
     assert.equal(action.type, "knock");
   });
 }
@@ -153,7 +154,7 @@ for (const c of strategyCases) {
   test(`decideV4 trace: ${c.name}`, () => {
     const trace: Trace = [];
     const v = baseView(c.view);
-    decideV4(v, new FixedRng(0.999), SKILL_CONFIGS.expert, noRepeat, farFailsafeLap, trace);
+    decideV4(v, new FixedRng(0.999), SKILL_CONFIGS.expert, noRepeat, farFailsafeLap, newOpponentTracker(), trace);
     assert.equal(trace[0]?.phase, "Mistake");
     const acted = trace.filter((e) => e.acted);
     assert.equal(acted.length, 1);
@@ -181,7 +182,7 @@ for (const c of siteCases) {
   test(`decideV4: Standard picks mistake site ${c.wantSite} at rng ${c.rngValue}, skipping every point before it`, () => {
     const trace: Trace = [];
     const v = baseView({ opponentCount: 2 });
-    decideV4(v, new FixedRng(c.rngValue), mistakeCfg, noRepeat, farFailsafeLap, trace);
+    decideV4(v, new FixedRng(c.rngValue), mistakeCfg, noRepeat, farFailsafeLap, newOpponentTracker(), trace);
     const siteEntries = trace.filter((e) => e.phase === c.wantSite);
     assert.ok(
       siteEntries.some((e) => e.detail.startsWith("mistake")),
@@ -200,7 +201,7 @@ for (const c of siteCases) {
 test("decideV4: Knocked strategy's only mistake-eligible point is Improve Hand -- Always Knock never mistakes", () => {
   const trace: Trace = [];
   const v = baseView({ isLastTurn: true });
-  const action = decideV4(v, new FixedRng(0.5), mistakeCfg, noRepeat, farFailsafeLap, trace);
+  const action = decideV4(v, new FixedRng(0.5), mistakeCfg, noRepeat, farFailsafeLap, newOpponentTracker(), trace);
   assert.ok(trace.some((e) => e.phase === "Improve Hand" && e.detail.startsWith("mistake")));
   assert.ok(["trade", "knock"].includes(action.type));
 });
@@ -214,14 +215,14 @@ test("decideV4: Knocked strategy's only mistake-eligible point is Improve Hand -
 for (const skillLevel of ["advanced", "expert"] as const) {
   test(`decideV4 (${skillLevel}): Heads Up excludes a danger 5 trade that Standard would take`, () => {
     const view = { hand: mustHand("As", "9c", "Ac"), pot: mustPot("Ks", "Js", "Qc") };
-    const standard = decideV4(baseView({ ...view, opponentCount: 2 }), new FixedRng(0.999), SKILL_CONFIGS[skillLevel], noRepeat, farFailsafeLap);
+    const standard = decideV4(baseView({ ...view, opponentCount: 2 }), new FixedRng(0.999), SKILL_CONFIGS[skillLevel], noRepeat, farFailsafeLap, newOpponentTracker());
     assert.equal(standard.type, "trade");
     if (standard.type === "trade") {
       assert.equal(standard.potIndex, 2);
       assert.equal(standard.handIndex, 0);
     }
 
-    const headsUp = decideV4(baseView({ ...view, opponentCount: 1 }), new FixedRng(0.999), SKILL_CONFIGS[skillLevel], noRepeat, farFailsafeLap);
+    const headsUp = decideV4(baseView({ ...view, opponentCount: 1 }), new FixedRng(0.999), SKILL_CONFIGS[skillLevel], noRepeat, farFailsafeLap, newOpponentTracker());
     assert.equal(headsUp.type, "trade");
     if (headsUp.type === "trade") {
       assert.ok(!(headsUp.potIndex === 2 && headsUp.handIndex === 0), "Heads Up must not take the danger 5 trade Standard took");
@@ -232,7 +233,7 @@ for (const skillLevel of ["advanced", "expert"] as const) {
 test("decideV4: First strategy's only point is Hand Selection, reached directly with no skip entries", () => {
   const trace: Trace = [];
   const v = baseView({ isFirstTurnOfRound: true });
-  decideV4(v, new FixedRng(0.5), mistakeCfg, noRepeat, farFailsafeLap, trace);
+  decideV4(v, new FixedRng(0.5), mistakeCfg, noRepeat, farFailsafeLap, newOpponentTracker(), trace);
   assert.ok(trace.some((e) => e.phase === "Hand Selection" && e.detail.startsWith("mistake")));
   assert.ok(trace.every((e) => !e.detail.startsWith("skipped")));
 });

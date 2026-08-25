@@ -1,12 +1,12 @@
 // Skill-level -> Strategy construction for the v4 bots, per
 // specs/bots_v4.md. Mirrors src/bot/v3/factory.ts's shape so this is a
 // drop-in replacement once v4 is wired into the simulator/web GUI --
-// unlike v3's bots, nothing here tracks turn history or opponent
-// hands, so a single Strategy (parameterized by SkillConfig) covers
-// all three skill levels instead of three separate classes; it does
-// need per-round instance state now, though, for the Knock phase's
-// best-score/repeat-counter tracking and its once-per-round failsafe
-// lap (specs/bots_v4.md's Knock phase).
+// a single Strategy (parameterized by SkillConfig) covers all three
+// skill levels instead of three separate classes; it needs per-round
+// instance state, though, for the Knock phase's best-score/repeat-
+// counter tracking and its once-per-round failsafe lap (specs/
+// bots_v4.md's Knock phase), and, for Expert, an Opponent Tracking
+// map (specs/bots_v4.md's Opponent Tracking) built from observe().
 
 import { randInt } from "./candidates.ts";
 import { resultingScore, updateBestScore, type BestScoreState } from "./phases.ts";
@@ -14,6 +14,7 @@ import type { DecisionTraceEntry, Strategy } from "../../game/types.ts";
 import { Rng } from "../../rng.ts";
 import { decideV4, SKILL_CONFIGS } from "./strategies.ts";
 import type { LogDetail } from "./trace.ts";
+import { newOpponentTracker, observeOpponentTurn } from "./opponentTracking.ts";
 
 export const BOT_SKILL_LEVELS = ["novice", "advanced", "expert"] as const;
 export type BotSkillLevel = (typeof BOT_SKILL_LEVELS)[number];
@@ -55,20 +56,30 @@ export function createBot(skillLevel: BotSkillLevel, rng: Rng, state?: BotState,
 
   let best: BestScoreState = state?.best ?? { score: 0, repeatCount: 0 };
   let failsafeLap = state?.failsafeLap ?? randInt(botRng, ...FAILSAFE_LAP_RANGE);
+  // Only Expert tracks opponents at all (specs/bots_v4.md's Opponent
+  // Tracking) -- for other skill levels this stays permanently empty
+  // and observe is never wired up to fill it, since knockPhase never
+  // reads it without an Expert-only winProbabilityThreshold to pair it
+  // with (see strategies.ts's SKILL_CONFIGS).
+  const tracker = newOpponentTracker();
 
   const strategy: Strategy & { getState?: () => BotState } = {
     onRoundStart: () => {
       best = { score: 0, repeatCount: 0 };
       failsafeLap = randInt(botRng, ...FAILSAFE_LAP_RANGE);
+      tracker.clear();
     },
     decide: (view) => {
       const trace: DecisionTraceEntry[] | undefined = logDetail ? [] : undefined;
-      const action = decideV4(view, botRng, cfg, best, failsafeLap, trace);
+      const action = decideV4(view, botRng, cfg, best, failsafeLap, tracker, trace);
       best = updateBestScore(best, resultingScore(view, action));
       strategy.lastTrace = trace;
       return action;
     },
   };
+  if (skillLevel === "expert") {
+    strategy.observe = (turn) => observeOpponentTurn(tracker, turn);
+  }
   strategy.getState = () => ({ best, failsafeLap });
   return strategy;
 }
