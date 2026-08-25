@@ -1488,16 +1488,25 @@ body {
   display: flex;
 }
 
+/* max-height: 100% (of .stats-screen's padded content box) caps the
+   panel to what actually fits the viewport, so .stats-card below --
+   the only child with room to give, via its own flex-shrink and
+   overflow-y: auto -- shrinks to keep title/tabs/buttons on-screen
+   instead of the whole panel overflowing top and bottom uncatchably
+   (.stats-screen centers with no scrolling of its own; only the card
+   should ever need to scroll). */
 .stats-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
   width: min(94vw, 640px);
+  max-height: 100%;
   color: var(--stats-text-color);
 }
 
 .stats-title {
+  flex-shrink: 0;
   margin: 0;
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-stats-title);
@@ -1508,6 +1517,7 @@ body {
 .stats-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  flex-shrink: 0;
   width: 100%;
   gap: 0.4rem;
 }
@@ -1524,14 +1534,19 @@ body {
   border-color: var(--accent);
 }
 
-/* .stats-card is a fixed height (not max-height) so switching tabs
-   never resizes it -- the title/tabs above and Main Menu button below
-   stay put; a short pane (Overall) leaves blank space below it
-   instead of shrinking the card, a tall one scrolls inside it instead
-   of growing the card. */
+/* .stats-card's height is a flex basis, not a fixed size: normally it
+   holds steady at min(64vh, 560px) so switching tabs never resizes it
+   -- a short pane (Overall) leaves blank space below it instead of
+   shrinking the card, a tall one scrolls inside it instead of growing
+   the card. But .stats-panel's max-height (above) can force the panel
+   to be shorter than title + tabs + this basis + buttons adds up to,
+   and min-height: 0 plus the default flex-shrink: 1 are what let the
+   card give up that difference -- title/tabs/buttons all set
+   flex-shrink: 0, so the card is the only child that ever shrinks. */
 .stats-card {
   width: 100%;
   height: min(64vh, 560px);
+  min-height: 0;
   overflow-y: auto;
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -1832,6 +1847,7 @@ body {
 .stats-buttons {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   width: min(60vw, 260px);
 }
 
@@ -2844,14 +2860,14 @@ body {
 
   /* Stats' title/tabs/card/buttons (see the base rules above) are
      already taller than this breakpoint's shortest phones before even
-     counting a difficulty pane's own content -- centered as a whole
-     (.stats-screen's justify-content: center), the panel overflows
-     and clips symmetrically off both the top and bottom, cropping the
-     title and squeezing the Main Menu button into an unusable sliver.
-     Dropping the title outright buys back enough height that the
-     tabs/card/buttons below fit without clipping -- the tabs already
-     make clear which screen this is, so the heading isn't carrying
-     any meaning the rest of the panel doesn't. */
+     counting a difficulty pane's own content. .stats-panel's
+     max-height plus .stats-card's flex-shrink (see the comments on
+     both, above) already keep the card from forcing the panel past
+     the viewport -- but on these already-cramped phones that can
+     shrink the card down to an unusably thin sliver. Dropping the
+     title outright buys the card back that height instead -- the
+     tabs already make clear which screen this is, so the heading
+     isn't carrying any meaning the rest of the panel doesn't. */
   .stats-title {
     display: none;
   }

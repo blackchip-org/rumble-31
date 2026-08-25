@@ -11,10 +11,14 @@ was showing the last time it was visited and reopens on that same
 tab; if it's never been visited this session, it opens on "Overall".
 
 Below the tabs is a single panel showing the active tab's content.
-This panel is a fixed height, so switching tabs never moves the
-header, tabs, or "Main Menu" button below it: a tab whose content is
-shorter than the panel leaves blank space below it, and a tab whose
-content is taller than the panel scrolls within it.
+This panel normally holds a fixed height, so switching tabs never
+moves the header, tabs, or "Main Menu" button below it: a tab whose
+content is shorter than the panel leaves blank space below it, and a
+tab whose content is taller than the panel scrolls within it. On a
+window too short to fit the header, tabs, panel, and "Main Menu"
+button at that fixed height, the panel instead shrinks to whatever
+height is left, per the general layout rule (specs/gui.md) that the
+page itself should never need to scroll.
 
 The "Overall" tab shows the Global Stats (specs/stats.md):
 

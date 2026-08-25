@@ -2,12 +2,30 @@
 
 The GUI is organized into different "screens".
 
-At typical desktop window sizes, the game screen fits entirely within
-the browser viewport; it does not scroll. Elements (cards in
-particular) shrink as needed to fit a shorter or narrower window,
-down to a minimum legible size. Below that minimum, on a viewport too
-small to fit the whole screen, the page falls back to scrolling so
-every panel stays reachable.
+## Layout
+
+Every screen is designed to fit entirely within the browser viewport
+at typical window sizes, without the page itself scrolling. Elements
+(cards in particular) shrink as needed to fit a shorter or narrower
+window, down to a minimum legible size. A screen with content whose
+length can vary or grow past what fits -- the Stats screen's tabbed
+content (specs/screens/stats.md), for example -- puts that content in
+its own scrollable panel within the screen instead, so the header,
+tabs, and buttons around it stay fully on screen and reachable
+without scrolling.
+
+Page-level scrolling (the whole screen, rather than a panel within
+it) is a failsafe, not part of the intended design: if a layout still
+doesn't fit after shrinking and any internal panel has taken the
+overflow it can, the screen falls back to scrolling as a whole so
+every part stays reachable. Relying on this in a new or changed
+layout is a sign the layout needs another look, not a substitute for
+designing it to fit.
+
+When adjusting a screen's layout, check it at both desktop and mobile
+window sizes, and on mobile check both portrait and landscape
+orientation -- a change that fits one doesn't guarantee it fits the
+others.
 
 ## Mobile
 
