@@ -116,19 +116,9 @@ const sampleGame: GameState = {
     turnIndex: 2,
     knocked: true,
     knockerSeat: 0,
-    botMemory: [
-      [1, { name: "novice", bestScore: 15, bestTurn: 3 }],
-      [
-        3,
-        {
-          name: "expert",
-          bestScore: 18,
-          bestTurn: 2,
-          upstreamKnown: [{ rank: "7", suit: "h" }],
-          downstreamKnown: [],
-          neighbors: { upstreamSeat: 2, downstreamSeat: 1, lastTurn: { seat: 2, type: "knock", given: [], taken: [] } },
-        },
-      ],
+    botState: [
+      [1, { best: { score: 15, repeatCount: 1 }, failsafeLap: 11 }],
+      [3, { best: { score: 18, repeatCount: 2 }, failsafeLap: 10 }],
     ],
   },
 };
@@ -148,8 +138,8 @@ const sampleOver: OverState = {
 
 test("loadState never errors on a single-field-corrupted saved game/over screen -- it's accepted as-is or rejected outright, never thrown", () => {
   const envelopes = [
-    { version: 9, state: { screen: "game", game: sampleGame, savedAt: 100 } },
-    { version: 9, state: { screen: "over", game: sampleOver, savedAt: 100 } },
+    { version: 11, state: { screen: "game", game: sampleGame, savedAt: 100 } },
+    { version: 11, state: { screen: "over", game: sampleOver, savedAt: 100 } },
   ];
   for (const envelope of envelopes) {
     for (const mutation of singleFieldMutations(envelope)) {

@@ -113,11 +113,27 @@ browser.
 ## showBots
 
 Value should be "true" or "false" (default "false" if omitted).
-showBots=true shows each bot seat's skill level (specs/bots.md) next to
+showBots=true shows each bot seat's skill level (specs/bots_v3.md) next to
 its seat name on the Game screen, as a parenthesized initial: " (N)" for
 Novice, " (A)" for Advanced, " (E)" for Expert -- for example "West
 (A)". South's seat label is never affected, since South is always the
 human player.
+
+## botLog
+
+Value should be a comma-separated list of bot seat names (north,
+south, east, west). "botLog=north" enables bot decision logging
+(specs/bots_v4.md's "Decision Logging") for just that seat;
+"botLog=north,west" enables it for both. South is always the human
+player, so naming it has no effect. Defaults to no seats enabled when
+omitted.
+
+A name's case controls the level of detail logged for that seat: an
+all-lowercase name ("north") logs at the Summary level, while a name
+starting with an uppercase letter ("North" or "NORTH") logs at the
+Full Trace level -- see specs/bots_v4.md's "Decision Logging" for what
+each level logs. "botLog=north,West" logs North at Summary and West
+at Full Trace.
 
 ## age
 

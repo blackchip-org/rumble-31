@@ -51,13 +51,21 @@ export interface PlayerView {
   // seat is the acting player's seat (0-3).
   seat: number;
 
+  // opponentCount is how many other seats are taking part in this
+  // round (1 to 3 -- a seat eliminated from the game is not counted).
+  opponentCount: number;
+
   // isFirstTurnOfRound is true only for the single decide() call made on
   // the very first turn of the round.
   isFirstTurnOfRound: boolean;
 
-  // ownTurnNumber is the 1-based count of this seat's own turns so far,
-  // including the current one.
-  ownTurnNumber: number;
+  // lap is the round's current 1-based lap number (specs/rules.md):
+  // it starts at 1 and increases by one right after the dealer's
+  // turn, when play wraps back around to the seat that acted first
+  // this round. Since every active seat, including the dealer, takes
+  // exactly one turn per lap, this is equally the acting seat's own
+  // 1-based turn count so far this round, including the current turn.
+  lap: number;
 
   // isLastTurn is true when another player has already knocked (or
   // exchanged past the round's first turn) this round, making this the
@@ -76,6 +84,21 @@ export interface PublicTurn {
   taken: Card[];
 }
 
+// DecisionTraceEntry is one step of a Strategy's decision-making
+// process for a single decide() call, for a Strategy that supports
+// specs/bots_v4.md's Decision Logging. phase names which of the
+// Strategy's internal phases produced it; acted is true only for the
+// entry describing the action decide() ultimately returned (exactly
+// one entry per trace); summary is set only when acted is true, for
+// the one-line Summary format — detail is always set, for the Full
+// Trace format.
+export interface DecisionTraceEntry {
+  phase: string;
+  detail: string;
+  acted: boolean;
+  summary?: string;
+}
+
 // Strategy decides an action for a player given their view of the round.
 // A synchronous Strategy (e.g. a bot, or the CLI's blocking-stdin human)
 // returns Action directly; one that waits on external input (e.g. a
@@ -91,10 +114,16 @@ export interface PublicTurn {
 // what it's shown — the engine never hands out a shared, canonical
 // history, so a strategy that wants imperfect memory can do so on its
 // own without any change here.
+//
+// lastTrace, if present after decide() returns, is that call's
+// decision trace (specs/bots_v4.md's Decision Logging) — only
+// populated when the caller requested logging and the Strategy
+// supports it.
 export interface Strategy {
   decide(view: PlayerView): Action | Promise<Action>;
   onRoundStart?(): void;
   observe?(turn: PublicTurn): void;
+  lastTrace?: DecisionTraceEntry[];
 }
 
 // strategyFunc adapts a plain function to the Strategy interface.

@@ -612,6 +612,52 @@ test("run: isLastTurn is false until a knock, then true for every seat's remaini
   ]);
 });
 
+test("run: lap starts at 1 and increases by one every players.length turns", async () => {
+  const seen: Array<{ seat: number; lap: number }> = [];
+  let turns = 0;
+  const strategy = (): Strategy =>
+    strategyFunc((v: PlayerView) => {
+      seen.push({ seat: v.seat, lap: v.lap });
+      turns++;
+      if (v.isFirstTurnOfRound) {
+        return knock();
+      }
+      return turns >= 9 ? knock() : trade(0, 0);
+    });
+
+  const r = newTestRound(
+    [
+      ["7h", "8h", "9h"],
+      ["7c", "8c", "9c"],
+      ["7d", "8d", "9d"],
+      ["7s", "8s", "9s"],
+    ],
+    ["Kh", "Kc", "Kd"],
+    [strategy(), strategy(), strategy(), strategy()],
+  );
+  r.firstSeat = 0;
+
+  await r.run();
+
+  // Seat 0 knocks on its own 3rd turn (turnIdx 8, the first turn of lap
+  // 3); seats 1, 2, and 3 each get exactly one more turn, still lap 3,
+  // before the round stops back at seat 0.
+  assert.deepEqual(seen, [
+    { seat: 0, lap: 1 },
+    { seat: 1, lap: 1 },
+    { seat: 2, lap: 1 },
+    { seat: 3, lap: 1 },
+    { seat: 0, lap: 2 },
+    { seat: 1, lap: 2 },
+    { seat: 2, lap: 2 },
+    { seat: 3, lap: 2 },
+    { seat: 0, lap: 3 },
+    { seat: 1, lap: 3 },
+    { seat: 2, lap: 3 },
+    { seat: 3, lap: 3 },
+  ]);
+});
+
 test("run: the view passed to a strategy matches ground truth", async () => {
   const seatHands: [
     [string, string, string],
@@ -633,6 +679,7 @@ test("run: the view passed to a strategy matches ground truth", async () => {
       assert.equal(v.seat, seat);
       assert.deepEqual(v.hand, r.players[seat]?.hand);
       assert.deepEqual(v.pot, r.pot);
+      assert.equal(v.opponentCount, 3);
       return knock();
     });
 
@@ -642,6 +689,38 @@ test("run: the view passed to a strategy matches ground truth", async () => {
   (r.players[3] as Player).strategy = checker(3);
 
   await r.run();
+});
+
+test("run: opponentCount reflects the round's active roster, not a fixed 4-seat count", async () => {
+  const pass = passTurn();
+  const knockOnce = (): Strategy => {
+    let called = false;
+    return strategyFunc(() => {
+      if (!called) {
+        called = true;
+        return knock();
+      }
+      throw new Error("knocking seat was asked to act again");
+    });
+  };
+  let sawOpponentCount: number | undefined;
+  const checker = strategyFunc((v: PlayerView) => {
+    sawOpponentCount = v.opponentCount;
+    return v.isFirstTurnOfRound ? knock() : trade(0, 0);
+  });
+
+  // Seat 1 is eliminated from the game -- only seats 0, 2, 3 take part,
+  // so each should see 2 opponents, not 3.
+  const players: Player[] = [0, 2, 3].map((seat) => ({
+    seat,
+    hand: mustHand("7h", "8h", "9h"),
+    strategy: seat === 0 ? checker : seat === 2 ? knockOnce() : pass,
+  }));
+  const r = new Round(mustPot("Ah", "Ac", "Ad"), players, 0);
+
+  await r.run();
+
+  assert.equal(sawOpponentCount, 2);
 });
 
 test("run: exchanging on the round's first turn does not end it", async () => {
@@ -950,7 +1029,7 @@ test("run: onRoundStart fires even when a 31 is already dealt to the round's fir
 
 // Regression test for specs/state.md's resumed-round checkpoint: a
 // strategy resumed mid-round (e.g. a bot rebuilt from saved memory,
-// specs/bots.md) must not have that memory wiped by a second
+// specs/bots_v3.md) must not have that memory wiped by a second
 // onRoundStart -- only a round genuinely starting at turnIndex 0
 // should reset it.
 test("run: onRoundStart does not fire again when a round resumes with turnIndex > 0", async () => {

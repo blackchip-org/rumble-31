@@ -1,11 +1,11 @@
 // Skill-level -> Strategy construction, shared by the headless
-// simulator (src/sim) and the browser GUI (src/web), per specs/bots.md.
+// simulator (src/sim) and the browser GUI (src/web), per specs/bots_v3.md.
 
 import { NoviceBot, type NoviceBotMemory } from "./novice.ts";
 import { AdvancedBot, type AdvancedBotMemory } from "./advanced.ts";
 import { ExpertBot, type ExpertBotMemory } from "./expert.ts";
-import type { Strategy } from "../game/types.ts";
-import { Rng } from "../rng.ts";
+import type { Strategy } from "../../game/types.ts";
+import { Rng } from "../../rng.ts";
 
 export const BOT_SKILL_LEVELS = ["novice", "advanced", "expert"] as const;
 export type BotSkillLevel = (typeof BOT_SKILL_LEVELS)[number];
@@ -16,7 +16,7 @@ export type BotSkillLevel = (typeof BOT_SKILL_LEVELS)[number];
 export type BotMemory = ({ name: "novice" } & NoviceBotMemory) | ({ name: "advanced" } & AdvancedBotMemory) | ({ name: "expert" } & ExpertBotMemory);
 
 // createBot returns a freshly constructed strategy for skillLevel, per
-// specs/bots.md. rng seeds the bot's own random decisions (e.g. its
+// specs/bots_v3.md. rng seeds the bot's own random decisions (e.g. its
 // knock-turn range) with an independent sub-seed, so a caller stays
 // fully reproducible from its own seed alone. memory, if given and
 // tagged for this same skill level, seeds the bot with what it had

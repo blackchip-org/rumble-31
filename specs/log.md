@@ -64,6 +64,14 @@ If that seat is the first to act that round, instead use:
 
     Seat goes first
 
+If bot decision logging is enabled for that seat (specs/bots_v4.md's
+"Decision Logging"), that seat's `[bot]`-prefixed decision lines are
+written here, between the turn-start line above and the line
+describing the action the bot ends up taking. Those lines are not
+covered by this spec; see bots_v4.md for their exact format. They are
+also excluded from the saved log file (see "the player has the option
+to save the log" below).
+
 At the end of the round, first state how the round ended. Use one of the 
 following:
 

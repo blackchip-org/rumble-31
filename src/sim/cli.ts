@@ -10,12 +10,12 @@ export async function main(argv: readonly string[], stdout: NodeJS.WritableStrea
   const config = parseCliArgs(argv);
 
   if (config.mode === "all") {
-    const combos = await runAllCombos(config.games, config.seed);
-    stdout.write(formatComboTable(config.games, config.seed, combos).join("\n") + "\n");
+    const combos = await runAllCombos(config.games, config.seed, config.botVersion);
+    stdout.write(formatComboTable(config.games, config.seed, config.botVersion, combos).join("\n") + "\n");
     return;
   }
 
-  const result = await runSimulation(config);
+  const result = await runSimulation(config, (line) => stdout.write(line + "\n"));
   stdout.write(formatReport(config, result).join("\n") + "\n");
 }
 

@@ -48,7 +48,7 @@ difficulty's Per Difficulty Setting stats (specs/stats.md):
   across every bot skill level at that difficulty, and, below those,
   a table breaking that same record down by skill (Novice/Advanced/
   Expert), same as the Overall tab's, except a row for a skill never
-  seated at that difficulty (specs/bots.md's Difficulty mapping) shows
+  seated at that difficulty (specs/bots_v3.md's Difficulty mapping) shows
   a dash in each column instead of a permanent zero.
 - The three streaks (specs/stats.md): First place, Top two, and Not
   last. Each shows its current streak (its length, and, once it has
@@ -64,7 +64,7 @@ A "Main Menu" button is shown below the tabbed panel. Clicking it
 navigates back to the Main Screen.
 
 The screen shows stats for the bot version currently in effect
-(specs/bots.md); merely viewing this screen never records or changes
+(specs/bots_v3.md); merely viewing this screen never records or changes
 any stat.
 
 Which screen the player is on is saved and restored the same as every

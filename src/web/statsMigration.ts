@@ -5,7 +5,7 @@
 // upgrade.
 
 import { DIFFICULTIES, DIFFICULTY_BOT_SKILL_LEVELS, type Difficulty } from "../config.ts";
-import { BOT_SKILL_LEVELS } from "../bot/factory.ts";
+import { BOT_SKILL_LEVELS } from "../bot/v4/factory.ts";
 import { gamesPlayedFor, totalWinLossTie, type BotVersionStats, type StatsStore } from "./stats.ts";
 
 const APP_VERSION_STORAGE_KEY = "rumble31.appVersion";

@@ -1,10 +1,10 @@
 // Developer-tunable constants, per specs/config.md.
 
-import type { BotSkillLevel } from "./bot/factory.ts";
+import type { BotSkillLevel } from "./bot/v4/factory.ts";
 
 // DIFFICULTIES/Difficulty are the Settings Screen's "Difficulty" option
 // (specs/screens/settings.md), each mapping to a weighted set of bot
-// skill level combinations (specs/bots.md) seated for a game's three
+// skill level combinations (specs/bots_v3.md) seated for a game's three
 // bot seats, per DIFFICULTY_BOT_SKILL_LEVELS below.
 export const DIFFICULTIES = ["easy", "moderate", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
@@ -19,7 +19,7 @@ export type BotSkillLevelOption = {
 
 // DIFFICULTY_BOT_SKILL_LEVELS maps each Difficulty to the weighted bot
 // skill level options one of which is rolled for that game's bot seats
-// (specs/bots.md). The highest-weight option is always listed first --
+// (specs/bots_v3.md). The highest-weight option is always listed first --
 // src/web/botAssignment.ts's baselineBotSeats relies on that ordering.
 export const DIFFICULTY_BOT_SKILL_LEVELS: Record<Difficulty, readonly BotSkillLevelOption[]> = {
   easy: [

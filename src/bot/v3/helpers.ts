@@ -1,14 +1,14 @@
-// Shared logic for the bot strategies described in specs/bots.md: swap
+// Shared logic for the bot strategies described in specs/bots_v3.md: swap
 // enumeration, randomized [lo-hi] rolls, opponent-adjacency discovery,
 // and the incomplete-hand scoring rules Advanced and Expert use to
 // judge whether a card would help a neighbor.
 
-import type { Card, Suit } from "../card/card.ts";
-import { rankValue } from "../card/card.ts";
-import { score } from "../card/score.ts";
-import type { Action, Hand, PlayerView, PublicTurn } from "../game/types.ts";
-import { exchange, knock, trade } from "../game/types.ts";
-import type { Rng } from "../rng.ts";
+import type { Card, Suit } from "../../card/card.ts";
+import { rankValue } from "../../card/card.ts";
+import { score } from "../../card/score.ts";
+import type { Action, Hand, PlayerView, PublicTurn } from "../../game/types.ts";
+import { exchange, knock, trade } from "../../game/types.ts";
+import type { Rng } from "../../rng.ts";
 
 export interface CandidateSwap {
   potIdx: number;
@@ -39,7 +39,7 @@ export function bestSwaps(v: PlayerView): CandidateSwap[] {
 }
 
 // bestImprovingSwap returns the candidate swap that most improves the
-// hand (specs/bots.md: "to improve the hand is to increase the score
+// hand (specs/bots_v3.md: "to improve the hand is to increase the score
 // value of the hand"), breaking ties toward the lowest (potIdx, handIdx)
 // pair. Returns undefined if no swap improves on the current score.
 export function bestImprovingSwap(v: PlayerView): CandidateSwap | undefined {
@@ -84,7 +84,7 @@ export function resultingScore(v: PlayerView, action: Action): number {
 }
 
 // unnecessaryIndices returns the hand indices of cards not contributing
-// to the hand's score value (specs/bots.md's "unnecessary" card): every
+// to the hand's score value (specs/bots_v3.md's "unnecessary" card): every
 // card outside whichever suit (or suits, if tied) sums to the hand's
 // score. A same-rank trio (30.5, or 32 for aces) has no unnecessary
 // cards, since every card is part of what earns that score.
@@ -108,7 +108,7 @@ export function unnecessaryIndices(hand: Hand): number[] {
 
 // allDifferentSuits reports whether a hand's three cards each belong
 // to a distinct suit -- the weakest possible hand shape, since no two
-// cards can share a suit to sum together (specs/bots.md, Novice's
+// cards can share a suit to sum together (specs/bots_v3.md, Novice's
 // first-turn take-pot-or-keep rule).
 export function allDifferentSuits(hand: Hand): boolean {
   return new Set(hand.map((c) => c.suit)).size === 3;
@@ -116,7 +116,7 @@ export function allDifferentSuits(hand: Hand): boolean {
 
 // choosePairMaker looks for a pot card that would give an unnecessary
 // hand card's slot a rank matching some other card already in hand
-// (specs/bots.md: "Trade an unnecessary card for one that makes a
+// (specs/bots_v3.md: "Trade an unnecessary card for one that makes a
 // pair"), preferring the lowest (potIdx, handIdx) pair among unnecessary
 // indices in the order given.
 export function choosePairMaker(v: PlayerView, unnecessary: readonly number[]): { potIdx: number; handIdx: number } | undefined {
@@ -167,7 +167,7 @@ export function chooseSafeBySuit(v: PlayerView, collectingSuit: Suit | undefined
 }
 
 // partialScore is score() generalized to fewer than 3 known cards, per
-// specs/bots.md: "When computing the score of an incomplete hand (fewer
+// specs/bots_v3.md: "When computing the score of an incomplete hand (fewer
 // than 3 known cards), unknown cards count as zero value and match no
 // suit." With all 3 known, this is exactly score() (pair/trip bonuses
 // apply); with fewer, it's simply the highest same-suit sum among what's
@@ -210,7 +210,7 @@ export function improvesKnownHand(known: readonly Card[], candidate: Card): bool
 // hasConfirmedEdge reports whether the hand's current score already
 // beats a fully-known neighbor's exact score (per applyPublicTurn's
 // "3 known cards means fully known" convention) by at least margin.
-// Unlike the stagnation bullet's [3-5]-turn wait -- which is guessing
+// Unlike the stagnation bullet's [3-5]-lap wait -- which is guessing
 // whether the hand is likely to still be ahead once the round ends --
 // this is a confirmed, not probabilistic, edge: there's nothing left to
 // discover about a fully-known neighbor's score, so no wait is needed.
@@ -261,7 +261,7 @@ export function chooseDenialTrade(
 
 // chooseFavorableByKnownHand implements Expert's "Trade an
 // unnecessary card for a favorable one": a favorable pot card is one
-// that does not improve known (specs/bots.md). With known empty,
+// that does not improve known (specs/bots_v3.md). With known empty,
 // improvesKnownHand is always true, so nothing reads as favorable and
 // this naturally falls through -- exactly "no information, skip this
 // case" without a separate check.
@@ -310,12 +310,12 @@ export function dominantSuit(cards: readonly Card[]): Suit {
 }
 
 // randInt returns a pseudo-random integer in [lo, hi], inclusive, per
-// specs/bots.md's "[18-20]" notation.
+// specs/bots_v3.md's "[18-20]" notation.
 export function randInt(rng: Rng, lo: number, hi: number): number {
   return lo + rng.intn(hi - lo + 1);
 }
 
-// chance reports true with the given probability (0-1), per specs/bots.md's
+// chance reports true with the given probability (0-1), per specs/bots_v3.md's
 // coin-flip bullets -- e.g. Advanced only sometimes acting on a pair-maker
 // hit rather than always taking it.
 export function chance(rng: Rng, probability: number): boolean {
@@ -430,7 +430,7 @@ export class NeighborTracker {
 }
 
 // bestLastTurnAction implements the last-turn bullet shared by Advanced
-// and Expert (specs/bots.md): with another player already having
+// and Expert (specs/bots_v3.md): with another player already having
 // knocked, there's no more hand to develop before the round ends, so
 // the only goal left is the best score reachable this turn. Compares
 // the hand's own score (knock), the whole pot (exchange), and the best
@@ -449,17 +449,17 @@ export function bestLastTurnAction(v: PlayerView): Action {
   return trade(bestTrade.potIdx, bestTrade.handIdx);
 }
 
-// BestScoreState is a bot's "best score and turn" tracking (specs/bots.md:
-// reset to 0 at the start of every round, updated with the bot's own turn
-// number whenever its score reaches a new best within that round), read
-// by chooseSkeletonAction's stagnation-knock bullet.
+// BestScoreState is a bot's "best score and lap" tracking (specs/bots_v3.md:
+// reset to 0 at the start of every round, updated with the current
+// lap (specs/rules.md) whenever its score reaches a new best within
+// that round), read by chooseSkeletonAction's stagnation-knock bullet.
 export interface BestScoreState {
   score: number;
-  turn: number;
+  lap: number;
 }
 
 // SkeletonConfig parameterizes chooseSkeletonAction with the constants
-// and hooks that differ between Advanced and Expert (specs/bots.md):
+// and hooks that differ between Advanced and Expert (specs/bots_v3.md):
 // their distinct tuned thresholds, and each bot's own way (if any) of
 // picking a favorable pickup, a pair-maker trade, or a safe discard
 // using whatever it tracks about its neighbors. Leaving
@@ -472,15 +472,15 @@ export interface SkeletonConfig {
   takePotScoreRange?: [number, number];
   // blunderChance is the odds (0-1) that, on any turn other than the
   // round's first or last, the bot ignores its own checklist and trades
-  // a random card instead -- per specs/bots.md's Blunder mechanic. 0
+  // a random card instead -- per specs/bots_v3.md's Blunder mechanic. 0
   // (Expert) disables the roll entirely rather than just always missing
   // it, so Expert's rng draw sequence is untouched by this feature.
   blunderChance: number;
-  knockTurnRange: [number, number];
-  bestScoreTurnsAgoRange: [number, number];
+  knockLapRange: [number, number];
+  bestScoreLapsAgoRange: [number, number];
   // knockScore is either a fixed threshold (Advanced, Expert) or a
   // [lo-hi] range (Novice) rolled once per turn and shared by every
-  // bullet below that reads it -- specs/bots.md's "generate a random
+  // bullet below that reads it -- specs/bots_v3.md's "generate a random
   // number at the beginning of the turn... and use that number".
   knockScore: number | [number, number];
   // chooseFirstTurn, if provided, replaces the default first-turn
@@ -489,8 +489,8 @@ export interface SkeletonConfig {
   // all. Leaving it undefined (as Advanced and Expert do) keeps the
   // default takePotScoreRange gamble.
   chooseFirstTurn?: (v: PlayerView) => Action;
-  // confirmedEdge overrides the stagnation bullet's [3-5]-turn wait: if
-  // true, knock immediately regardless of turns-since-best (see
+  // confirmedEdge overrides the stagnation bullet's [3-5]-lap wait: if
+  // true, knock immediately regardless of laps-since-best (see
   // hasConfirmedEdge).
   confirmedEdge?: (v: PlayerView) => boolean;
   // riskAdjustedKnockScore, if provided, overrides knockScore just for
@@ -516,8 +516,8 @@ export interface SkeletonConfig {
 }
 
 // chooseSkeletonAction implements the full decision skeleton shared by
-// Advanced and Expert (specs/bots.md), bullet by bullet: first-turn
-// blind gamble, last-turn best-action, turn-limit knock, exchange-all
+// Advanced and Expert (specs/bots_v3.md), bullet by bullet: first-turn
+// blind gamble, last-turn best-action, lap-limit knock, exchange-all
 // (gated on knock-worthiness, not just "better than my hand"), stagnation
 // knock, trade-to-improve, score-threshold knock, an optional
 // favorable-pickup trade, an optional pair-maker trade, an optional
@@ -541,7 +541,7 @@ export function chooseSkeletonAction(v: PlayerView, rng: Rng, cfg: SkeletonConfi
     return trade(randInt(rng, 0, 2), randInt(rng, 0, 2));
   }
 
-  if (v.ownTurnNumber >= randInt(rng, ...cfg.knockTurnRange)) {
+  if (v.lap >= randInt(rng, ...cfg.knockLapRange)) {
     return knock();
   }
 
@@ -557,7 +557,7 @@ export function chooseSkeletonAction(v: PlayerView, rng: Rng, cfg: SkeletonConfi
   }
   if (
     score(v.hand) === best.score &&
-    v.ownTurnNumber - best.turn > randInt(rng, ...cfg.bestScoreTurnsAgoRange)
+    v.lap - best.lap > randInt(rng, ...cfg.bestScoreLapsAgoRange)
   ) {
     return knock();
   }

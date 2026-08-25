@@ -1,8 +1,8 @@
 // Parses and validates the web GUI's debugging URL parameters, per
 // specs/params.md: strikes, north/south/east/west, pot, turn, screen,
-// clear, platform, showBots, and age. Every validation failure throws a
-// descriptive Error — there is no silent fallback for malformed or
-// self-contradictory debug input.
+// clear, platform, showBots, botLog, and age. Every validation failure
+// throws a descriptive Error — there is no silent fallback for
+// malformed or self-contradictory debug input.
 
 import { parseCard, cardToString } from "../card/card.ts";
 import type { Card } from "../card/card.ts";
@@ -34,9 +34,14 @@ export interface DebugParams {
   // (specs/screens/appinfo.md) iOS/Android instructions without a
   // real iOS/Android device.
   platform: Platform | undefined;
-  // showBots shows each bot seat's skill level (specs/bots.md) next to
+  // showBots shows each bot seat's skill level (specs/bots_v3.md) next to
   // its seat name on the Game screen (specs/screens/game.md).
   showBots: boolean;
+  // botLogBySeat enables bot decision logging (specs/bots_v4.md's
+  // "Decision Logging") for the named seats, keyed by seat number,
+  // valued by the detail level their name's case selected. Seat 0
+  // (South) is never a key, even if named -- it has no effect there.
+  botLogBySeat: ReadonlyMap<number, "summary" | "full">;
   // ageMinutes pretends that saved state was written this many
   // minutes ago, for exercising specs/state.md's stale Over screen
   // behavior without waiting or hand-editing local storage. Unlike
@@ -143,6 +148,21 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
   }
   const showBots = showBotsRaw === "true";
 
+  const botLogRaw = q.get("botLog");
+  const botLogBySeat = new Map<number, "summary" | "full">();
+  if (botLogRaw !== null && botLogRaw !== "") {
+    for (const rawName of botLogRaw.split(",")) {
+      const seat = seatByName(rawName);
+      if (seat === undefined) {
+        throw new Error(`params: botLog=${botLogRaw} names an invalid seat "${rawName}"`);
+      }
+      if (seat === 0) {
+        continue;
+      }
+      botLogBySeat.set(seat, /^[A-Z]/.test(rawName) ? "full" : "summary");
+    }
+  }
+
   const ageRaw = q.get("age");
   let ageMinutes: number | undefined;
   if (ageRaw !== null) {
@@ -153,7 +173,7 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
     ageMinutes = parsed;
   }
 
-  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, showBots, ageMinutes };
+  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, showBots, botLogBySeat, ageMinutes };
 }
 
 // parseCardGroup parses paramName's raw value as exactly three

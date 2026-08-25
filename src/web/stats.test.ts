@@ -19,7 +19,7 @@ import {
   type WinLossTie,
   type DifficultyStats,
 } from "./stats.ts";
-import type { BotSkillLevel } from "../bot/factory.ts";
+import type { BotSkillLevel } from "../bot/v4/factory.ts";
 import type { BotSeats } from "./botAssignment.ts";
 
 // memoryStorage returns a minimal in-memory Storage, same as

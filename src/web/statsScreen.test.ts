@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { formatGamesAbandoned, formatShortDate, formatStreakBestMeta, formatStreakCurrentMeta, formatWinPercent, isSkillSeatedInDifficulty } from "./statsScreen.ts";
 import type { StreakState } from "./stats.ts";
 import type { Difficulty } from "../config.ts";
-import type { BotSkillLevel } from "../bot/factory.ts";
+import type { BotSkillLevel } from "../bot/v4/factory.ts";
 
-// Every difficulty's three weighted options (specs/bots.md) together
+// Every difficulty's three weighted options (specs/bots_v3.md) together
 // cover all three skill levels, so every combination is seated.
 const seatedCases: Array<{ difficulty: Difficulty; skill: BotSkillLevel; want: boolean }> = [
   { difficulty: "easy", skill: "novice", want: true },

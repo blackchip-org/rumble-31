@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseCard } from "../card/card.ts";
-import type { Card } from "../card/card.ts";
-import { score } from "../card/score.ts";
-import { Rng } from "../rng.ts";
-import type { Hand, Pot, PlayerView, PublicTurn } from "../game/types.ts";
+import { parseCard } from "../../card/card.ts";
+import type { Card } from "../../card/card.ts";
+import { score } from "../../card/score.ts";
+import { Rng } from "../../rng.ts";
+import type { Hand, Pot, PlayerView, PublicTurn } from "../../game/types.ts";
 import {
   allDifferentSuits,
   applyKnownCards,
@@ -59,8 +59,9 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
     hand: mustHand("7c", "8d", "9s"),
     pot: mustPot("Kc", "Qd", "Js"),
     seat: 0,
+    opponentCount: 3,
     isFirstTurnOfRound: false,
-    ownTurnNumber: 1,
+    lap: 1,
     isLastTurn: false,
     ...overrides,
   };
@@ -247,7 +248,7 @@ test("partialScore", () => {
 test("improvesKnownHand", () => {
   const cases: Array<{ name: string; known: string[]; candidate: string; want: boolean }> = [
     { name: "no information: any card reads as an improvement", known: [], candidate: "7c", want: true },
-    { name: "the example from specs/bots.md: any spade improves a lone 7s", known: ["7s"], candidate: "Ks", want: true },
+    { name: "the example from specs/bots_v3.md: any spade improves a lone 7s", known: ["7s"], candidate: "Ks", want: true },
     { name: "a card that cannot beat the current partial score does not improve it", known: ["7s", "Ks"], candidate: "9c", want: false },
     { name: "fully-known hand: replacing the weakest card can still improve it", known: ["7s", "8s", "9s"], candidate: "Ts", want: true },
     { name: "fully-known hand: no replacement improves an already-strong hand", known: ["Ah", "Kh", "Qh"], candidate: "7c", want: false },
@@ -267,17 +268,17 @@ test("chooseSkeletonAction rolls a ranged knockScore once per turn and reuses it
   // 7h/Th/Jh (27, hearts) has no improving swap against 7c/8d/9s, and
   // ties nothing recorded as best (default best score 0), so this
   // reaches the score-threshold-knock bullet with no rng draws
-  // consumed in between beyond the mandatory knockTurnRange roll and
+  // consumed in between beyond the mandatory knockLapRange roll and
   // the knockScore roll itself. Its score (27) sits at the range's low
   // end, so the assertion below only passes if the low-end roll from
   // the exchange-all bullet is reused rather than re-rolled.
   const hand = mustHand("7h", "Th", "Jh");
   const pot = mustPot("7c", "8d", "9s");
-  const v = baseView({ hand, pot, ownTurnNumber: 1 });
+  const v = baseView({ hand, pot, lap: 1 });
   assert.equal(bestImprovingSwap(v), undefined);
   assert.equal(score(hand), 27);
 
-  // Draw order: [0] feeds knockTurnRange (irrelevant here -- turn 1 is
+  // Draw order: [0] feeds knockLapRange (irrelevant here -- lap 1 is
   // always below [25-30]); [1] feeds the ranged knockScore, resolving
   // to its low end (27) -- pot (score 9) is nowhere near it, so the
   // exchange-all bullet reads but doesn't act on this roll; [2] would
@@ -289,8 +290,8 @@ test("chooseSkeletonAction rolls a ranged knockScore once per turn and reuses it
   const action = chooseSkeletonAction(
     v,
     rng,
-    { blunderChance: 0, knockTurnRange: [25, 30], bestScoreTurnsAgoRange: [3, 5], knockScore: [27, 29] },
-    { score: 0, turn: 0 },
+    { blunderChance: 0, knockLapRange: [25, 30], bestScoreLapsAgoRange: [3, 5], knockScore: [27, 29] },
+    { score: 0, lap: 0 },
   );
   assert.equal(action.type, "knock", "must reuse the 27 already rolled for the exchange-all bullet, not re-roll to 29");
 });

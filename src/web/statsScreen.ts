@@ -4,7 +4,7 @@
 // errorScreen.ts's showErrorScreen, which also owns its screen's DOM
 // directly rather than leaving it all to main.ts).
 
-import { BOT_SKILL_LEVELS, type BotSkillLevel } from "../bot/factory.ts";
+import { BOT_SKILL_LEVELS, type BotSkillLevel } from "../bot/v4/factory.ts";
 import { DIFFICULTIES, DIFFICULTY_BOT_SKILL_LEVELS, type Difficulty } from "../config.ts";
 import { gamesPlayedFor, ratingFor, sumPerDifficulty, totalWinLossTie, winPercentFor, type BotVersionStats, type DifficultyStats, type StreakState, type WinLossTie } from "./stats.ts";
 

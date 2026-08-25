@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseCard } from "../card/card.ts";
-import { score } from "../card/score.ts";
-import type { Hand, Pot, PlayerView } from "../game/types.ts";
+import { parseCard } from "../../card/card.ts";
+import { score } from "../../card/score.ts";
+import type { Hand, Pot, PlayerView } from "../../game/types.ts";
 import { AdvancedBot } from "./advanced.ts";
 import { bestImprovingSwap, unnecessaryIndices } from "./helpers.ts";
-import { Rng } from "../rng.ts";
+import { Rng } from "../../rng.ts";
 
 function mustHand(...notation: [string, string, string]): Hand {
   return [parseCard(notation[0]), parseCard(notation[1]), parseCard(notation[2])];
@@ -52,8 +52,9 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
     hand: mustHand("7c", "8d", "9s"),
     pot: mustPot("Kc", "Qd", "Js"),
     seat: 0,
+    opponentCount: 3,
     isFirstTurnOfRound: false,
-    ownTurnNumber: 1,
+    lap: 1,
     isLastTurn: false,
     ...overrides,
   };
@@ -69,20 +70,20 @@ test("decide on the first turn: takes the pot only when the hand's three cards a
     { name: "all three cards share a suit: keeps the hand", hand: ["7c", "8c", "9c"], wantAction: "knock" },
   ];
   for (const { name, hand, wantAction } of cases) {
-    const v = baseView({ hand: mustHand(...hand), isFirstTurnOfRound: true, ownTurnNumber: 1 });
+    const v = baseView({ hand: mustHand(...hand), isFirstTurnOfRound: true, lap: 1 });
     const b = new AdvancedBot();
     assert.equal(b.decide(v).type, wantAction, name);
   }
 });
 
-test("knocks once the bot's own turn number reaches the [25-30] range, regardless of hand/pot", () => {
-  const v = baseView({ ownTurnNumber: 100 });
+test("knocks once the bot's lap reaches the [25-30] range, regardless of hand/pot", () => {
+  const v = baseView({ lap: 100 });
   const b = new AdvancedBot({ rng: NO_BLUNDER() });
   assert.equal(b.decide(v).type, "knock");
 });
 
 test("does not force a turn-limit knock below the [25-30] range", () => {
-  const v = baseView({ ownTurnNumber: 1 });
+  const v = baseView({ lap: 1 });
   const b = new AdvancedBot();
   assert.notEqual(b.decide(v).type, "knock");
 });
@@ -120,7 +121,7 @@ test("on the last turn (another player has knocked), takes whichever of knock/ex
     },
   ];
   for (const c of cases) {
-    const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), isLastTurn: true, ownTurnNumber: 1 });
+    const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), isLastTurn: true, lap: 1 });
     const b = new AdvancedBot();
     const action = b.decide(v);
     assert.equal(action.type, c.wantType, c.name);
@@ -143,21 +144,21 @@ test("exchanges only when the pot is both knock-worthy (>= 26) and beats the han
     { name: "pot ties the hand's score instead of beating it: does not exchange", hand: ["Ah", "Kh", "8h"], pot: ["Ad", "Kd", "8d"], wantExchange: false },
   ];
   for (const c of cases) {
-    const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), ownTurnNumber: 2 });
+    const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), lap: 2 });
     const b = new AdvancedBot({ rng: NO_BLUNDER() });
     assert.equal(b.decide(v).type === "exchange", c.wantExchange, c.name);
   }
 });
 
-test("knocks when the hand ties its best-ever score and that best was reached more than [3-5] of its own turns ago", () => {
-  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 8 });
-  const b = new AdvancedBot({ rng: NO_BLUNDER(), bestScore: 9, bestTurn: 1 });
+test("knocks when the hand ties its best-ever score and that best was reached more than [3-5] laps ago", () => {
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), lap: 8 });
+  const b = new AdvancedBot({ rng: NO_BLUNDER(), bestScore: 9, bestLap: 1 });
   assert.equal(b.decide(v).type, "knock");
 });
 
 test("does not force that knock too soon after the best score was set", () => {
-  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 2 });
-  const b = new AdvancedBot({ bestScore: 9, bestTurn: 2 });
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), lap: 2 });
+  const b = new AdvancedBot({ bestScore: 9, bestLap: 2 });
   assert.notEqual(b.decide(v).type, "knock");
 });
 
@@ -165,17 +166,17 @@ test("resets best score and turn at the start of each round", () => {
   // Simulate having reached a best of 9 at turn 1 of a prior round --
   // if this carried over unreset, turn 8 below would be far enough
   // past turn 1 to trigger the stagnation knock.
-  const b = new AdvancedBot({ bestScore: 9, bestTurn: 1 });
+  const b = new AdvancedBot({ bestScore: 9, bestLap: 1 });
   b.onRoundStart();
 
-  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 8 });
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), lap: 8 });
   assert.notEqual(b.decide(v).type, "knock");
 });
 
 test("trades to improve the hand when a pot card would help it", () => {
   const hand = mustHand("7c", "8d", "9s");
   const pot = mustPot("Ah", "Kd", "7s");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   const b = new AdvancedBot({ rng: NO_BLUNDER() });
   const action = b.decide(v);
 
@@ -187,7 +188,7 @@ test("trades to improve the hand when a pot card would help it", () => {
 });
 
 test("knocks once the hand score reaches 26, when no swap improves it further", () => {
-  const v = baseView({ hand: mustHand("7h", "9h", "Th"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  const v = baseView({ hand: mustHand("7h", "9h", "Th"), pot: mustPot("7c", "8d", "9s"), lap: 2 });
   assert.equal(score(v.hand), 26);
   assert.equal(bestImprovingSwap(v), undefined);
   const b = new AdvancedBot({ rng: NO_BLUNDER() });
@@ -195,7 +196,7 @@ test("knocks once the hand score reaches 26, when no swap improves it further", 
 });
 
 test("does not force a score-threshold knock below 26", () => {
-  const v = baseView({ hand: mustHand("7h", "8h", "Th"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  const v = baseView({ hand: mustHand("7h", "8h", "Th"), pot: mustPot("7c", "8d", "9s"), lap: 2 });
   assert.equal(score(v.hand), 25);
   assert.equal(bestImprovingSwap(v), undefined);
   const b = new AdvancedBot();
@@ -214,7 +215,7 @@ test("records the resulting score as its best even from the round's first turn",
   // Later in the same round -- turn 8 is more than [3-5] turns past
   // the turn-1 best of 24 -- tying it with no better swap available
   // triggers the stagnation knock.
-  const v = baseView({ hand: mustHand("7s", "8s", "9s"), pot: mustPot("Kd", "Qh", "Jc"), ownTurnNumber: 8 });
+  const v = baseView({ hand: mustHand("7s", "8s", "9s"), pot: mustPot("Kd", "Qh", "Jc"), lap: 8 });
   assert.equal(bestImprovingSwap(v), undefined, "tying the recorded best of 24 with no better swap available");
   assert.equal(b.decide(v).type, "knock");
 });
@@ -229,7 +230,7 @@ test("takes a pair-maker trade on the 50% chance hit", () => {
   // flip to hit.
   const hand = mustHand("7c", "8d", "9h");
   const pot = mustPot("7s", "8s", "9s");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
   const b = new AdvancedBot({ rng: new QueueRng([1, 0]) });
@@ -244,11 +245,11 @@ test("falls through to a fully random trade on the 50% chance miss", () => {
   // (1) misses the blunder check, and its second roll (0.9, at or
   // above 0.5) misses the PAIR_MAKER_CHANCE coin flip too -- Advanced
   // continues to the next bullet (the fully-random trade) as if no
-  // pairing card had been found, per specs/bots.md. That final trade
+  // pairing card had been found, per specs/bots_v3.md. That final trade
   // reuses the same 0.9 (QueueRng repeats its last value).
   const hand = mustHand("7c", "8d", "9h");
   const pot = mustPot("7s", "8s", "9s");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
   const b = new AdvancedBot({ rng: new QueueRng([1, 0.9]) });
@@ -264,7 +265,7 @@ test("trades fully at random when nothing improves the hand, no card is unnecess
   // 7s/8s/9s never beats that tie.
   const hand = mustHand("Tc", "Jd", "Qh");
   const pot = mustPot("7s", "8s", "9s");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
   assert.deepEqual(unnecessaryIndices(hand), []);
   assert.ok(score(v.pot) < 26 && score(hand) < 26);

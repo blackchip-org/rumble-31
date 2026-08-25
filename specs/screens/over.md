@@ -34,7 +34,7 @@ Below the badge is a table of South's result against each bot seat:
 South itself is never a row -- the table is South's result against
 each individual bot, not a bot-vs-bot ranking, so there's nothing to
 say about South's own seat. Skill is that seat's bot skill level
-(specs/bots.md). Result is one of Win, Loss, or Tie, based on
+(specs/bots_v3.md). Result is one of Win, Loss, or Tie, based on
 elimination timing between South and that bot specifically:
 
 - Both South and the bot lasted to the very end of the game -- Tie.

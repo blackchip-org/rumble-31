@@ -1,6 +1,6 @@
-import type { Card } from "../card/card.ts";
-import type { Action, PlayerView, PublicTurn, Strategy } from "../game/types.ts";
-import { exchange, knock } from "../game/types.ts";
+import type { Card } from "../../card/card.ts";
+import type { Action, PlayerView, PublicTurn, Strategy } from "../../game/types.ts";
+import { exchange, knock } from "../../game/types.ts";
 import {
   allDifferentSuits,
   applyKnownCards,
@@ -16,7 +16,7 @@ import {
   resultingScore,
   type NeighborSnapshot,
 } from "./helpers.ts";
-import { Rng } from "../rng.ts";
+import { Rng } from "../../rng.ts";
 
 // ExpertBotMemory is everything ExpertBot tracks across a round --
 // what snapshot() returns and the constructor init accepts back, so a
@@ -24,17 +24,17 @@ import { Rng } from "../rng.ts";
 // specs/state.md) without losing what it's learned so far this round.
 export interface ExpertBotMemory {
   bestScore: number;
-  bestTurn: number;
+  bestLap: number;
   upstreamKnown: Card[];
   downstreamKnown: Card[];
   neighbors: NeighborSnapshot;
 }
 
-// KNOCK_TURN_RANGE and BEST_SCORE_TURNS_AGO_RANGE are [lo-hi] ranges,
+// KNOCK_LAP_RANGE and BEST_SCORE_LAPS_AGO_RANGE are [lo-hi] ranges,
 // and KNOCK_SCORE is the fixed score threshold, from the Expert
-// strategy in specs/bots.md.
-const KNOCK_TURN_RANGE: [number, number] = [25, 30];
-const BEST_SCORE_TURNS_AGO_RANGE: [number, number] = [3, 5];
+// strategy in specs/bots_v3.md.
+const KNOCK_LAP_RANGE: [number, number] = [25, 30];
+const BEST_SCORE_LAPS_AGO_RANGE: [number, number] = [3, 5];
 const KNOCK_SCORE = 24;
 // CONFIRMED_EDGE_MARGIN is how much the hand's current score must beat
 // a fully-known neighbor's exact score by before that's trusted as a
@@ -49,18 +49,18 @@ const CONFIRMED_EDGE_MARGIN = 5;
 const DOWNSTREAM_DANGER_MARGIN = 4;
 const DOWNSTREAM_RISK_DISCOUNT = 3;
 // BLUNDER_CHANCE is the odds Expert ignores its own checklist on any
-// given turn and trades a random card instead, per specs/bots.md's
+// given turn and trades a random card instead, per specs/bots_v3.md's
 // Blunder mechanic. Expert never blunders.
 const BLUNDER_CHANCE = 0;
 
 // ExpertBot implements the Expert strategy described in
-// specs/bots.md, via the decision skeleton shared with AdvancedBot
+// specs/bots_v3.md, via the decision skeleton shared with AdvancedBot
 // (helpers.ts:chooseSkeletonAction). Where Advanced tracks nothing about
 // its neighbors, Expert tracks their exact known-held cards (adding
 // what they collect, removing what they discard) and judges
 // favorable/safe pot and hand cards by whether they'd actually improve
 // that known -- possibly incomplete -- hand, per the incomplete-hand
-// scoring rule in specs/bots.md.
+// scoring rule in specs/bots_v3.md.
 export class ExpertBot implements Strategy {
   private rng: Rng;
   private neighbors = new NeighborTracker();
@@ -68,24 +68,24 @@ export class ExpertBot implements Strategy {
   private upstreamKnown: Card[] = [];
   private downstreamKnown: Card[] = [];
 
-  // bestScore/bestTurn track "best score and turn" from specs/bots.md:
+  // bestScore/bestLap track "best score and lap" from specs/bots_v3.md:
   // reset to 0 at the start of every round (onRoundStart), then updated
-  // with the bot's own turn number whenever its score reaches a new
-  // best within that round.
+  // with the current lap (specs/rules.md) whenever its score reaches a
+  // new best within that round.
   private bestScore: number;
-  private bestTurn: number;
+  private bestLap: number;
 
   constructor(init?: {
     rng?: Rng;
     bestScore?: number;
-    bestTurn?: number;
+    bestLap?: number;
     upstreamKnown?: Card[];
     downstreamKnown?: Card[];
     neighbors?: NeighborSnapshot;
   }) {
     this.rng = init?.rng ?? new Rng(Math.floor(Math.random() * 0x100000000));
     this.bestScore = init?.bestScore ?? 0;
-    this.bestTurn = init?.bestTurn ?? 0;
+    this.bestLap = init?.bestLap ?? 0;
     this.upstreamKnown = init?.upstreamKnown ?? [];
     this.downstreamKnown = init?.downstreamKnown ?? [];
 
@@ -107,7 +107,7 @@ export class ExpertBot implements Strategy {
   snapshot(): ExpertBotMemory {
     return {
       bestScore: this.bestScore,
-      bestTurn: this.bestTurn,
+      bestLap: this.bestLap,
       upstreamKnown: this.upstreamKnown,
       downstreamKnown: this.downstreamKnown,
       neighbors: this.neighbors.snapshot(),
@@ -119,7 +119,7 @@ export class ExpertBot implements Strategy {
     this.upstreamKnown = [];
     this.downstreamKnown = [];
     this.bestScore = 0;
-    this.bestTurn = 0;
+    this.bestLap = 0;
   }
 
   observe(turn: PublicTurn): void {
@@ -134,8 +134,8 @@ export class ExpertBot implements Strategy {
       {
         chooseFirstTurn: (view) => (allDifferentSuits(view.hand) ? exchange() : knock()),
         blunderChance: BLUNDER_CHANCE,
-        knockTurnRange: KNOCK_TURN_RANGE,
-        bestScoreTurnsAgoRange: BEST_SCORE_TURNS_AGO_RANGE,
+        knockLapRange: KNOCK_LAP_RANGE,
+        bestScoreLapsAgoRange: BEST_SCORE_LAPS_AGO_RANGE,
         knockScore: KNOCK_SCORE,
         confirmedEdge: (view) => hasConfirmedEdge(view, this.upstreamKnown, this.downstreamKnown, CONFIRMED_EDGE_MARGIN),
         riskAdjustedKnockScore: () => downstreamRiskAdjustedKnockScore(this.downstreamKnown, KNOCK_SCORE, DOWNSTREAM_DANGER_MARGIN, DOWNSTREAM_RISK_DISCOUNT),
@@ -145,16 +145,16 @@ export class ExpertBot implements Strategy {
         choosePair: choosePairMaker,
         chooseSafe: (view) => chooseSafeByKnownHand(view, this.downstreamKnown),
       },
-      { score: this.bestScore, turn: this.bestTurn },
+      { score: this.bestScore, lap: this.bestLap },
     );
-    this.recordBest(resultingScore(v, action), v.ownTurnNumber);
+    this.recordBest(resultingScore(v, action), v.lap);
     return action;
   }
 
-  private recordBest(resulting: number, ownTurnNumber: number): void {
+  private recordBest(resulting: number, lap: number): void {
     if (resulting >= this.bestScore) {
       this.bestScore = resulting;
-      this.bestTurn = ownTurnNumber;
+      this.bestLap = lap;
     }
   }
 }

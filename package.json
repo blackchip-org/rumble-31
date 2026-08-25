@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test 'src/**/*.test.ts'",
     "simulate": "node src/sim/cli.ts",
+    "hand-selection": "node src/sim/handSelectionCli.ts",
     "preweb:dev": "npm run prepare",
     "web:dev": "vite",
     "preweb:build": "npm run prepare",

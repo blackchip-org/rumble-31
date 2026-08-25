@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseCard } from "../card/card.ts";
-import { score } from "../card/score.ts";
-import type { Hand, Pot, PlayerView, PublicTurn } from "../game/types.ts";
+import { parseCard } from "../../card/card.ts";
+import { score } from "../../card/score.ts";
+import type { Hand, Pot, PlayerView, PublicTurn } from "../../game/types.ts";
 import { ExpertBot } from "./expert.ts";
 import { bestImprovingSwap } from "./helpers.ts";
 
@@ -18,8 +18,9 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
     hand: mustHand("7c", "8d", "9s"),
     pot: mustPot("Kc", "Qd", "Js"),
     seat: 0,
+    opponentCount: 3,
     isFirstTurnOfRound: false,
-    ownTurnNumber: 1,
+    lap: 1,
     isLastTurn: false,
     ...overrides,
   };
@@ -39,20 +40,20 @@ test("decide on the first turn: takes the pot only when the hand's three cards a
     { name: "all three cards share a suit: keeps the hand", hand: ["7c", "8c", "9c"], wantAction: "knock" },
   ];
   for (const { name, hand, wantAction } of cases) {
-    const v = baseView({ hand: mustHand(...hand), isFirstTurnOfRound: true, ownTurnNumber: 1 });
+    const v = baseView({ hand: mustHand(...hand), isFirstTurnOfRound: true, lap: 1 });
     const b = new ExpertBot();
     assert.equal(b.decide(v).type, wantAction, name);
   }
 });
 
-test("knocks once the bot's own turn number reaches the [25-30] range, regardless of hand/pot", () => {
-  const v = baseView({ ownTurnNumber: 100 });
+test("knocks once the bot's lap reaches the [25-30] range, regardless of hand/pot", () => {
+  const v = baseView({ lap: 100 });
   const b = new ExpertBot();
   assert.equal(b.decide(v).type, "knock");
 });
 
 test("does not force a turn-limit knock below the [25-30] range", () => {
-  const v = baseView({ ownTurnNumber: 1 });
+  const v = baseView({ lap: 1 });
   const b = new ExpertBot();
   assert.notEqual(b.decide(v).type, "knock");
 });
@@ -90,7 +91,7 @@ test("on the last turn (another player has knocked), takes whichever of knock/ex
     },
   ];
   for (const c of cases) {
-    const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), isLastTurn: true, ownTurnNumber: 1 });
+    const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), isLastTurn: true, lap: 1 });
     const b = new ExpertBot();
     const action = b.decide(v);
     assert.equal(action.type, c.wantType, c.name);
@@ -113,21 +114,21 @@ test("exchanges only when the pot is both knock-worthy (>= 24) and beats the han
     { name: "pot ties the hand's score instead of beating it: does not exchange", hand: ["Ah", "Kh", "8h"], pot: ["Ad", "Kd", "8d"], wantExchange: false },
   ];
   for (const c of cases) {
-    const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), ownTurnNumber: 2 });
+    const v = baseView({ hand: mustHand(...c.hand), pot: mustPot(...c.pot), lap: 2 });
     const b = new ExpertBot();
     assert.equal(b.decide(v).type === "exchange", c.wantExchange, c.name);
   }
 });
 
-test("knocks when the hand ties its best-ever score and that best was reached more than [3-5] of its own turns ago", () => {
-  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 8 });
-  const b = new ExpertBot({ bestScore: 9, bestTurn: 1 });
+test("knocks when the hand ties its best-ever score and that best was reached more than [3-5] laps ago", () => {
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), lap: 8 });
+  const b = new ExpertBot({ bestScore: 9, bestLap: 1 });
   assert.equal(b.decide(v).type, "knock");
 });
 
 test("does not force that knock too soon after the best score was set", () => {
-  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 2 });
-  const b = new ExpertBot({ bestScore: 9, bestTurn: 2 });
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), lap: 2 });
+  const b = new ExpertBot({ bestScore: 9, bestLap: 2 });
   assert.notEqual(b.decide(v).type, "knock");
 });
 
@@ -138,7 +139,7 @@ test("knocks immediately, bypassing the stagnation wait, once a fully-known neig
   // tie) and turn 2 being nowhere near the [25-30] turn-limit range.
   const hand = mustHand("Kc", "Qc", "7d");
   const pot = mustPot("7s", "8s", "Td");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(score(v.hand), 20);
 
   const upstreamKnown = mustHand("7h", "8h", "9c");
@@ -153,7 +154,7 @@ test("does not force that knock when the margin over a fully-known neighbor isn'
   // CONFIRMED_EDGE_MARGIN (5).
   const hand = mustHand("Kc", "Qc", "7d");
   const pot = mustPot("7s", "8s", "Td");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(score(v.hand), 20);
 
   const upstreamKnown = mustHand("7h", "9h", "9c");
@@ -166,17 +167,17 @@ test("resets best score and turn at the start of each round", () => {
   // Simulate having reached a best of 9 at turn 1 of a prior round --
   // if this carried over unreset, turn 8 below would be far enough
   // past turn 1 to trigger the stagnation knock.
-  const b = new ExpertBot({ bestScore: 9, bestTurn: 1 });
+  const b = new ExpertBot({ bestScore: 9, bestLap: 1 });
   b.onRoundStart();
 
-  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), ownTurnNumber: 8 });
+  const v = baseView({ hand: mustHand("7c", "8d", "9s"), pot: mustPot("Kc", "Qd", "Js"), lap: 8 });
   assert.notEqual(b.decide(v).type, "knock");
 });
 
 test("trades to improve the hand when a pot card would help it", () => {
   const hand = mustHand("7c", "8d", "9s");
   const pot = mustPot("Ah", "Kd", "7s");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   const b = new ExpertBot();
   const action = b.decide(v);
 
@@ -197,7 +198,7 @@ test("among equally-improving swaps, prefers denying upstream a card that would 
   // Jc (potIdx 1) instead, purely to keep it away from upstream.
   const hand = mustHand("7c", "7d", "8c");
   const pot = mustPot("Tc", "Jc", "8d");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(score(v.hand), 15);
 
   const plain = bestImprovingSwap(v);
@@ -212,7 +213,7 @@ test("among equally-improving swaps, prefers denying upstream a card that would 
 });
 
 test("knocks once the hand score reaches 24, when no swap improves it further", () => {
-  const v = baseView({ hand: mustHand("7h", "8h", "9h"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  const v = baseView({ hand: mustHand("7h", "8h", "9h"), pot: mustPot("7c", "8d", "9s"), lap: 2 });
   assert.equal(score(v.hand), 24);
   assert.equal(bestImprovingSwap(v), undefined);
   const b = new ExpertBot();
@@ -220,7 +221,7 @@ test("knocks once the hand score reaches 24, when no swap improves it further", 
 });
 
 test("does not force a score-threshold knock below 24", () => {
-  const v = baseView({ hand: mustHand("Ah", "Kh", "9c"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  const v = baseView({ hand: mustHand("Ah", "Kh", "9c"), pot: mustPot("7c", "8d", "9s"), lap: 2 });
   assert.equal(score(v.hand), 21);
   assert.equal(bestImprovingSwap(v), undefined);
   const b = new ExpertBot();
@@ -233,7 +234,7 @@ test("lowers the score-threshold-knock bar once downstream's known hand is dange
   // DOWNSTREAM_DANGER_MARGIN (4) of KNOCK_SCORE (24) -- so the bar
   // drops by DOWNSTREAM_RISK_DISCOUNT (3) to 21, which this hand now
   // clears.
-  const v = baseView({ hand: mustHand("Ah", "Kh", "9c"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  const v = baseView({ hand: mustHand("Ah", "Kh", "9c"), pot: mustPot("7c", "8d", "9s"), lap: 2 });
   assert.equal(score(v.hand), 21);
   assert.equal(bestImprovingSwap(v), undefined);
 
@@ -243,7 +244,7 @@ test("lowers the score-threshold-knock bar once downstream's known hand is dange
 });
 
 test("does not lower the score-threshold-knock bar when downstream isn't dangerous enough yet", () => {
-  const v = baseView({ hand: mustHand("Ah", "Kh", "9c"), pot: mustPot("7c", "8d", "9s"), ownTurnNumber: 2 });
+  const v = baseView({ hand: mustHand("Ah", "Kh", "9c"), pot: mustPot("7c", "8d", "9s"), lap: 2 });
   assert.equal(score(v.hand), 21);
   assert.equal(bestImprovingSwap(v), undefined);
 
@@ -259,7 +260,7 @@ test("trades to deny an unnecessary-slot pickup that would help a known upstream
   // favorable-pickup bullet that would otherwise settle for Td or 7d.
   const hand = mustHand("7c", "8c", "9s");
   const pot = mustPot("Th", "Td", "7d");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
   const b = new ExpertBot({ upstreamKnown: [parseCard("Qh")] });
@@ -291,7 +292,7 @@ test("wires observed neighbor turns through to the exact known-hand denial prefe
 
   const hand = mustHand("7c", "8c", "9s");
   const pot = mustPot("Th", "Td", "7d");
-  const v = baseView({ seat: 0, hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ seat: 0, hand, pot, lap: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
   const action = b.decide(v);
@@ -318,7 +319,7 @@ test("snapshot/restore round-trips tracked memory, including discovered neighbor
 
   const hand = mustHand("7c", "8c", "9s");
   const pot = mustPot("Th", "Td", "7d");
-  const v = baseView({ seat: 0, hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ seat: 0, hand, pot, lap: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
   const action = restored.decide(v);
@@ -340,7 +341,7 @@ test("trades an unnecessary card for one that makes a pair", () => {
   // pairing choosePairMaker finds.
   const hand = mustHand("7c", "8h", "9h");
   const pot = mustPot("8s", "7d", "8d");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
   const b = new ExpertBot();
@@ -359,7 +360,7 @@ test("falls back to a favorable (non-denying) pickup when nothing is worth denyi
   // index, Th.
   const hand = mustHand("7c", "8c", "9s");
   const pot = mustPot("Th", "Td", "7d");
-  const v = baseView({ hand, pot, ownTurnNumber: 2 });
+  const v = baseView({ hand, pot, lap: 2 });
   assert.equal(bestImprovingSwap(v), undefined);
 
   const b = new ExpertBot({ upstreamKnown: [parseCard("Ah"), parseCard("Kh"), parseCard("Qh")] });

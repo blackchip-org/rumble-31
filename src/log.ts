@@ -2,7 +2,7 @@ import { cardToString } from "./card/card.ts";
 import type { Card } from "./card/card.ts";
 import type { RoundOutcome } from "./game/game.ts";
 import { seatName } from "./game/seat.ts";
-import type { Hand, TurnRecord } from "./game/types.ts";
+import type { DecisionTraceEntry, Hand, TurnRecord } from "./game/types.ts";
 
 // gameStartLines is written once, at program start, per specs/log.md.
 // difficultyLabel names the game's Difficulty setting (e.g.
@@ -70,6 +70,21 @@ export function turnLines(rec: TurnRecord): string[] {
     case "knock":
       return [`${seat} knocks`];
   }
+}
+
+// botDecisionLines formats a bot seat's decision trace (specs/
+// bots_v4.md's "Decision Logging") as [bot]-prefixed lines, at either
+// the Summary or Full Trace level. Written by the caller between that
+// seat's turnStartLine and its turnLines, and excluded from the saved
+// log file. detail "summary" emits the single acted entry (there is
+// always exactly one); "full" emits every entry, in order.
+export function botDecisionLines(seat: number, trace: readonly DecisionTraceEntry[], detail: "summary" | "full"): string[] {
+  const name = seatName(seat);
+  if (detail === "summary") {
+    const acted = trace.find((e) => e.acted);
+    return acted ? [`[bot] ${name}: ${acted.phase} -- ${acted.summary as string}`] : [];
+  }
+  return trace.map((e) => `[bot] ${name} (${e.phase}): ${e.detail}`);
 }
 
 function potLine(rec: TurnRecord): string {

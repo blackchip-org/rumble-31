@@ -11,7 +11,7 @@ on that branch for those two prior changes).
 `KNOCK_SCORE` gates two things in `chooseAction()`: the exchange-all
 condition, and the final "knock if my hand's score is at least this"
 fallback. Both share the one constant, per the reasoning already in
-`specs/bots.md`'s Regular section (exchanging is itself a knock, so it
+`specs/bots_v3.md`'s Regular section (exchanging is itself a knock, so it
 needs the same bar as knocking directly).
 
 ## Method
@@ -408,5 +408,5 @@ dddd   2000   25.7%  25.6%  25.5%  27.0%  3.5%  10.24
 ## Next step (not yet applied)
 
 Set `KNOCK_SCORE = 21` in `src/bot/regular.ts` and update the two
-`>= 29` references in the Regular section of `specs/bots.md` to
+`>= 29` references in the Regular section of `specs/bots_v3.md` to
 match, once confirmed.

@@ -24,6 +24,13 @@ dealt face-down to each player, and three cards are dealt to a common
 pool of cards called the pot. Play starts with the seat immediately
 clockwise of the dealer.
 
+Each round tracks a lap counter, starting at 1. Every active seat,
+including the dealer, takes exactly one turn per lap, in clockwise
+order starting from the seat immediately clockwise of the dealer and
+ending with the dealer's own turn. The lap counter increases by one
+right after the dealer's turn, when play wraps back around to the
+seat that acted first this round.
+
 The pot is private when it is dealt: nobody, including the player who
 acts first that round, may see it. Once that player has taken their
 turn, the pot becomes public and every player can see it for the rest

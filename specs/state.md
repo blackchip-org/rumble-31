@@ -33,7 +33,7 @@ The stored object records:
   elimination status, and second-chance status (specs/rules.md), the
   current round number, which seat holds
   the dealer button (specs/rules.md), and which bot skill level
-  (specs/bots.md) is seated at each of the three bot seats. The
+  (specs/bots_v3.md) is seated at each of the three bot seats. The
   latter is fixed for the life of the game: it is chosen once, when
   the game starts, and does not change while the game is in progress.
 - If the screen is `game` and a round is in progress: that round's
@@ -41,12 +41,12 @@ The stored object records:
   which seat acts next, whether that seat's turn is the round's first
   turn, whether a player has already knocked (or exchanged past the
   round's first turn) and which seat that was, and each bot seat's
-  own tracked opponent information (specs/bots.md's "This bot
-  tracks" sections -- best score and turn, and either tracked suits
-  or a memory map of known cards, depending on skill level), so a
-  reload does not reset what a bot has already learned this round.
-  This checkpoint is absent between rounds, when the next round has
-  not been dealt yet.
+  own round-scoped Knock bookkeeping (specs/bots_v4.md's "Knock"
+  phase -- its best score seen this round, repeat counter, and
+  failsafe lap), so a reload does not reset how close a bot is to
+  knocking. Bots track nothing that persists across rounds, so there
+  is no separate opponent-memory map to restore. This checkpoint is
+  absent between rounds, when the next round has not been dealt yet.
 - If the screen is `over`: the final win/loss outcome, South's
   1-based finish (specs/screens/over.md's rank badge), and South's
   Win/Loss/Tie result against each bot seat (specs/screens/over.md's
@@ -88,17 +88,17 @@ specs/params.md:
   second-chance status, round number, dealer button, and bot seat
   assignment are restored -- the
   same three bot skill levels stay in the same seats they started the
-  game in, rather than being reshuffled per specs/bots.md's normal
+  game in, rather than being reshuffled per specs/bots_v3.md's normal
   new-game behavior. If a round-in-progress
   checkpoint was saved, that round resumes from the checkpoint: hands
   and the pot are placed immediately with no deal animation (the same
   as the animation skip described in specs/params.md for the
   north/south/east/west/pot parameters), and the checkpoint's
   first-turn and knocked state are restored so the round ends under
-  the same rules a freshly dealt round would. Each bot seat's tracked
-  opponent information is restored the same way, so a bot resumes
-  with exactly what it had already learned before the reload rather
-  than starting that round over blank. If no round-in-progress
+  the same rules a freshly dealt round would. Each bot seat's
+  round-scoped Knock bookkeeping is restored the same way, so a bot
+  resumes exactly as close to knocking as it was before the reload
+  rather than starting that round over blank. If no round-in-progress
   checkpoint was saved, the next round deals normally.
 - If that screen is `over`, and no more than 5 minutes have passed
   since it was saved, the saved outcome is redrawn directly, with no

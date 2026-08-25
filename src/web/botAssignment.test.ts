@@ -20,7 +20,7 @@ class FixedRng extends Rng {
 }
 
 // next() values chosen to land the *100 roll just inside each
-// difficulty's three cumulative weight bands (specs/bots.md).
+// difficulty's three cumulative weight bands (specs/bots_v3.md).
 const pickCases = [
   { name: "easy 80% band", difficulty: "easy", value: 0, wantSeats: ["novice", "novice", "novice"] },
   { name: "easy 15% band", difficulty: "easy", value: 0.85, wantSeats: ["novice", "novice", "advanced"] },

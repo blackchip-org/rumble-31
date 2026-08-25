@@ -22,7 +22,10 @@ this number, since not every app change touches bot behavior. This
 lets future stats tracking tell which games were played under which
 bot strategies.
 
-The current bot version is 3.
+The version stayed at 3 for the whole time v3 was the web GUI's and
+simulator's default implementation. See specs/bots_v4.md's "Bot
+version" section for how the same counter moves now that both run v4
+instead.
 
 At the start of the game, the three bots' skill levels are chosen
 according to the Difficulty screen's setting (specs/screens/
@@ -81,7 +84,7 @@ as if it misread its hand or picked the wrong strategy for a moment:
 - Advanced: 7% chance
 - Expert: never blunders
 
-A blundered turn still updates the bot's tracked best score and turn
+A blundered turn still updates the bot's tracked best score and lap
 (see each skill level's "This bot tracks" list below) exactly like any
 other turn's outcome.
 
@@ -94,10 +97,10 @@ round, but are still too new to read the table the way Advanced and
 Expert do.
 
 This bot tracks:
-- Best score and turn. At the start of each round, reset both to 0.
+- Best score and lap. At the start of each round, reset both to 0.
 After the bot acts on its own turn, if its hand's score is greater
 than or equal to the best score, set the best score to that score and
-the best turn to the bot's own turn number
+the best lap to the current lap (specs/rules.md)
 
 Strategy:
 - Take pot or keep: the pot is unseen at this point, so take the
@@ -109,7 +112,7 @@ Strategy:
   three scores highest, preferring to knock on a tie, then to exchange
 - Blunder (see the Blunder section above): 14% chance to trade a
   random card, skipping the rest of this checklist
-- Knock if it is the bot's own [25-30]th turn or later
+- Knock if it is lap [25-30] or later
 - Exchange all cards with the pot when its score is >= [27-29] and
   higher than the hand's own score (exchanging is itself a knock from
   the round's second turn on, so it needs the same bar as knocking
@@ -117,7 +120,7 @@ Strategy:
   and the next [27-29] bullet share the same number generated for the
   turn, not two independent rolls
 - If the hand score equals the best score and it has been more than
-5 of the bot's own turns since the best turn, knock
+5 laps since the best lap, knock
 - Trade to improve the hand
 - If the hand is >= [27-29], knock
 - Trade a random card
@@ -129,10 +132,10 @@ and has developed a solid personal strategy. They keep an eye on how their
 own hand is trending across the round, but don't yet read the table.
 
 This bot tracks:
-- Best score and turn. At the start of each round, reset both to 0.
+- Best score and lap. At the start of each round, reset both to 0.
 After the bot acts on its own turn, if its hand's score is greater
 than or equal to the best score, set the best score to that score and
-the best turn to the bot's own turn number
+the best lap to the current lap (specs/rules.md)
 
 Strategy:
 - Take pot or keep: the pot is unseen at this point, so take it only
@@ -146,13 +149,13 @@ Strategy:
   three scores highest, preferring to knock on a tie, then to exchange
 - Blunder (see the Blunder section above): 7% chance to trade a
   random card, skipping the rest of this checklist
-- Knock if it is the bot's own [25-30]th turn or later
+- Knock if it is lap [25-30] or later
 - Exchange all cards with the pot when its score is >= 26 and higher
   than the hand's own score (exchanging is itself a knock from the
   round's second turn on, so it needs the same bar as knocking with
   the hand directly, not just "better than what I have")
 - If the hand score equals the best score and it has been more than
-[3-5] of the bot's own turns since the best turn, knock
+[3-5] laps since the best lap, knock
 - Trade to improve the hand
 - If the hand is >= 26, knock
 - Trade an unnecessary card for one that makes a pair, but only half
@@ -169,10 +172,10 @@ of the upstream and downstream players using public information. They keep a
 memory map of those opponents' hands as that slowly becomes known.
 
 This bot tracks:
-- Best score and turn. At the start of each round, reset both to 0.
+- Best score and lap. At the start of each round, reset both to 0.
 After the bot acts on its own turn, if its hand's score is greater
 than or equal to the best score, set the best score to that score and
-the best turn to the bot's own turn number
+the best lap to the current lap (specs/rules.md)
 - Hand of the upstream player by adding cards that player has collected
 and removing cards that player has discarded
 - Hand of the downstream player by adding cards that player has collected
@@ -195,16 +198,16 @@ Strategy:
   by trading a single pot card for a hand card; take whichever of the
   three scores highest, preferring to knock on a tie, then to exchange
 - Blunder (see the Blunder section above): Expert never blunders
-- Knock if it is the bot's own [25-30]th turn or later
+- Knock if it is lap [25-30] or later
 - Exchange all cards with the pot when its score is >= 24 and higher
   than the hand's own score (exchanging is itself a knock from the
   round's second turn on, so it needs the same bar as knocking with
   the hand directly, not just "better than what I have")
 - If the hand score equals the best score and it has been more than
-[3-5] of the bot's own turns since the best turn, knock
+[3-5] laps since the best lap, knock
 - Knock if the upstream or downstream player's hand is fully known (all
   3 cards) and the hand's own score beats that known hand's score by at
-  least 5, without waiting out the turn gap above (that gap is for a
+  least 5, without waiting out the lap gap above (that gap is for a
   score merely guessed to still be ahead; a fully-known hand's score
   needs no guessing)
 - Trade to improve the hand, preferring a denying card among any pot

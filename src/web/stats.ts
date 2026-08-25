@@ -5,7 +5,7 @@
 // it just starts a fresh, independently-tracked set alongside them.
 
 import { DIFFICULTIES, type Difficulty } from "../config.ts";
-import { BOT_SKILL_LEVELS, type BotSkillLevel } from "../bot/factory.ts";
+import { BOT_SKILL_LEVELS, type BotSkillLevel } from "../bot/v4/factory.ts";
 import type { BotSeats } from "./botAssignment.ts";
 
 const STORAGE_KEY = "rumble31.stats";

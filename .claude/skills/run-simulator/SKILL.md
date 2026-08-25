@@ -1,6 +1,6 @@
 ---
 name: run-simulator
-description: Run the headless bot-vs-bot simulator (npm run simulate) to compare Novice/Advanced/Expert bot skill levels (specs/bots.md), either a single 4-bot combo or the full table of every distinct combo, and how to measure a strategy code change's win-rate impact with a seeded, apples-to-apples before/after comparison. Use when the user asks to run simulations, benchmark bot performance, compare bot combos, or measure how a change to bot strategy code affects win rates.
+description: Run the headless bot-vs-bot simulator (npm run simulate) to compare Novice/Advanced/Expert bot skill levels (specs/bots_v3.md), either a single 4-bot combo or the full table of every distinct combo, and how to measure a strategy code change's win-rate impact with a seeded, apples-to-apples before/after comparison. Use when the user asks to run simulations, benchmark bot performance, compare bot combos, or measure how a change to bot strategy code affects win rates.
 ---
 
 # Run Simulator
@@ -77,7 +77,7 @@ report instead of a table row, with the same win/tie/rounds numbers.
 ## Step 4: Before/after comparison for a strategy code change
 
 This is the standard way to measure whether a change to
-`src/bot/*.ts` (or `specs/bots.md`) actually moved the needle, used
+`src/bot/*.ts` (or `specs/bots_v3.md`) actually moved the needle, used
 throughout this repo's bot-strategy experiments. It only works
 cleanly on a clean working tree — check `git status` first and let
 the user know if there's unrelated uncommitted work in the way.

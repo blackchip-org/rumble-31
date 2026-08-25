@@ -1,9 +1,9 @@
 // Randomly seats the three bot skill levels for the currently
-// selected Difficulty (specs/screens/difficulty.md, specs/bots.md) at
+// selected Difficulty (specs/screens/difficulty.md, specs/bots_v3.md) at
 // the start of a new game. Kept separate from main.ts so it's
 // unit-testable without the DOM.
 
-import type { BotSkillLevel } from "../bot/factory.ts";
+import type { BotSkillLevel } from "../bot/v4/factory.ts";
 import { DIFFICULTY_BOT_SKILL_LEVELS, type Difficulty } from "../config.ts";
 import type { Rng } from "../rng.ts";
 import type { Settings } from "./settings.ts";
@@ -14,7 +14,7 @@ export type BotSeats = [BotSkillLevel, BotSkillLevel, BotSkillLevel];
 
 // pickBotSkillLevels randomly draws one of difficulty's weighted bot
 // skill level options (config.ts's DIFFICULTY_BOT_SKILL_LEVELS, odds
-// documented in specs/bots.md).
+// documented in specs/bots_v3.md).
 export function pickBotSkillLevels(difficulty: Difficulty, rng: Rng): BotSeats {
   const options = DIFFICULTY_BOT_SKILL_LEVELS[difficulty];
   const roll = rng.next() * 100;

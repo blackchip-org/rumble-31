@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { Action, PlayerView, Strategy } from "../game/types.ts";
-import { Rng } from "../rng.ts";
-import { parseCard } from "../card/card.ts";
+import type { Action, PlayerView, Strategy } from "../../game/types.ts";
+import { Rng } from "../../rng.ts";
+import { parseCard } from "../../card/card.ts";
 import { BOT_SKILL_LEVELS, createBot, snapshotBot, type BotMemory, type BotSkillLevel } from "./factory.ts";
 
 // decideSync calls decide() and asserts its result is synchronous --
@@ -19,8 +19,9 @@ function baseView(overrides: Partial<PlayerView>): PlayerView {
     hand: [parseCard("7c"), parseCard("8d"), parseCard("9s")],
     pot: [parseCard("Kc"), parseCard("Qd"), parseCard("Js")],
     seat: 0,
+    opponentCount: 3,
     isFirstTurnOfRound: false,
-    ownTurnNumber: 8,
+    lap: 8,
     isLastTurn: false,
     ...overrides,
   };
@@ -34,36 +35,36 @@ test("snapshotBot tags each skill level's memory with its own name", () => {
   }
 });
 
-// staleBestMemory is a bestScore/bestTurn pairing that NoviceBot,
+// staleBestMemory is a bestScore/bestLap pairing that NoviceBot,
 // AdvancedBot, and ExpertBot all treat as "stagnant" -- tied with the
-// recorded best, long enough after bestTurn to force a knock regardless
+// recorded best, long enough after bestLap to force a knock regardless
 // of hand/pot -- so restoring it is easy to observe from decide() alone.
 const staleBestMemory: Record<"novice" | "advanced" | "expert", BotMemory> = {
   novice: {
     name: "novice",
     bestScore: 9,
-    bestTurn: 1,
+    bestLap: 1,
   },
   advanced: {
     name: "advanced",
     bestScore: 9,
-    bestTurn: 1,
+    bestLap: 1,
   },
   expert: {
     name: "expert",
     bestScore: 9,
-    bestTurn: 1,
+    bestLap: 1,
     upstreamKnown: [],
     downstreamKnown: [],
     neighbors: { upstreamSeat: undefined, downstreamSeat: undefined, lastTurn: undefined },
   },
 };
 
-test("createBot restores matching memory, forcing the stagnation knock its bestScore/bestTurn implies", () => {
+test("createBot restores matching memory, forcing the stagnation knock its bestScore/bestLap implies", () => {
   for (const skillLevel of BOT_SKILL_LEVELS) {
     const bot = createBot(skillLevel, new Rng(1), staleBestMemory[skillLevel]);
     const v = baseView({ hand: [parseCard("7c"), parseCard("8d"), parseCard("9s")], pot: [parseCard("Kc"), parseCard("Qd"), parseCard("Js")] });
-    assert.equal(decideSync(bot, v).type, "knock", `${skillLevel}: restored bestScore=9 tied at turn 8 (>3-5 past bestTurn=1) should force a knock`);
+    assert.equal(decideSync(bot, v).type, "knock", `${skillLevel}: restored bestScore=9 tied at lap 8 (>3-5 past bestLap=1) should force a knock`);
   }
 });
 
@@ -74,11 +75,11 @@ test("createBot ignores memory tagged for a different skill level", () => {
     expert: staleBestMemory.novice,
   };
   for (const skillLevel of BOT_SKILL_LEVELS) {
-    // Neither hand/pot nor turn number alone would force a knock --
-    // only a restored bestScore/bestTurn would, so if mismatched
+    // Neither hand/pot nor lap number alone would force a knock --
+    // only a restored bestScore/bestLap would, so if mismatched
     // memory were wrongly applied this would knock instead.
     const bot = createBot(skillLevel, new Rng(1), mismatched[skillLevel]);
-    const v = baseView({ ownTurnNumber: 8 });
+    const v = baseView({ lap: 8 });
     assert.notEqual(decideSync(bot, v).type, "knock", `${skillLevel}: memory tagged for a different skill level must be ignored`);
   }
 });

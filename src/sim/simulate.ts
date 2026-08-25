@@ -1,24 +1,69 @@
 // Headless bot-vs-bot game simulation, for comparing the bot skill-level
-// strategies described in specs/bots.md without a browser.
+// strategies described in specs/bots_v3.md and specs/bots_v4.md without
+// a browser.
 
 import { newGame } from "../game/game.ts";
-import type { Strategy } from "../game/types.ts";
+import type { PlayerView, Strategy } from "../game/types.ts";
+import { botDecisionLines } from "../log.ts";
 import { Rng } from "../rng.ts";
-import { BOT_SKILL_LEVELS, createBot, type BotSkillLevel } from "../bot/factory.ts";
+import { BOT_SKILL_LEVELS, type BotSkillLevel, createBot as createBotV3 } from "../bot/v3/factory.ts";
+import { createBot as createBotV4 } from "../bot/v4/factory.ts";
+import type { LogDetail } from "../bot/v4/trace.ts";
 
-export { BOT_SKILL_LEVELS, createBot, type BotSkillLevel };
+export { BOT_SKILL_LEVELS, type BotSkillLevel };
+
+// BOT_VERSIONS enumerates the bot strategy implementations the
+// simulator can play, per specs/bots_v3.md and specs/bots_v4.md.
+export const BOT_VERSIONS = ["v3", "v4"] as const;
+export type BotVersion = (typeof BOT_VERSIONS)[number];
+
+function createBot(botVersion: BotVersion, skillLevel: BotSkillLevel, rng: Rng, logDetail?: LogDetail): Strategy {
+  return botVersion === "v4" ? createBotV4(skillLevel, rng, undefined, logDetail) : createBotV3(skillLevel, rng);
+}
+
+// withDecisionLog wraps a v4 bot's Strategy so that, once decide()
+// returns, its populated lastTrace (specs/bots_v4.md's Decision
+// Logging) is immediately formatted and handed to write -- the
+// simulator's own stand-in for the web GUI's game log, since the
+// headless simulator has no turn-by-turn transcript of its own to
+// interleave into.
+function withDecisionLog(seat: number, inner: Strategy, detail: LogDetail, write: (line: string) => void): Strategy {
+  return {
+    decide: async (v: PlayerView) => {
+      const action = await inner.decide(v);
+      if (inner.lastTrace !== undefined) {
+        for (const line of botDecisionLines(seat, inner.lastTrace, detail)) {
+          write(line);
+        }
+      }
+      return action;
+    },
+    onRoundStart: () => inner.onRoundStart?.(),
+    observe: (t) => inner.observe?.(t),
+  };
+}
 
 // SimulationConfig configures a batch of independent games. Every
 // game's seed is derived from seed, so a batch is fully reproducible.
 export interface SimulationConfig {
   seed: number;
   games: number;
+  // botVersion selects which strategy implementation bots[*] are built
+  // from (specs/bots_v3.md vs specs/bots_v4.md).
+  botVersion: BotVersion;
   // bots[slot] is the skill level of the slot-th bot under test. A
   // bot's slot is its stable identity across the whole batch; which
   // seat it sits in is reassigned randomly every game (see
   // runSimulation), so slot -- not seat -- is what results are tallied
   // by.
   bots: [BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel];
+  // botLog, if given, logs the named seats' v4 decision-making process
+  // (specs/bots_v4.md's "Decision Logging") to the write callback
+  // runSimulation is called with, keyed by seat (0-3) and valued by
+  // detail level. Ignored when botVersion is "v3" -- v3 isn't
+  // instrumented -- or when runSimulation is called without a write
+  // callback.
+  botLog?: ReadonlyMap<number, LogDetail>;
 }
 
 // SimulationResult tallies the outcome of a batch of games.
@@ -38,8 +83,8 @@ export interface SimulationResult {
 // slot is systematically favored or disfavored by always acting
 // first, last, etc. Each seat gets a fresh strategy instance every
 // game -- a bot is free to carry state across a game's own rounds
-// (specs/bots.md), but never across games.
-export async function runSimulation(config: SimulationConfig): Promise<SimulationResult> {
+// (specs/bots_v3.md), but never across games.
+export async function runSimulation(config: SimulationConfig, write?: (line: string) => void): Promise<SimulationResult> {
   const rng = new Rng(config.seed);
   const result: SimulationResult = { games: config.games, wins: [0, 0, 0, 0], ties: 0, totalRounds: 0 };
 
@@ -50,7 +95,13 @@ export async function runSimulation(config: SimulationConfig): Promise<Simulatio
 
     const botsBySeat = new Array<Strategy>(4);
     for (let slot = 0; slot < 4; slot++) {
-      botsBySeat[seatOfSlot[slot] as number] = createBot(config.bots[slot] as BotSkillLevel, rng);
+      const seat = seatOfSlot[slot] as number;
+      const detail = config.botLog?.get(seat);
+      let bot = createBot(config.botVersion, config.bots[slot] as BotSkillLevel, rng, detail);
+      if (detail !== undefined && write) {
+        bot = withDecisionLog(seat, bot, detail, write);
+      }
+      botsBySeat[seat] = bot;
     }
     const strategies = botsBySeat as [Strategy, Strategy, Strategy, Strategy];
 
@@ -73,7 +124,7 @@ export async function runSimulation(config: SimulationConfig): Promise<Simulatio
 // formatReport renders a SimulationResult as plain text lines, e.g. for
 // printing to stdout.
 export function formatReport(config: SimulationConfig, result: SimulationResult): string[] {
-  const lines = [`Played ${result.games} game(s) with seed ${config.seed}`, ""];
+  const lines = [`Played ${result.games} game(s) with seed ${config.seed} (bots ${config.botVersion})`, ""];
 
   for (let slot = 0; slot < 4; slot++) {
     const wins = result.wins[slot] as number;
@@ -88,7 +139,7 @@ export function formatReport(config: SimulationConfig, result: SimulationResult)
 }
 
 // allBotCombos enumerates every distinct multiset of 4 bot skill
-// levels -- order doesn't distinguish combos (specs/bots.md skill
+// levels -- order doesn't distinguish combos (specs/bots_v3.md skill
 // level is the only thing that matters, and runSimulation already
 // randomizes seating), so e.g. novice/novice/advanced/expert appears
 // once, not in every permutation. Each combo lists its bots grouped by
@@ -120,10 +171,10 @@ export interface ComboResult {
 // each batch seeded from the same seed -- so every combo is measured
 // against the same sequence of shuffles/deals, keeping the comparison
 // across rows apples-to-apples.
-export async function runAllCombos(games: number, seed: number): Promise<ComboResult[]> {
+export async function runAllCombos(games: number, seed: number, botVersion: BotVersion): Promise<ComboResult[]> {
   const results: ComboResult[] = [];
   for (const bots of allBotCombos()) {
-    const result = await runSimulation({ games, seed, bots });
+    const result = await runSimulation({ games, seed, botVersion, bots });
     results.push({ bots, result });
   }
   return results;
@@ -144,7 +195,7 @@ function slotWinPct(wins: readonly number[], games: number, slot: number): strin
 // row per combo, columns aligned by their widest cell. Bot N columns
 // are ordered to match comboLabel, so each cell's skill level can be
 // read off the Combo column's N-th letter.
-export function formatComboTable(games: number, seed: number, combos: readonly ComboResult[]): string[] {
+export function formatComboTable(games: number, seed: number, botVersion: BotVersion, combos: readonly ComboResult[]): string[] {
   const headers = ["Combo", "Games", "Bot 1", "Bot 2", "Bot 3", "Bot 4", "Ties", "Avg Rounds"];
   const rows = combos.map(({ bots, result }) => [
     comboLabel(bots),
@@ -161,7 +212,7 @@ export function formatComboTable(games: number, seed: number, combos: readonly C
   const formatRow = (cells: readonly string[]): string => cells.map((c, i) => c.padEnd(widths[i] as number)).join("  ").trimEnd();
 
   return [
-    `Played ${games} game(s) per combo (${combos.length} combos) with seed ${seed}`,
+    `Played ${games} game(s) per combo (${combos.length} combos) with seed ${seed} (bots ${botVersion})`,
     "",
     formatRow(headers),
     formatRow(widths.map((w) => "-".repeat(w))),

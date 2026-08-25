@@ -2,8 +2,10 @@
 // failure throws a descriptive Error — there is no silent fallback for
 // malformed input.
 
-import { BOT_SKILL_LEVELS } from "./simulate.ts";
-import type { BotSkillLevel, SimulationConfig } from "./simulate.ts";
+import { seatByName } from "../game/seat.ts";
+import type { LogDetail } from "../bot/v4/trace.ts";
+import { BOT_SKILL_LEVELS, BOT_VERSIONS } from "./simulate.ts";
+import type { BotSkillLevel, BotVersion, SimulationConfig } from "./simulate.ts";
 
 // BOT_CHAR_TO_SKILL_LEVEL maps a --strat letter to the bot skill level
 // it selects, keyed by each BOT_SKILL_LEVELS entry's first letter
@@ -13,24 +15,37 @@ const BOT_CHAR_TO_SKILL_LEVEL = new Map<string, BotSkillLevel>(BOT_SKILL_LEVELS.
 
 const DEFAULT_GAMES = 1000;
 
+// DEFAULT_BOT_VERSION is used when --bot-version is omitted.
+const DEFAULT_BOT_VERSION: BotVersion = "v4";
+
 // CliConfig is what parseCliArgs resolves argv down to: either a
 // single combo to simulate ("single", when --strat is given) or a
 // request to run every distinct 4-bot combo ("all", when it's
 // omitted), per simulate.ts's allBotCombos/runAllCombos.
-export type CliConfig = ({ mode: "single" } & SimulationConfig) | { mode: "all"; games: number; seed: number };
+export type CliConfig = ({ mode: "single" } & SimulationConfig) | { mode: "all"; games: number; seed: number; botVersion: BotVersion };
 
 // parseCliArgs reads argv (e.g. process.argv.slice(2)) for the
 // simulator's flags:
 //
-//   --games=N   number of games to play per combo (default 1000)
-//   --seed=N    batch seed (default derived from the clock)
-//   --strat=    four letters, one per bot under test: n (novice), a
-//               (advanced), or e (expert) -- e.g. --strat=naen for
-//               novice, advanced, expert, novice. Each game deals the
-//               four bots a fresh random seat, so this names which
-//               bots to test, not where they sit. If omitted, every
-//               distinct combo of 4 bots is run instead, reported as
-//               a table.
+//   --games=N       number of games to play per combo (default 1000)
+//   --seed=N        batch seed (default derived from the clock)
+//   --bot-version=  which bot strategy implementation to play: v3
+//                   (specs/bots_v3.md) or v4 (specs/bots_v4.md).
+//                   Defaults to v4.
+//   --strat=        four letters, one per bot under test: n (novice), a
+//                   (advanced), or e (expert) -- e.g. --strat=naen for
+//                   novice, advanced, expert, novice. Each game deals the
+//                   four bots a fresh random seat, so this names which
+//                   bots to test, not where they sit. If omitted, every
+//                   distinct combo of 4 bots is run instead, reported as
+//                   a table.
+//   --bot-log=      comma-separated seat names (north/south/east/west)
+//                   to log v4 decision-making for (specs/bots_v4.md's
+//                   "Decision Logging"), e.g. --bot-log=west,north. A
+//                   lowercase name logs at Summary, a name starting
+//                   uppercase logs at Full Trace. Only valid alongside
+//                   --strat -- decision logging doesn't apply across
+//                   every combo in the default "all" mode.
 export function parseCliArgs(argv: readonly string[], now: () => number = Date.now): CliConfig {
   const flags = new Map<string, string>();
   for (const arg of argv) {
@@ -43,18 +58,48 @@ export function parseCliArgs(argv: readonly string[], now: () => number = Date.n
 
   const games = parsePositiveInt("games", flags.get("games"), DEFAULT_GAMES);
   const seed = parseInt32("seed", flags.get("seed"), now() >>> 0);
+  const botVersion = parseBotVersion(flags.get("bot-version"));
 
   for (const [flag] of flags) {
-    if (flag !== "games" && flag !== "seed" && flag !== "strat") {
+    if (flag !== "games" && flag !== "seed" && flag !== "strat" && flag !== "bot-version" && flag !== "bot-log") {
       throw new Error(`simulate: unknown flag "--${flag}"`);
     }
   }
 
   const stratRaw = flags.get("strat");
+  const botLogRaw = flags.get("bot-log");
   if (stratRaw === undefined) {
-    return { mode: "all", games, seed };
+    if (botLogRaw !== undefined) {
+      throw new Error(`simulate: --bot-log=${botLogRaw} given without --strat`);
+    }
+    return { mode: "all", games, seed, botVersion };
   }
-  return { mode: "single", games, seed, bots: parseStrat(stratRaw) };
+  return { mode: "single", games, seed, botVersion, bots: parseStrat(stratRaw), botLog: parseBotLog(botLogRaw) };
+}
+
+function parseBotLog(raw: string | undefined): ReadonlyMap<number, LogDetail> | undefined {
+  if (raw === undefined || raw === "") {
+    return undefined;
+  }
+  const map = new Map<number, LogDetail>();
+  for (const rawName of raw.split(",")) {
+    const seat = seatByName(rawName);
+    if (seat === undefined) {
+      throw new Error(`simulate: --bot-log=${raw} names an invalid seat "${rawName}"`);
+    }
+    map.set(seat, /^[A-Z]/.test(rawName) ? "full" : "summary");
+  }
+  return map;
+}
+
+function parseBotVersion(raw: string | undefined): BotVersion {
+  if (raw === undefined) {
+    return DEFAULT_BOT_VERSION;
+  }
+  if (!(BOT_VERSIONS as readonly string[]).includes(raw)) {
+    throw new Error(`simulate: --bot-version=${raw} must be one of ${BOT_VERSIONS.join(", ")}`);
+  }
+  return raw as BotVersion;
 }
 
 function parseStrat(value: string): [BotSkillLevel, BotSkillLevel, BotSkillLevel, BotSkillLevel] {

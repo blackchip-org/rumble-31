@@ -4,7 +4,8 @@ import { parseCard } from "./card/card.ts";
 import type { Card } from "./card/card.ts";
 import type { RoundOutcome } from "./game/game.ts";
 import type { Hand, Pot, TurnRecord } from "./game/types.ts";
-import { gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnLines, turnStartLine } from "./log.ts";
+import type { DecisionTraceEntry } from "./game/types.ts";
+import { botDecisionLines, gameEndLines, gameStartLines, roundRecapLines, roundStartLines, turnLines, turnStartLine } from "./log.ts";
 
 function mustHand(...notation: [string, string, string]): Hand {
   return [parseCard(notation[0]), parseCard(notation[1]), parseCard(notation[2])];
@@ -227,4 +228,24 @@ test("gameEndLines", () => {
   for (const { name, southPlace, want } of cases) {
     assert.deepEqual(gameEndLines(southPlace, botSkillLevelLabels), want, name);
   }
+});
+
+test("botDecisionLines", () => {
+  const trace: DecisionTraceEntry[] = [
+    { phase: "Mistake", detail: "no mistake (chance 0.05)", acted: false },
+    { phase: "Improve Hand", detail: "pot exchange not eligible (pot score 24 < 27)", acted: false },
+    { phase: "Improve Hand", detail: "  [7h]->[8d]: hand 27, danger 0, pot 24, pairs 0", acted: false },
+    { phase: "Improve Hand", detail: "trades [7h] for [8d]", acted: true, summary: "trades [7h] for [8d] (hand 24 -> 27)" },
+  ];
+
+  assert.deepEqual(botDecisionLines(1, trace, "summary"), ["[bot] West: Improve Hand -- trades [7h] for [8d] (hand 24 -> 27)"]);
+
+  assert.deepEqual(botDecisionLines(1, trace, "full"), [
+    "[bot] West (Mistake): no mistake (chance 0.05)",
+    "[bot] West (Improve Hand): pot exchange not eligible (pot score 24 < 27)",
+    "[bot] West (Improve Hand):   [7h]->[8d]: hand 27, danger 0, pot 24, pairs 0",
+    "[bot] West (Improve Hand): trades [7h] for [8d]",
+  ]);
+
+  assert.deepEqual(botDecisionLines(1, [], "summary"), [], "no acted entry: no summary line");
 });

@@ -5,15 +5,17 @@
 // than their preferences.
 
 import type { BotSeats } from "./botAssignment.ts";
-import type { BotMemory } from "../bot/factory.ts";
+import type { BotState } from "../bot/v4/factory.ts";
 import type { Hand, Pot } from "../game/types.ts";
 import type { BotResult } from "./overScreen.ts";
 
 const STORAGE_KEY = "rumble31.state";
-// Bumped to 9 when OverState gained southPlace (specs/screens/
-// over.md's rank badge) — an old save is simply treated as absent
-// (see loadState), no migration needed.
-const SCHEMA_VERSION = 9;
+// Bumped to 11 when the web GUI switched from v3 to v4 bots (specs/
+// bots_v4.md) and RoundCheckpoint's botMemory (v3's cross-turn
+// opponent-tracking) was replaced with botState (v4's much smaller
+// round-scoped Knock bookkeeping) — an old save is simply treated as
+// absent (see loadState), no migration needed.
+const SCHEMA_VERSION = 11;
 
 // STATE_SCREEN_IDS are every screen this module ever records — every
 // screen in specs/gui.md except the error screen, which is never
@@ -34,10 +36,11 @@ export interface RoundCheckpoint {
   turnIndex: number;
   knocked: boolean;
   knockerSeat: number;
-  // botMemory[i] is [seat, memory] for one of the three bot seats: what
-  // that bot has tracked about its opponents so far this round
-  // (specs/bots.md), so a reload doesn't reset it back to blank.
-  botMemory: Array<[number, BotMemory]>;
+  // botState[i] is [seat, state] for one of the three bot seats: that
+  // bot's round-scoped Knock bookkeeping so far this round (specs/
+  // bots_v4.md's Knock phase), so a reload doesn't reset it back to
+  // blank.
+  botState: Array<[number, BotState]>;
 }
 
 // GameState is what's needed to resume the Game screen: every seat's
@@ -52,7 +55,7 @@ export interface GameState {
   secondChance: [boolean, boolean, boolean, boolean];
   roundNum: number;
   dealerSeat: number;
-  // botSeats[i] is the skill level seated at seat i+1 (specs/bots.md),
+  // botSeats[i] is the skill level seated at seat i+1 (specs/bots_v3.md),
   // fixed for the life of the game so resuming it doesn't reshuffle
   // which bot sits where.
   botSeats: BotSeats;

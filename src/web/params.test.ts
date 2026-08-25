@@ -31,6 +31,7 @@ test("parseDebugParams: valid combinations", () => {
     wantClear?: boolean;
     wantPlatform?: Platform;
     wantShowBots?: boolean;
+    wantBotLogBySeat?: Array<[number, "summary" | "full"]>;
     wantAgeMinutes?: number;
   }> = [
     {
@@ -266,6 +267,33 @@ test("parseDebugParams: valid combinations", () => {
       wantShowBots: true,
     },
     {
+      name: "botLog with a single lowercase seat: Summary",
+      search: "botLog=north",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantBotLogBySeat: [[2, "summary"]],
+    },
+    {
+      name: "botLog with multiple seats, case selects detail per seat",
+      search: "botLog=north,West",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantBotLogBySeat: [
+        [2, "summary"],
+        [1, "full"],
+      ],
+    },
+    {
+      name: "botLog naming South has no effect",
+      search: "botLog=south,east",
+      wantInitialStrikes: [0, 0, 0, 0],
+      wantSkipDealAnimation: false,
+      wantNoInitialDeal: true,
+      wantBotLogBySeat: [[3, "summary"]],
+    },
+    {
       name: "age=10",
       search: "age=10",
       wantInitialStrikes: [0, 0, 0, 0],
@@ -301,6 +329,7 @@ test("parseDebugParams: valid combinations", () => {
     assert.equal(got.clear, c.wantClear ?? false, `${c.name}: clear`);
     assert.equal(got.platform, c.wantPlatform, `${c.name}: platform`);
     assert.equal(got.showBots, c.wantShowBots ?? false, `${c.name}: showBots`);
+    assert.deepEqual(got.botLogBySeat, new Map(c.wantBotLogBySeat ?? []), `${c.name}: botLogBySeat`);
     assert.equal(got.ageMinutes, c.wantAgeMinutes, `${c.name}: ageMinutes`);
 
     if (c.wantNoInitialDeal) {
@@ -337,6 +366,8 @@ test("parseDebugParams: invalid input throws", () => {
     { name: "clear is not true or false", search: "clear=yes" },
     { name: "platform names an unknown platform", search: "platform=bogus" },
     { name: "showBots is not true or false", search: "showBots=yes" },
+    { name: "botLog names an unknown seat", search: "botLog=northwest" },
+    { name: "botLog has one valid and one invalid seat", search: "botLog=north,bogus" },
     { name: "age is negative", search: "age=-1" },
     { name: "age is not a number", search: "age=soon" },
   ];

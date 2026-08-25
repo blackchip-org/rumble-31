@@ -45,7 +45,7 @@ npm run web:preview
 Run headless bot-vs-bot games to compare strategies:
 
 ```bash
-npm run simulate -- --games=1000 --strat=erdr
+npm run simulate -- --games=1000 --strat=naea
 ```
 
 Omit `--strat` to run every distinct 4-bot combo and report them as a
@@ -53,6 +53,30 @@ table:
 
 ```bash
 npm run simulate -- --games=1000
+```
+
+Bots play the v4 strategies (specs/bots_v4.md) by default. Pass
+`--bot-version=v3` to play the older v3 strategies (specs/bots_v3.md)
+instead:
+
+```bash
+npm run simulate -- --games=1000 --bot-version=v3
+```
+
+Pass `--bot-log=west,east` to log those seats' v4 decision-making
+process (specs/bots_v4.md's "Decision Logging") alongside the report,
+at the Summary level. Capitalize a seat's name for Full Trace instead:
+
+```bash
+npm run simulate -- --games=1 --bot-log=West
+```
+
+Run the Hand Selection Monte Carlo analysis, which deals random
+(hand, pot) pairs and reports, grouped by hand score, how often and
+by how much swapping the hand for the pot would help:
+
+```bash
+npm run hand-selection -- --trials=100000 --seed=42
 ```
 
 ## Notes

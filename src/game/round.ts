@@ -130,7 +130,6 @@ export class Round {
     let turnIdx = this.turnIndex;
     let knocked = this.knocked;
     let knockerSeat = this.knockerSeat;
-    const ownTurnNum = new Map<number, number>();
     let endReason: RoundEndReason | undefined;
 
     for (;;) {
@@ -146,19 +145,22 @@ export class Round {
       // before decide() is called. Unconditional: no exception for a
       // player's own first turn, including the round's very first
       // actor on turn 0.
-      const priorOwnTurns = ownTurnNum.get(seat) ?? 0;
       if (score(player.hand) === 31) {
         return { result: this.computeResult(), log, endReason: { type: "31", seat } };
       }
 
-      ownTurnNum.set(seat, priorOwnTurns + 1);
       const isFirstTurn = turnIdx === 0;
+      // lap (specs/rules.md): every active seat takes exactly one
+      // turn per lap, so a full lap is exactly this.players.length
+      // turns -- turnIdx 0 through length-1 is lap 1, length through
+      // 2*length-1 is lap 2, and so on.
       const view: PlayerView = {
         hand: player.hand,
         pot: this.pot,
         seat,
+        opponentCount: this.players.length - 1,
         isFirstTurnOfRound: isFirstTurn,
-        ownTurnNumber: ownTurnNum.get(seat) as number,
+        lap: Math.floor(turnIdx / this.players.length) + 1,
         isLastTurn: knocked,
       };
 

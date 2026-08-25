@@ -15,7 +15,7 @@ Below the header are the following buttons:
 
 Clicking "Easy", "Moderate", or "Hard" starts a new game immediately
 at that difficulty. Each difficulty determines the odds of which
-three bot skill levels (specs/bots.md) are seated for the game's
+three bot skill levels (specs/bots_v3.md) are seated for the game's
 three bot seats, per the mapping configured in config.ts.
 
 Clicking "Random" starts a new game immediately at one of Easy,
