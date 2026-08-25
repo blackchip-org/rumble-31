@@ -80,6 +80,20 @@ at the Summary level. Capitalize a seat's name for Full Trace instead:
 npm run simulate -- --games=1 --bot-log=West
 ```
 
+Pass `--metrics` alongside `--strat` to report each bot's per-turn
+behavior across the batch, alongside the normal win-rate report: how
+often it took the pot as first actor, how often its hand improved,
+knock counts, how often a trade formed a pair, and the danger-score
+distribution of the trades it made. This is a faster, lower-noise way
+to check whether a bots_v4.md strategy change had its intended effect
+than win rate alone -- a tweak can move a specific behavior a lot
+while moving win rate by too little to see past noise without a much
+larger `--games` count:
+
+```bash
+npm run simulate -- --games=1000 --strat=naea --metrics
+```
+
 Run the Hand Selection Monte Carlo analysis, which deals random
 (hand, pot) pairs and reports, grouped by hand score, how often and
 by how much swapping the hand for the pot would help:

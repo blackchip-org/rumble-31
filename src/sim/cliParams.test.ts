@@ -48,6 +48,16 @@ test("parseCliArgs: valid combinations", () => {
       want: { mode: "single", games: 1000, seed: 12345, botVersion: "v4", bots: ["novice", "advanced", "expert", "advanced"], botLog: undefined },
     },
     {
+      name: "metrics flag alongside a single-combo strat",
+      argv: ["--strat=naea", "--metrics"],
+      want: { mode: "single", games: 1000, seed: 12345, botVersion: "v4", bots: ["novice", "advanced", "expert", "advanced"], botLog: undefined, metrics: true },
+    },
+    {
+      name: "metrics flag alongside a heads-up strat",
+      argv: ["--strat=ae", "--metrics"],
+      want: { mode: "headsUp", games: 1000, seed: 12345, botVersion: "v4", bots: ["advanced", "expert"], botLog: undefined, metrics: true },
+    },
+    {
       name: "bot-log selects seats and, by case, detail level",
       argv: ["--strat=naea", "--bot-log=west,North"],
       want: {
@@ -84,6 +94,7 @@ test("parseCliArgs: invalid input throws", () => {
     { name: "two-letter strat invalid character", argv: ["--strat=ax"], wantMessage: /--strat=ax has invalid character "x" at position 2/ },
     { name: "bot-version invalid value", argv: ["--bot-version=v5"], wantMessage: /--bot-version=v5 must be one of v3, v4/ },
     { name: "bot-log without strat", argv: ["--bot-log=west"], wantMessage: /--bot-log=west given without --strat/ },
+    { name: "metrics without strat", argv: ["--metrics"], wantMessage: /--metrics given without --strat/ },
     { name: "bot-log invalid seat", argv: ["--strat=naea", "--bot-log=bogus"], wantMessage: /--bot-log=bogus names an invalid seat "bogus"/ },
   ];
 

@@ -56,9 +56,18 @@ export type CliConfig = ({ mode: "single" } & SimulationConfig) | ({ mode: "head
 //                   uppercase logs at Full Trace. Only valid alongside
 //                   --strat -- decision logging doesn't apply across
 //                   every combo in the default "all" mode.
+//   --metrics       collect and report each bot's per-turn behavior
+//                   (pot-taken-as-first-actor, hand-improved, knocks,
+//                   pair-forming trades, trade danger scores) across
+//                   the batch, alongside the normal win-rate report.
+//                   Only valid alongside --strat, same as --bot-log.
 export function parseCliArgs(argv: readonly string[], now: () => number = Date.now): CliConfig {
   const flags = new Map<string, string>();
   for (const arg of argv) {
+    if (arg === "--metrics") {
+      flags.set("metrics", "true");
+      continue;
+    }
     if (!arg.startsWith("--") || !arg.includes("=")) {
       throw new Error(`simulate: unrecognized argument "${arg}" (expected --flag=value)`);
     }
@@ -69,9 +78,10 @@ export function parseCliArgs(argv: readonly string[], now: () => number = Date.n
   const games = parsePositiveInt("games", flags.get("games"), DEFAULT_GAMES);
   const seed = parseInt32("seed", flags.get("seed"), now() >>> 0);
   const botVersion = parseBotVersion(flags.get("bot-version"));
+  const metrics = flags.get("metrics") === "true";
 
   for (const [flag] of flags) {
-    if (flag !== "games" && flag !== "seed" && flag !== "strat" && flag !== "bot-version" && flag !== "bot-log") {
+    if (flag !== "games" && flag !== "seed" && flag !== "strat" && flag !== "bot-version" && flag !== "bot-log" && flag !== "metrics") {
       throw new Error(`simulate: unknown flag "--${flag}"`);
     }
   }
@@ -82,13 +92,16 @@ export function parseCliArgs(argv: readonly string[], now: () => number = Date.n
     if (botLogRaw !== undefined) {
       throw new Error(`simulate: --bot-log=${botLogRaw} given without --strat`);
     }
+    if (metrics) {
+      throw new Error(`simulate: --metrics given without --strat`);
+    }
     return { mode: "all", games, seed, botVersion };
   }
   const botLog = parseBotLog(botLogRaw);
   if (stratRaw.length === 2) {
-    return { mode: "headsUp", games, seed, botVersion, bots: parseStratChars(stratRaw) as [BotSkillLevel, BotSkillLevel], botLog };
+    return { mode: "headsUp", games, seed, botVersion, bots: parseStratChars(stratRaw) as [BotSkillLevel, BotSkillLevel], botLog, ...(metrics ? { metrics } : {}) };
   }
-  return { mode: "single", games, seed, botVersion, bots: parseStrat(stratRaw), botLog };
+  return { mode: "single", games, seed, botVersion, bots: parseStrat(stratRaw), botLog, ...(metrics ? { metrics } : {}) };
 }
 
 function parseBotLog(raw: string | undefined): ReadonlyMap<number, LogDetail> | undefined {

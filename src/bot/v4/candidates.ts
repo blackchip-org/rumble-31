@@ -33,8 +33,11 @@ export interface TradeCandidate {
 // dangerScoreFor implements specs/bots_v4.md's Danger score tiers for
 // the pot resulting from a trade: the most severe applicable tier
 // wins, from 5 (pot would score 31, an instant win for whoever takes
-// it next) down to 0 (no special consideration).
-function dangerScoreFor(potScore: number, givenCard: Card): number {
+// it next) down to 0 (no special consideration). Exported for reuse
+// by the simulator's metrics collection (src/sim/simulate.ts), which
+// scores every trade a bot actually makes the same way, regardless of
+// bot version.
+export function dangerScoreFor(potScore: number, givenCard: Card): number {
   if (potScore === 31) {
     return 5;
   }
@@ -53,8 +56,10 @@ function dangerScoreFor(potScore: number, givenCard: Card): number {
   return 0;
 }
 
-// hasPair reports whether any two of a hand's three cards share a rank.
-function hasPair(hand: Hand): boolean {
+// hasPair reports whether any two of a hand's three cards share a
+// rank. Exported for reuse by the simulator's metrics collection
+// (src/sim/simulate.ts).
+export function hasPair(hand: Hand): boolean {
   const [a, b, c] = hand;
   return a.rank === b.rank || b.rank === c.rank || a.rank === c.rank;
 }

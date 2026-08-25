@@ -3,12 +3,15 @@
 // a browser.
 
 import { newGame } from "../game/game.ts";
-import type { PlayerView, Strategy } from "../game/types.ts";
+import type { Card } from "../card/card.ts";
+import type { PlayerView, Strategy, TurnRecord } from "../game/types.ts";
 import { strategyFunc } from "../game/types.ts";
 import { botDecisionLines } from "../log.ts";
 import { Rng } from "../rng.ts";
+import { score } from "../card/score.ts";
 import { BOT_SKILL_LEVELS, type BotSkillLevel, createBot as createBotV3 } from "../bot/v3/factory.ts";
 import { createBot as createBotV4 } from "../bot/v4/factory.ts";
+import { dangerScoreFor, hasPair } from "../bot/v4/candidates.ts";
 import type { LogDetail } from "../bot/v4/trace.ts";
 
 export { BOT_SKILL_LEVELS, type BotSkillLevel };
@@ -20,6 +23,106 @@ export type BotVersion = (typeof BOT_VERSIONS)[number];
 
 function createBot(botVersion: BotVersion, skillLevel: BotSkillLevel, rng: Rng, logDetail?: LogDetail): Strategy {
   return botVersion === "v4" ? createBotV4(skillLevel, rng, undefined, logDetail) : createBotV3(skillLevel, rng);
+}
+
+// BotMetrics tallies one bot slot's per-turn behavior across a
+// simulation batch, when SimulationConfig/HeadsUpSimulationConfig's
+// metrics flag is set. Every count reflects actions the bot actually
+// took (mistakes included), derived straight from each TurnRecord --
+// not from a bot's own (v4-only) decision trace -- so it works the
+// same way for v3 and v4 bots alike.
+export interface BotMetrics {
+  // turns is every turn this bot took, across every game in the batch.
+  turns: number;
+  // firstActorTurns is how many of those turns were the round's first
+  // turn (specs/bots_v4.md's First strategy).
+  firstActorTurns: number;
+  // firstActorPotTaken is, of firstActorTurns, how many chose to
+  // exchange for the pot ("Take Pot") instead of keeping the dealt
+  // hand.
+  firstActorPotTaken: number;
+  // handImproved counts turns whose action left the hand scoring
+  // higher (card/score.ts's score()) than it did going into the turn,
+  // regardless of action type.
+  handImproved: number;
+  // trades, exchanges, and knocks count turns by action type --
+  // together they always add up to turns.
+  trades: number;
+  exchanges: number;
+  knocks: number;
+  // pairsFormed counts trades (only trades -- an exchange replaces the
+  // whole hand at once, so it's not a single card "chosen" to form a
+  // pair) that left the hand with a pair it didn't have beforehand.
+  pairsFormed: number;
+  // dangerCounts[tier] counts trades whose resulting pot landed at
+  // specs/bots_v4.md's Trade Candidates danger tier `tier` (0 safest
+  // to 5 worst) -- only trades, since the danger score is defined in
+  // terms of the single card given to the pot. Its six entries always
+  // sum to trades.
+  dangerCounts: [number, number, number, number, number, number];
+}
+
+export function newBotMetrics(): BotMetrics {
+  return { turns: 0, firstActorTurns: 0, firstActorPotTaken: 0, handImproved: 0, trades: 0, exchanges: 0, knocks: 0, pairsFormed: 0, dangerCounts: [0, 0, 0, 0, 0, 0] };
+}
+
+// recordTurn folds one TurnRecord into a bot slot's BotMetrics.
+export function recordTurn(m: BotMetrics, rec: TurnRecord): void {
+  m.turns++;
+  const isFirstTurn = rec.turnIndex === 0;
+  if (isFirstTurn) {
+    m.firstActorTurns++;
+  }
+  if (score(rec.handBefore) < rec.scoreAfter) {
+    m.handImproved++;
+  }
+
+  if (rec.action.type === "knock") {
+    m.knocks++;
+    return;
+  }
+  if (rec.action.type === "exchange") {
+    m.exchanges++;
+    if (isFirstTurn) {
+      m.firstActorPotTaken++;
+    }
+    return;
+  }
+
+  m.trades++;
+  const givenCard = rec.handBefore[rec.action.handIndex] as Card;
+  const dangerTier = dangerScoreFor(score(rec.potAfter), givenCard);
+  m.dangerCounts[dangerTier] = (m.dangerCounts[dangerTier] as number) + 1;
+  if (hasPair(rec.handAfter) && !hasPair(rec.handBefore)) {
+    m.pairsFormed++;
+  }
+}
+
+// pct renders n/d as a percentage, or "n/a" when there's no
+// denominator to divide by (e.g. a bot that never got to act first).
+function pct(n: number, d: number): string {
+  return d > 0 ? `${((n / d) * 100).toFixed(1)}%` : "n/a";
+}
+
+// formatMetricsLines renders every slot's BotMetrics, appended to a
+// SimulationResult/HeadsUpSimulationResult report when metrics were
+// collected. bots and metrics are parallel, indexed by slot.
+function formatMetricsLines(bots: readonly BotSkillLevel[], metrics: readonly BotMetrics[]): string[] {
+  const lines = ["", "Metrics:"];
+  for (let slot = 0; slot < bots.length; slot++) {
+    const m = metrics[slot] as BotMetrics;
+    const dangerTrades = m.dangerCounts.reduce((sum, count) => sum + count, 0);
+    const dangerWeighted = m.dangerCounts.reduce((sum, count, tier) => sum + count * tier, 0);
+    const avgDanger = dangerTrades > 0 ? (dangerWeighted / dangerTrades).toFixed(2) : "n/a";
+
+    lines.push(`Bot ${slot + 1} (${bots[slot]}):`);
+    lines.push(`  Took pot as first actor: ${m.firstActorPotTaken}/${m.firstActorTurns} (${pct(m.firstActorPotTaken, m.firstActorTurns)})`);
+    lines.push(`  Hand improved: ${m.handImproved}/${m.turns} (${pct(m.handImproved, m.turns)})`);
+    lines.push(`  Knocks: ${m.knocks}`);
+    lines.push(`  Trades forming a pair: ${m.pairsFormed}/${m.trades} (${pct(m.pairsFormed, m.trades)})`);
+    lines.push(`  Trade danger score: avg ${avgDanger}, tiers 0-5: ${m.dangerCounts.join("/")}`);
+  }
+  return lines;
 }
 
 // withDecisionLog wraps a v4 bot's Strategy so that, once decide()
@@ -65,6 +168,10 @@ export interface SimulationConfig {
   // instrumented -- or when runSimulation is called without a write
   // callback.
   botLog?: ReadonlyMap<number, LogDetail>;
+  // metrics, if true, collects each slot's BotMetrics across the
+  // batch (returned as SimulationResult.metrics) alongside the normal
+  // win-rate tally.
+  metrics?: boolean;
 }
 
 // SimulationResult tallies the outcome of a batch of games.
@@ -77,6 +184,9 @@ export interface SimulationResult {
   // remaining seat eliminated at once, per Game.applyResult).
   ties: number;
   totalRounds: number;
+  // metrics[slot] is the slot-th bot's BotMetrics, only populated when
+  // SimulationConfig.metrics was set.
+  metrics?: [BotMetrics, BotMetrics, BotMetrics, BotMetrics];
 }
 
 // runSimulation plays config.games independent games. Each game, the
@@ -88,6 +198,7 @@ export interface SimulationResult {
 export async function runSimulation(config: SimulationConfig, write?: (line: string) => void): Promise<SimulationResult> {
   const rng = new Rng(config.seed);
   const result: SimulationResult = { games: config.games, wins: [0, 0, 0, 0], ties: 0, totalRounds: 0 };
+  const metrics = config.metrics ? ([newBotMetrics(), newBotMetrics(), newBotMetrics(), newBotMetrics()] as [BotMetrics, BotMetrics, BotMetrics, BotMetrics]) : undefined;
 
   for (let i = 0; i < config.games; i++) {
     // seatOfSlot[slot] is the seat the slot-th bot sits in this game.
@@ -107,6 +218,9 @@ export async function runSimulation(config: SimulationConfig, write?: (line: str
     const strategies = botsBySeat as [Strategy, Strategy, Strategy, Strategy];
 
     const game = newGame(rng.nextSeed(), strategies);
+    if (metrics) {
+      game.onTurn = (rec) => recordTurn(metrics[seatOfSlot.indexOf(rec.seat)] as BotMetrics, rec);
+    }
     const { winners, log } = await game.run();
 
     result.totalRounds += log.length;
@@ -119,6 +233,9 @@ export async function runSimulation(config: SimulationConfig, write?: (line: str
     }
   }
 
+  if (metrics) {
+    result.metrics = metrics;
+  }
   return result;
 }
 
@@ -136,6 +253,9 @@ export function formatReport(config: SimulationConfig, result: SimulationResult)
   lines.push("");
   lines.push(`Ties: ${result.ties}`);
   lines.push(`Average rounds per game: ${(result.totalRounds / result.games).toFixed(2)}`);
+  if (result.metrics) {
+    lines.push(...formatMetricsLines(config.bots, result.metrics));
+  }
   return lines;
 }
 
@@ -153,6 +273,10 @@ export interface HeadsUpSimulationConfig {
   // slot-vs-seat distinction as SimulationConfig.bots.
   bots: [BotSkillLevel, BotSkillLevel];
   botLog?: ReadonlyMap<number, LogDetail>;
+  // metrics, if true, collects each slot's BotMetrics across the
+  // batch (returned as HeadsUpSimulationResult.metrics), same as
+  // SimulationConfig.metrics.
+  metrics?: boolean;
 }
 
 // HeadsUpSimulationResult tallies the outcome of a HeadsUpSimulationConfig batch.
@@ -161,6 +285,9 @@ export interface HeadsUpSimulationResult {
   wins: [number, number];
   ties: number;
   totalRounds: number;
+  // metrics[slot] is the slot-th bot's BotMetrics, only populated when
+  // HeadsUpSimulationConfig.metrics was set.
+  metrics?: [BotMetrics, BotMetrics];
 }
 
 // unreachablePlaceholder fills the two pre-eliminated seats' strategy
@@ -181,6 +308,7 @@ const unreachablePlaceholder: Strategy = strategyFunc(() => {
 export async function runHeadsUpSimulation(config: HeadsUpSimulationConfig, write?: (line: string) => void): Promise<HeadsUpSimulationResult> {
   const rng = new Rng(config.seed);
   const result: HeadsUpSimulationResult = { games: config.games, wins: [0, 0], ties: 0, totalRounds: 0 };
+  const metrics = config.metrics ? ([newBotMetrics(), newBotMetrics()] as [BotMetrics, BotMetrics]) : undefined;
 
   for (let i = 0; i < config.games; i++) {
     const shuffledSeats = [0, 1, 2, 3];
@@ -203,6 +331,9 @@ export async function runHeadsUpSimulation(config: HeadsUpSimulationConfig, writ
     }
 
     const game = newGame(rng.nextSeed(), botsBySeat, { strikes: [0, 0, 0, 0], secondChance: [false, false, false, false], eliminated });
+    if (metrics) {
+      game.onTurn = (rec) => recordTurn(metrics[seatOfSlot.indexOf(rec.seat)] as BotMetrics, rec);
+    }
     const { winners, log } = await game.run();
 
     result.totalRounds += log.length;
@@ -215,6 +346,9 @@ export async function runHeadsUpSimulation(config: HeadsUpSimulationConfig, writ
     }
   }
 
+  if (metrics) {
+    result.metrics = metrics;
+  }
   return result;
 }
 
@@ -232,6 +366,9 @@ export function formatHeadsUpReport(config: HeadsUpSimulationConfig, result: Hea
   lines.push("");
   lines.push(`Ties: ${result.ties}`);
   lines.push(`Average rounds per game: ${(result.totalRounds / result.games).toFixed(2)}`);
+  if (result.metrics) {
+    lines.push(...formatMetricsLines(config.bots, result.metrics));
+  }
   return lines;
 }
 
