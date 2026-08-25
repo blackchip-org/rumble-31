@@ -14,18 +14,11 @@ its action each turn.
 
 ## Bot version
 
-The three skill levels share one bot version number, tracked in
-src/bot/version.ts. It only changes when a strategy file changes --
-src/bot/novice.ts, advanced.ts, expert.ts, helpers.ts, or factory.ts.
-The app version (specs/version.md) can bump on its own without moving
-this number, since not every app change touches bot behavior. This
-lets future stats tracking tell which games were played under which
-bot strategies.
-
-The version stayed at 3 for the whole time v3 was the web GUI's and
-simulator's default implementation. See specs/bots_v4.md's "Bot
-version" section for how the same counter moves now that both run v4
-instead.
+The bot version is which strategy generation is in play -- `v3` or
+`v4` -- not a revision counter for tuning changes within a
+generation. `v3` was the web GUI's and simulator's default
+implementation until v4 replaced it; see specs/bots_v4.md's "Bot
+version" section for the current state.
 
 At the start of the game, the three bots' skill levels are chosen
 according to the Difficulty screen's setting (specs/screens/

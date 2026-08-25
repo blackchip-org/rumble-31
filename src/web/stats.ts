@@ -1,8 +1,9 @@
 // Gameplay stats (specs/stats.md), persisted to a Storage (localStorage
 // in the browser) as a single JSON blob, mirroring settings.ts/state.ts's
-// own load/save pattern. Stats are scoped per bot version
-// (src/bot/version.ts): switching versions never discards older stats,
-// it just starts a fresh, independently-tracked set alongside them.
+// own load/save pattern. Stats are scoped per bot version -- "v3" or
+// "v4" (specs/bots_v4.md's "Bot version" section): switching versions
+// never discards older stats, it just starts a fresh,
+// independently-tracked set alongside them.
 
 import { DIFFICULTIES, type Difficulty } from "../config.ts";
 import { BOT_SKILL_LEVELS, type BotSkillLevel } from "../bot/v4/factory.ts";
@@ -104,7 +105,7 @@ function emptyBotVersionStats(): BotVersionStats {
 }
 
 // StatsStore is every bot version's stats, keyed by that version's
-// src/bot/version.ts string.
+// label ("v3"/"v4").
 export interface StatsStore {
   byBotVersion: Record<string, BotVersionStats>;
 }

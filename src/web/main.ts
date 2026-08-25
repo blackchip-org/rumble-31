@@ -5,7 +5,15 @@
 import type { Card } from "../card/card.ts";
 import { score } from "../card/score.ts";
 import { createBot, snapshotBot, type BotSkillLevel, type BotState } from "../bot/v4/factory.ts";
-import { botVersion } from "../bot/version.ts";
+
+// The web game is hard-wired to the v4 bot strategies (see
+// specs/bots_v4.md's "Bot version" section) -- v3 only runs via the
+// simulator's --bot-version=v3 comparison mode. This label is what
+// gets logged and what stats are bucketed by (stats.ts's
+// byBotVersion), so a future switch to a new strategy generation
+// keeps its stats separate from v4's just by using a different label
+// here.
+const botVersion = "v4";
 import { DEAL_ANIMATION_DELAY, DIFFICULTIES, KNOCK_SOUND_WAIT, MAX_BOT_THINK_TIME, MIN_BOT_THINK_TIME, ROUND_END_PAUSE, TAP_FEEDBACK_DELAY, type Difficulty } from "../config.ts";
 import { Game, newGame } from "../game/game.ts";
 import type { RoundDealOverride } from "../game/round.ts";

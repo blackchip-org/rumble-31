@@ -12,15 +12,15 @@ There are three different bots based on its skill level:
 
 ## Bot version
 
-The v4 strategies share their bot version number with v3's, tracked
-in src/bot/version.ts. Since the web GUI and the simulator's default
-strategy (toolchain.md) now run v4, the number bumps when a v4
-strategy file changes -- src/bot/v4/candidates.ts, phases.ts,
-strategies.ts, or factory.ts -- rather than a v3 file. v3 keeps its
-last version number frozen (specs/bots_v3.md), since from here on it
-is only run by the simulator's `--bot-version=v3` comparison mode.
-
-The current bot version is 6.
+The bot version is which strategy generation is in play -- `v3` or
+`v4` -- not a revision counter for tuning changes within a
+generation. The web GUI is hard-wired to `v4`; the only way to run
+`v3` is the simulator's `--bot-version=v3` comparison mode
+(specs/bots_v3.md). This label is what the game log's "Bot version"
+line shows and what stats are bucketed by (specs/stats.md), so
+tuning changes to candidates.ts, phases.ts, strategies.ts, or
+factory.ts don't move the version -- only switching which
+generation runs does.
 
 ## Trade Candidates
 
