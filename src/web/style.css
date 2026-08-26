@@ -2595,6 +2595,13 @@ body {
   :root {
     --font-size-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
     --font-size-game-over-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
+    /* --font-size-settings-title (theme.css) is a fixed 2.25rem with
+       no vh-clamp at all outside this breakpoint, unlike the two
+       titles above -- reusing their formula here gives Settings the
+       same shrink-with-height behavior at short mobile-landscape
+       sizes instead of leaving the title as the one thing in the
+       panel that can't give up any space. */
+    --font-size-settings-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
   }
 
   /* rank-badge (added well after this breakpoint was last tuned)
@@ -2826,7 +2833,7 @@ body {
     grid-row: 3;
   }
 
-  /* align-items: center (the base .settings-screen rule) plus
+  /* justify-content: center (the base .settings-screen rule) plus
      overflow-y: auto above only ever extends the *bottom* of the
      scrollable area to reach an overflowing panel -- the top stays
      pinned above the viewport and permanently unreachable, since a
@@ -2834,16 +2841,19 @@ body {
      scroll container only grows scrollHeight toward the end side.
      flex-start plus auto vertical margins on the panel itself (below)
      is the standard fix -- same pattern as .game-over-screen's own
-     copy of this comment -- and only actually bites on the shortest
-     phones this breakpoint covers, now that the buttons above are
-     tall enough to occasionally push the panel past that height. */
+     copy of this comment, but on justify-content rather than
+     align-items: .game-over-screen is a row container, where
+     align-items controls the vertical axis, but .settings-screen is
+     flex-direction: column, where justify-content is the vertical
+     (main) axis and align-items instead controls horizontal
+     centering -- overriding align-items here left the panel stuck
+     against the left edge instead of centered. This only actually
+     bites on the shortest phones this breakpoint covers, now that the
+     buttons above are tall enough to occasionally push the panel past
+     that height. */
   .settings-screen {
-    align-items: flex-start;
+    justify-content: safe center;
     overflow-y: auto;
-  }
-
-  .settings-panel {
-    margin: auto 0;
   }
 
   /* Difficulty's five buttons (see index.html's .difficulty-buttons

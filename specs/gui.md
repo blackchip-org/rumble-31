@@ -57,6 +57,16 @@ When adjusting a screen's layout, work through this checklist:
 - If the change touches a CSS custom property shared by more than one
   screen, check its effect on every screen that reads it, not just
   the one being changed.
+- When a breakpoint reaches for `align-items`/`justify-content` to
+  keep an overflowing centered panel reachable by scroll, check the
+  container's `flex-direction` before copying the pattern from
+  another screen: the two properties swap which axis (horizontal vs.
+  vertical) they control between a row container and a column one, so
+  a pattern that top-aligns one can silently left-align the other.
+  This doesn't show up as `scrollHeight` vs. `clientHeight` overflow
+  -- the panel isn't taller than the container, just off-center -- so
+  check the element's actual position (or a screenshot) too, not
+  overflow measurements alone.
 
 ## Mobile
 

@@ -127,6 +127,28 @@ panel*, not at the page level -- if you need to tell the two apart,
 compare the panel's own `scrollHeight`/`clientHeight` instead of (or
 in addition to) `document.scrollingElement`'s.
 
+Overflow numbers alone won't catch a mis-centered panel, since a
+panel that isn't taller than its container reports zero overflow even
+when it's pinned to one edge instead of centered. At every mobile
+size (and especially any breakpoint that adjusts `align-items` or
+`justify-content` on a `position: fixed` screen container), also
+check the panel's actual position:
+
+```js
+(() => {
+  const panel = document.querySelector('.<screen>-panel');
+  const r = panel.getBoundingClientRect();
+  return JSON.stringify({
+    leftGap: r.left,
+    rightGap: window.innerWidth - r.right,
+  });
+})()
+```
+
+Unequal `leftGap`/`rightGap` (or the equivalent top/bottom check)
+means the panel isn't centered -- see Step 5's flex-direction note for
+the most common cause.
+
 ## Step 5: Diagnose, don't just report a number
 
 When a size overflows, find the mechanism before writing it up:
@@ -142,6 +164,15 @@ When a size overflows, find the mechanism before writing it up:
   or two pixels on either side of a breakpoint -- a sudden jump from 0
   to a large number right at the threshold confirms it's that rule,
   not a broader problem.
+- If a mis-centered panel (not overflow) is the finding, check the
+  screen container's `flex-direction` before trusting a comment that
+  claims to reuse another screen's fix. `align-items` and
+  `justify-content` swap which axis (horizontal vs. vertical) they
+  control between a row container and a column one -- a breakpoint
+  that copies `align-items: flex-start` from a row-direction screen
+  onto a column-direction one changes horizontal alignment instead of
+  vertical, which is how the Settings screen ended up left-pinned
+  instead of centered on short mobile-landscape sizes.
 
 ## Step 6: Check shared custom properties across every screen that reads them
 

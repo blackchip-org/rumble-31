@@ -144,9 +144,19 @@
                                                 and similar) */
   --font-weight-bold: 600; /* seat/pot labels and action buttons */
 
-  --font-size-base: clamp(16px, 0.6vw + 12px, 20px); /* root font size,
-                                                          scales rem units
-                                                          app-wide */
+  /* The 0.6vw term alone only bounds width -- on a wide-but-short
+     window (e.g. 760x360) it can keep growing even though the height
+     available to hold every rem-sized value app-wide hasn't grown,
+     overflowing screens like Settings whose short-viewport
+     breakpoints assume this floor stays near 16px. The 1vh term
+     shares the same 12px constant and mirrors the vw term's shape
+     (reaches the 16px floor at 400px tall, the 20px ceiling at 800px
+     tall -- both round numbers already used elsewhere in this file's
+     breakpoints), so wide-and-tall and narrow-but-tall windows are
+     unaffected and only the wide-but-short combination is pulled
+     down. */
+  --font-size-base: clamp(16px, min(0.6vw + 12px, 1vh + 12px), 20px);
+  /* root font size, scales rem units app-wide */
   --font-size-h1: 1.1rem; /* header title */
   --font-size-label: 0.68rem; /* seat label, pot label */
   --font-size-tag: 0.62rem; /* turn/eliminated/knocked/strike state tag */
