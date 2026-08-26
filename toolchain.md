@@ -84,14 +84,16 @@ Pass `--metrics` alongside `--strat` to report each bot's per-turn
 behavior across the batch, alongside the normal win-rate report: how
 often it took the pot as first actor, how often its hand improved,
 knock counts, how often a trade formed a pair, the danger-score
-distribution of the trades it made, and how often a forced
+distribution of the trades it made, how often a forced
 (non-improving) trade took an Ace from the pot -- specs/bots_v4.md's
-Discard section's Expert-only ace-hoarding heuristic. This is a
-faster, lower-noise way
-to check whether a bots_v4.md strategy change had its intended effect
-than win rate alone -- a tweak can move a specific behavior a lot
-while moving win rate by too little to see past noise without a much
-larger `--games` count:
+Discard section's Expert-only ace-hoarding heuristic -- and, for v4
+bots, how often and at which decision point (Hand Selection, Improve
+Hand, Knock, or Discard) it made a mistake per specs/bots_v4.md's
+Mistake section. This is a faster, lower-noise way to check whether a
+bots_v4.md strategy change had its intended effect than win rate
+alone -- a tweak can move a specific behavior a lot while moving win
+rate by too little to see past noise without a much larger `--games`
+count:
 
 ```bash
 npm run simulate -- --games=1000 --strat=naea --metrics

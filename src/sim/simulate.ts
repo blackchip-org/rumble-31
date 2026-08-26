@@ -4,7 +4,7 @@
 
 import { newGame } from "../game/game.ts";
 import type { Card } from "../card/card.ts";
-import type { PlayerView, Strategy, TurnRecord } from "../game/types.ts";
+import type { DecisionTraceEntry, PlayerView, Strategy, TurnRecord } from "../game/types.ts";
 import { strategyFunc } from "../game/types.ts";
 import { botDecisionLines } from "../log.ts";
 import { Rng } from "../rng.ts";
@@ -27,10 +27,11 @@ function createBot(botVersion: BotVersion, skillLevel: BotSkillLevel, rng: Rng, 
 
 // BotMetrics tallies one bot slot's per-turn behavior across a
 // simulation batch, when SimulationConfig/HeadsUpSimulationConfig's
-// metrics flag is set. Every count reflects actions the bot actually
-// took (mistakes included), derived straight from each TurnRecord --
-// not from a bot's own (v4-only) decision trace -- so it works the
-// same way for v3 and v4 bots alike.
+// metrics flag is set. Every field but mistakes/mistakesBySite reflects
+// actions the bot actually took, derived straight from each
+// TurnRecord -- not from a bot's own (v4-only) decision trace -- so it
+// works the same way for v3 and v4 bots alike. mistakes/mistakesBySite
+// are the one exception (see their own doc comments below).
 export interface BotMetrics {
   // turns is every turn this bot took, across every game in the batch.
   turns: number;
@@ -77,14 +78,73 @@ export interface BotMetrics {
   // ace-hoarding heuristic, which denies that Ace to opponents for at
   // least a lap.
   forcedAceTrades: number;
+  // mistakes counts turns where specs/bots_v4.md's Mistake phase
+  // determined this turn should have one -- v4 bots only. v3 has no
+  // Mistake phase, so this and mistakesBySite always stay zero for a
+  // v3 batch. Unlike every other BotMetrics field, this is read from
+  // the bot's own (v4-only) decision trace rather than derived from
+  // TurnRecord alone, since a mistake isn't otherwise distinguishable
+  // from an ordinary decision that happened to land the same way.
+  mistakes: number;
+  // mistakesBySite counts, of mistakes, how many landed at each of
+  // specs/bots_v4.md's Mistake section's mistake-eligible phases.
+  mistakesBySite: MistakeSiteCounts;
+}
+
+// MistakeSiteCounts tallies which phase specs/bots_v4.md's Mistake
+// section's chosen site landed on, across every mistake-eligible
+// phase used by any v4 strategy (First's Hand Selection; Knocked's
+// Improve Hand; Standard/Heads Up's Improve Hand, Knock, and Discard).
+export interface MistakeSiteCounts {
+  handSelection: number;
+  improveHand: number;
+  knock: number;
+  discard: number;
 }
 
 export function newBotMetrics(): BotMetrics {
-  return { turns: 0, firstActorTurns: 0, firstActorPotTaken: 0, handImproved: 0, trades: 0, exchanges: 0, knocks: 0, pairsFormed: 0, dangerCounts: [0, 0, 0, 0, 0, 0], forcedTrades: 0, forcedAceTrades: 0 };
+  return {
+    turns: 0,
+    firstActorTurns: 0,
+    firstActorPotTaken: 0,
+    handImproved: 0,
+    trades: 0,
+    exchanges: 0,
+    knocks: 0,
+    pairsFormed: 0,
+    dangerCounts: [0, 0, 0, 0, 0, 0],
+    forcedTrades: 0,
+    forcedAceTrades: 0,
+    mistakes: 0,
+    mistakesBySite: { handSelection: 0, improveHand: 0, knock: 0, discard: 0 },
+  };
 }
 
-// recordTurn folds one TurnRecord into a bot slot's BotMetrics.
-export function recordTurn(m: BotMetrics, rec: TurnRecord): void {
+// MISTAKE_SITE_KEYS maps a mistake-eligible phase's trace phase name
+// (see mistakeSiteFrom) to its MistakeSiteCounts field.
+const MISTAKE_SITE_KEYS: Record<string, keyof MistakeSiteCounts> = {
+  "Hand Selection": "handSelection",
+  "Improve Hand": "improveHand",
+  Knock: "knock",
+  Discard: "discard",
+};
+
+// mistakeSiteFrom scans a v4 bot's decision trace (bot/v4/trace.ts)
+// for the entry marking specs/bots_v4.md's Mistake section's chosen
+// site: the one entry whose detail is prefixed "mistake --" (the
+// Mistake phase's own entry only ever reads "mistake made" or "no
+// mistake (chance ...)", never that prefix). Returns its phase name,
+// or undefined when trace is absent (v3 bots, or metrics collection
+// wasn't asked to build one) or this turn had no mistake.
+function mistakeSiteFrom(trace: readonly DecisionTraceEntry[] | undefined): string | undefined {
+  return trace?.find((e) => e.detail.startsWith("mistake --"))?.phase;
+}
+
+// recordTurn folds one TurnRecord into a bot slot's BotMetrics. trace,
+// if given, is that same turn's v4 decision trace (see
+// mistakeSiteFrom) -- omitted for v3 bots, or when metrics collection
+// didn't need one.
+export function recordTurn(m: BotMetrics, rec: TurnRecord, trace?: readonly DecisionTraceEntry[]): void {
   m.turns++;
   const isFirstTurn = rec.turnIndex === 0;
   if (isFirstTurn) {
@@ -93,6 +153,15 @@ export function recordTurn(m: BotMetrics, rec: TurnRecord): void {
   const improved = score(rec.handBefore) < rec.scoreAfter;
   if (improved) {
     m.handImproved++;
+  }
+
+  const mistakeSite = mistakeSiteFrom(trace);
+  if (mistakeSite !== undefined) {
+    m.mistakes++;
+    const key = MISTAKE_SITE_KEYS[mistakeSite];
+    if (key !== undefined) {
+      m.mistakesBySite[key]++;
+    }
   }
 
   if (rec.action.type === "knock") {
@@ -132,7 +201,9 @@ function pct(n: number, d: number): string {
 // formatMetricsLines renders every slot's BotMetrics, appended to a
 // SimulationResult/HeadsUpSimulationResult report when metrics were
 // collected. bots and metrics are parallel, indexed by slot.
-function formatMetricsLines(bots: readonly BotSkillLevel[], metrics: readonly BotMetrics[]): string[] {
+// botVersion gates the Mistakes lines -- v3 has no Mistake phase (see
+// BotMetrics.mistakes), so those counts would only ever read zero.
+function formatMetricsLines(bots: readonly BotSkillLevel[], metrics: readonly BotMetrics[], botVersion: BotVersion): string[] {
   const lines = ["", "Metrics:"];
   for (let slot = 0; slot < bots.length; slot++) {
     const m = metrics[slot] as BotMetrics;
@@ -147,6 +218,14 @@ function formatMetricsLines(bots: readonly BotSkillLevel[], metrics: readonly Bo
     lines.push(`  Trades forming a pair: ${m.pairsFormed}/${m.trades} (${pct(m.pairsFormed, m.trades)})`);
     lines.push(`  Trade danger score: avg ${avgDanger}, tiers 0-5: ${m.dangerCounts.join("/")}`);
     lines.push(`  Aces taken on a forced trade: ${m.forcedAceTrades}/${m.forcedTrades} (${pct(m.forcedAceTrades, m.forcedTrades)})`);
+    if (botVersion === "v4") {
+      lines.push(`  Mistakes: ${m.mistakes}/${m.turns} (${pct(m.mistakes, m.turns)})`);
+      const s = m.mistakesBySite;
+      const siteShare = (n: number) => `${n} (${pct(n, m.mistakes)})`;
+      lines.push(`    By site: Hand Selection ${siteShare(s.handSelection)}, Improve Hand ${siteShare(s.improveHand)}, Knock ${siteShare(s.knock)}, Discard ${siteShare(s.discard)}`);
+    } else {
+      lines.push(`  Mistakes: n/a (v3 has no Mistake phase)`);
+    }
   }
   return lines;
 }
@@ -232,12 +311,23 @@ export async function runSimulation(config: SimulationConfig, write?: (line: str
     rng.shuffle(seatOfSlot);
 
     const botsBySeat = new Array<Strategy>(4);
+    // rawBotsBySeat[seat] is that seat's bot before any decision-log
+    // wrapping, so metrics collection below can still read its
+    // lastTrace (see mistakeSiteFrom) after withDecisionLog wraps it
+    // into a new Strategy object that doesn't forward lastTrace.
+    const rawBotsBySeat = new Array<Strategy>(4);
     for (let slot = 0; slot < 4; slot++) {
       const seat = seatOfSlot[slot] as number;
-      const detail = config.botLog?.get(seat);
-      let bot = createBot(config.botVersion, config.bots[slot] as BotSkillLevel, rng, detail);
-      if (detail !== undefined && write) {
-        bot = withDecisionLog(seat, bot, detail, write);
+      const requestedDetail = config.botLog?.get(seat);
+      // metrics needs a v4 bot's decision trace to count mistakes even
+      // when the caller didn't ask for botLog on this seat -- "summary"
+      // is an arbitrary choice among LogDetail's two values; either
+      // just turns trace collection on (see bot/v4/factory.ts).
+      const traceDetail = requestedDetail ?? (metrics && config.botVersion === "v4" ? "summary" : undefined);
+      let bot = createBot(config.botVersion, config.bots[slot] as BotSkillLevel, rng, traceDetail);
+      rawBotsBySeat[seat] = bot;
+      if (requestedDetail !== undefined && write) {
+        bot = withDecisionLog(seat, bot, requestedDetail, write);
       }
       botsBySeat[seat] = bot;
     }
@@ -245,7 +335,7 @@ export async function runSimulation(config: SimulationConfig, write?: (line: str
 
     const game = newGame(rng.nextSeed(), strategies);
     if (metrics) {
-      game.onTurn = (rec) => recordTurn(metrics[seatOfSlot.indexOf(rec.seat)] as BotMetrics, rec);
+      game.onTurn = (rec) => recordTurn(metrics[seatOfSlot.indexOf(rec.seat)] as BotMetrics, rec, rawBotsBySeat[rec.seat]?.lastTrace);
     }
     const { winners, log } = await game.run();
 
@@ -280,7 +370,7 @@ export function formatReport(config: SimulationConfig, result: SimulationResult)
   lines.push(`Ties: ${result.ties}`);
   lines.push(`Average rounds per game: ${(result.totalRounds / result.games).toFixed(2)}`);
   if (result.metrics) {
-    lines.push(...formatMetricsLines(config.bots, result.metrics));
+    lines.push(...formatMetricsLines(config.bots, result.metrics, config.botVersion));
   }
   return lines;
 }
@@ -346,19 +436,24 @@ export async function runHeadsUpSimulation(config: HeadsUpSimulationConfig, writ
     eliminated[seatOfSlot[1]] = false;
 
     const botsBySeat = new Array<Strategy>(4).fill(unreachablePlaceholder) as [Strategy, Strategy, Strategy, Strategy];
+    // rawBotsBySeat[seat] is that seat's bot before any decision-log
+    // wrapping -- see runSimulation's own copy of this comment.
+    const rawBotsBySeat = new Array<Strategy>(4);
     for (let slot = 0; slot < 2; slot++) {
       const seat = seatOfSlot[slot] as number;
-      const detail = config.botLog?.get(seat);
-      let bot = createBot(config.botVersion, config.bots[slot] as BotSkillLevel, rng, detail);
-      if (detail !== undefined && write) {
-        bot = withDecisionLog(seat, bot, detail, write);
+      const requestedDetail = config.botLog?.get(seat);
+      const traceDetail = requestedDetail ?? (metrics && config.botVersion === "v4" ? "summary" : undefined);
+      let bot = createBot(config.botVersion, config.bots[slot] as BotSkillLevel, rng, traceDetail);
+      rawBotsBySeat[seat] = bot;
+      if (requestedDetail !== undefined && write) {
+        bot = withDecisionLog(seat, bot, requestedDetail, write);
       }
       botsBySeat[seat] = bot;
     }
 
     const game = newGame(rng.nextSeed(), botsBySeat, { strikes: [0, 0, 0, 0], secondChance: [false, false, false, false], eliminated });
     if (metrics) {
-      game.onTurn = (rec) => recordTurn(metrics[seatOfSlot.indexOf(rec.seat)] as BotMetrics, rec);
+      game.onTurn = (rec) => recordTurn(metrics[seatOfSlot.indexOf(rec.seat)] as BotMetrics, rec, rawBotsBySeat[rec.seat]?.lastTrace);
     }
     const { winners, log } = await game.run();
 
@@ -393,7 +488,7 @@ export function formatHeadsUpReport(config: HeadsUpSimulationConfig, result: Hea
   lines.push(`Ties: ${result.ties}`);
   lines.push(`Average rounds per game: ${(result.totalRounds / result.games).toFixed(2)}`);
   if (result.metrics) {
-    lines.push(...formatMetricsLines(config.bots, result.metrics));
+    lines.push(...formatMetricsLines(config.bots, result.metrics, config.botVersion));
   }
   return lines;
 }

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseCard } from "../card/card.ts";
 import { exchange, knock, trade } from "../game/types.ts";
-import type { Hand, Pot, TurnRecord } from "../game/types.ts";
+import type { DecisionTraceEntry, Hand, Pot, TurnRecord } from "../game/types.ts";
 import { score } from "../card/score.ts";
 import { allBotCombos, formatComboTable, formatHeadsUpReport, formatReport, newBotMetrics, recordTurn, runAllCombos, runHeadsUpSimulation, runSimulation } from "./simulate.ts";
 import type { BotMetrics, ComboResult, HeadsUpSimulationConfig, HeadsUpSimulationResult, SimulationConfig, SimulationResult } from "./simulate.ts";
@@ -198,6 +198,63 @@ test("recordTurn: folds one TurnRecord into a bot's BotMetrics", () => {
   }
 });
 
+// mistakeTrace builds a minimal v4 decision trace (bot/v4/trace.ts)
+// naming site/detail as specs/bots_v4.md's Mistake section's chosen
+// site, matching the "mistake --"-prefixed detail phases.ts actually
+// records there -- enough for mistakeSiteFrom to find, regardless of
+// whether the site itself acted or fell through.
+function mistakeTrace(site: string, detail: string): DecisionTraceEntry[] {
+  return [
+    { phase: "Mistake", detail: "mistake made", acted: false },
+    { phase: site, detail, acted: false },
+  ];
+}
+
+test("recordTurn: tallies a v4 mistake from the decision trace, by site", () => {
+  const cases: Array<{ name: string; trace?: DecisionTraceEntry[]; want: BotMetrics }> = [
+    {
+      name: "no trace given (v3 bot, or metrics didn't need one): no mistake tallied",
+      want: metricsWith({ turns: 1, firstActorTurns: 1, knocks: 1 }),
+    },
+    {
+      name: "trace present but no mistake this turn",
+      trace: [{ phase: "Mistake", detail: "no mistake (chance 0.05)", acted: false }],
+      want: metricsWith({ turns: 1, firstActorTurns: 1, knocks: 1 }),
+    },
+    {
+      name: "mistake at Hand Selection",
+      trace: mistakeTrace("Hand Selection", "mistake -- keeps hand"),
+      want: metricsWith({ turns: 1, firstActorTurns: 1, knocks: 1, mistakes: 1, mistakesBySite: { handSelection: 1, improveHand: 0, knock: 0, discard: 0 } }),
+    },
+    {
+      name: "mistake at Improve Hand, acted (traded)",
+      trace: mistakeTrace("Improve Hand", "mistake -- trades [7c] for [9h]"),
+      want: metricsWith({ turns: 1, firstActorTurns: 1, knocks: 1, mistakes: 1, mistakesBySite: { handSelection: 0, improveHand: 1, knock: 0, discard: 0 } }),
+    },
+    {
+      name: "mistake at Improve Hand, fell through (no improving candidate)",
+      trace: mistakeTrace("Improve Hand", "mistake -- no improving candidate to pick from, falls through"),
+      want: metricsWith({ turns: 1, firstActorTurns: 1, knocks: 1, mistakes: 1, mistakesBySite: { handSelection: 0, improveHand: 1, knock: 0, discard: 0 } }),
+    },
+    {
+      name: "mistake at Knock (always falls through)",
+      trace: mistakeTrace("Knock", "mistake -- fails to knock"),
+      want: metricsWith({ turns: 1, firstActorTurns: 1, knocks: 1, mistakes: 1, mistakesBySite: { handSelection: 0, improveHand: 0, knock: 1, discard: 0 } }),
+    },
+    {
+      name: "mistake at Discard",
+      trace: mistakeTrace("Discard", "mistake -- trades [7c] for [9h]"),
+      want: metricsWith({ turns: 1, firstActorTurns: 1, knocks: 1, mistakes: 1, mistakesBySite: { handSelection: 0, improveHand: 0, knock: 0, discard: 1 } }),
+    },
+  ];
+
+  for (const { name, trace, want } of cases) {
+    const m = newBotMetrics();
+    recordTurn(m, baseTurn({}), trace);
+    assert.deepEqual(m, want, name);
+  }
+});
+
 test("runSimulation: plays the requested number of games and tallies results", async () => {
   const config: SimulationConfig = { seed: 1, games: 20, botVersion: "v4", bots: ["novice", "advanced", "expert", "novice"] };
   const result = await runSimulation(config);
@@ -278,6 +335,22 @@ test("runSimulation: metrics, when requested, tallies every slot's turns and are
     assert.ok(m.pairsFormed <= m.trades);
     assert.ok(m.forcedTrades <= m.trades);
     assert.ok(m.forcedAceTrades <= m.forcedTrades);
+    assert.ok(m.mistakes <= m.turns);
+    const bySite = m.mistakesBySite;
+    assert.equal(bySite.handSelection + bySite.improveHand + bySite.knock + bySite.discard, m.mistakes, "mistakesBySite always sums to mistakes");
+  }
+  // Novice's mistakeChance is 0.2 (specs/bots_v4.md's Mistake section)
+  // -- across 20 games it should have made at least one.
+  assert.ok((result.metrics?.[0] as BotMetrics).mistakes > 0, "expected the novice slot to have made at least one mistake");
+});
+
+test("runSimulation: v3 bots never tally a mistake (no Mistake phase)", async () => {
+  const bots: SimulationConfig["bots"] = ["novice", "advanced", "expert", "novice"];
+  const result = await runSimulation({ seed: 3, games: 20, botVersion: "v3", bots, metrics: true });
+
+  for (const m of result.metrics ?? []) {
+    assert.equal(m.mistakes, 0);
+    assert.deepEqual(m.mistakesBySite, { handSelection: 0, improveHand: 0, knock: 0, discard: 0 });
   }
 });
 
@@ -350,7 +423,21 @@ test("formatHeadsUpReport: appends a Metrics section when the result carries one
     ties: 1,
     totalRounds: 12,
     metrics: [
-      metricsWith({ turns: 10, firstActorTurns: 4, firstActorPotTaken: 1, handImproved: 5, trades: 6, exchanges: 2, knocks: 2, pairsFormed: 1, dangerCounts: [3, 1, 1, 0, 1, 0], forcedTrades: 3, forcedAceTrades: 1 }),
+      metricsWith({
+        turns: 10,
+        firstActorTurns: 4,
+        firstActorPotTaken: 1,
+        handImproved: 5,
+        trades: 6,
+        exchanges: 2,
+        knocks: 2,
+        pairsFormed: 1,
+        dangerCounts: [3, 1, 1, 0, 1, 0],
+        forcedTrades: 3,
+        forcedAceTrades: 1,
+        mistakes: 4,
+        mistakesBySite: { handSelection: 1, improveHand: 2, knock: 1, discard: 0 },
+      }),
       metricsWith({ turns: 8 }),
     ],
   };
@@ -372,6 +459,8 @@ test("formatHeadsUpReport: appends a Metrics section when the result carries one
     "  Trades forming a pair: 1/6 (16.7%)",
     "  Trade danger score: avg 1.17, tiers 0-5: 3/1/1/0/1/0",
     "  Aces taken on a forced trade: 1/3 (33.3%)",
+    "  Mistakes: 4/10 (40.0%)",
+    "    By site: Hand Selection 1 (25.0%), Improve Hand 2 (50.0%), Knock 1 (25.0%), Discard 0 (0.0%)",
     "Bot 2 (expert):",
     "  Took pot as first actor: 0/0 (n/a)",
     "  Hand improved: 0/8 (0.0%)",
@@ -379,7 +468,24 @@ test("formatHeadsUpReport: appends a Metrics section when the result carries one
     "  Trades forming a pair: 0/0 (n/a)",
     "  Trade danger score: avg n/a, tiers 0-5: 0/0/0/0/0/0",
     "  Aces taken on a forced trade: 0/0 (n/a)",
+    "  Mistakes: 0/8 (0.0%)",
+    "    By site: Hand Selection 0 (n/a), Improve Hand 0 (n/a), Knock 0 (n/a), Discard 0 (n/a)",
   ]);
+});
+
+test("formatHeadsUpReport: Mistakes line reads n/a for v3 (no Mistake phase)", () => {
+  const config: HeadsUpSimulationConfig = { seed: 7, games: 4, botVersion: "v3", bots: ["advanced", "expert"], metrics: true };
+  const result: HeadsUpSimulationResult = {
+    games: 4,
+    wins: [1, 3],
+    ties: 1,
+    totalRounds: 12,
+    metrics: [metricsWith({ turns: 10 }), metricsWith({ turns: 8 })],
+  };
+
+  const lines = formatHeadsUpReport(config, result);
+  assert.ok(lines.includes("  Mistakes: n/a (v3 has no Mistake phase)"));
+  assert.ok(!lines.some((l) => l.startsWith("    By site:")));
 });
 
 test("allBotCombos: every distinct 4-bot multiset of novice/advanced/expert, no duplicates", () => {
