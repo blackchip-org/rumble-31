@@ -770,6 +770,14 @@ body {
   align-items: center;
   justify-content: center;
   background: var(--main-bg);
+  /* Matches the 4rem (2rem top/bottom) margin --font-size-title's own
+     height-aware clamp (theme.css) budgets for, so the panel doesn't
+     just fit the viewport but sits clear of its edges. overflow-y:
+     auto is a failsafe (specs/gui.md's "shrink, then scroll") for
+     whatever's still too tall once the title's shrunk as far as its
+     own floor allows. */
+  padding: 2rem;
+  overflow-y: auto;
 }
 
 .main-screen[hidden] {
@@ -780,7 +788,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5rem;
+  gap: var(--main-panel-gap);
 }
 
 /* .appinfo-title shares every rule with .main-title except color --
@@ -812,12 +820,12 @@ body {
 .main-buttons {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--main-btn-gap);
   width: min(60vw, 260px);
 }
 
 .main-buttons button {
-  padding: 1rem;
+  padding: var(--main-btn-pad-y) 1rem;
 }
 
 /* A small visual break between New Game and the rest of the menu,
@@ -832,9 +840,22 @@ body {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  align-items: center;
+  /* flex-start, not center: a centered flex item that's taller than the
+     viewport overflows equally on both sides, but a plain scroll
+     container only ever grows scrollHeight toward the end side -- the
+     top (title) would stay pinned above the viewport and permanently
+     unreachable. flex-start plus auto vertical margins on the panel
+     itself (below) is the fix: the margins center the panel same as
+     center would whenever it fits, but collapse to 0 instead of
+     clipping once it's taller than the viewport, so the whole panel --
+     title included -- stays reachable by scrolling. overflow-y: auto
+     is the actual scroll fallback, for whatever's still too tall once
+     --font-size-game-over-title (theme.css) has shrunk as far as its
+     own floor allows. */
+  align-items: flex-start;
   justify-content: center;
   background: var(--game-over-bg);
+  overflow-y: auto;
 }
 
 /* Same [hidden]-specificity-tie reasoning as .error-screen below: keep
@@ -850,9 +871,15 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5rem;
+  gap: var(--game-over-panel-gap);
+  margin: auto 0;
 }
 
+/* white-space: nowrap guarantees a single line ("You Won!"/"Game
+   Over") at every size -- --font-size-game-over-title's own formula
+   (theme.css) budgets height for exactly one line, so a wrap here
+   would silently reintroduce a second line the formula doesn't know
+   to leave room for. */
 .game-over-title {
   margin: 0;
   font-size: var(--font-size-game-over-title);
@@ -860,11 +887,8 @@ body {
   color: var(--game-over-title-color);
   text-align: center;
   line-height: 1.15;
+  white-space: nowrap;
   text-shadow: var(--heading-text-shadow);
-}
-
-.game-over-title span {
-  display: block;
 }
 
 /* South's finish for this game (specs/screens/over.md) plus the
@@ -1051,19 +1075,27 @@ body {
   text-transform: uppercase;
 }
 
+/* Row, not the stacked column every other screen's button group uses --
+   at desktop widths, height is the scarcer dimension (three stacked
+   buttons plus their gaps cost as much vertical space as the results
+   table above them), while width is plentiful, so a row reads better
+   and buys back a large chunk of the panel's height. The max-width:
+   900px breakpoint below switches back to a column: at phone widths a
+   three-way row would squeeze each button too narrow for its label. */
 .game-over-buttons {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 1rem;
-  width: min(60vw, 260px);
+  width: auto;
 }
 
-/* Matches Main's/Difficulty's own button padding (1rem, taller than
-   every other screen's 0.75rem 1rem default) rather than this
-   screen's old, smaller padding -- chunkier buttons are easier to
-   hit, and Game Over's buttons have the room to spare for it. */
+/* Narrower, shorter than the column layout's chunkier 1rem padding --
+   a row has three buttons competing for width instead of one column
+   with height to spare, so more horizontal than vertical padding reads
+   better here. The max-width: 900px breakpoint below restores the
+   original padding for the column layout. */
 .game-over-buttons button {
-  padding: 1rem;
+  padding: 0.85rem 1.5rem;
 }
 
 /* ---------- error screen ---------- */
@@ -2236,6 +2268,46 @@ body {
   }
 }
 
+/* Game Over's buttons stay a row (the desktop default) all the way down
+   to phone widths -- direction follows where the buttons sit relative
+   to the results table, not window width on its own: below the table
+   (this screen's ordinary layout, at any width down to here) they're a
+   row, and only the short-landscape breakpoint further down (where
+   they sit beside the table in a narrow sidebar column instead) makes
+   them a column. Below 500px wide, though, three buttons in a row have
+   nowhere left to shrink without wrapping their labels, so this is the
+   one exception: phone-portrait widths fall back to a column. */
+@media (max-width: 500px) {
+  .game-over-buttons {
+    flex-direction: column;
+    width: min(60vw, 260px);
+  }
+
+  .game-over-buttons button {
+    padding: 1rem;
+  }
+
+  /* --font-size-game-over-title's own formula (theme.css) budgets
+     22.75rem for the rank badge, results panel, and buttons row's
+     combined height -- accurate for the row layout everywhere above
+     this breakpoint, but the stacked column just restored above is
+     taller (three button heights plus their gaps instead of one row),
+     so re-solving with the column's real 31.5rem here keeps the title
+     correctly sized instead of overflowing at phone widths. */
+  :root {
+    --font-size-game-over-title: clamp(
+      2.5rem,
+      min(
+        4vw + 1.5rem,
+        calc(
+          (100vh - 31.5rem - 3 * var(--game-over-panel-gap) - 2rem) / 1.15
+        )
+      ),
+      4.5rem
+    );
+  }
+}
+
 /* ---------- mobile landscape ---------- */
 
 /* Real phones in landscape are short (roughly 375-430px tall) but many
@@ -2465,9 +2537,11 @@ body {
      short mobile-landscape viewport. overflow-y: auto is a safety net
      matching this file's general "shrink, then scroll" fallback
      (see the top of this file) for whatever's still too tall once the
-     title's shrunk. */
+     title's shrunk. Game Over already gets this at the base level (see
+     that rule's own comment above) -- only listed here for Main
+     (redundant, already set at its own base rule too) and Application
+     Info (which doesn't have a base-level fallback of its own). */
   .main-screen,
-  .game-over-screen,
   .appinfo-screen {
     overflow-y: auto;
   }
@@ -2521,38 +2595,6 @@ body {
   :root {
     --font-size-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
     --font-size-game-over-title: clamp(1.5rem, 5vh + 0.5rem, 2.75rem);
-  }
-
-  /* The base rule stacks "You"/"Won!" (or "Game"/"Over") on their own
-     lines (.game-over-title span's display: block) -- on this
-     breakpoint's shortest phones that costs a full extra line this
-     already-cramped screen can't spare. display: flex here
-     blockifies both spans into flex items on one row regardless of
-     their own display value, so no span-level override is needed. */
-  .game-over-title {
-    display: flex;
-    justify-content: center;
-    gap: 0.4em;
-  }
-
-  /* align-items: center (the base .game-over-screen rule) plus
-     overflow-y: auto above only ever extends the *bottom* of the
-     scrollable area to reach an overflowing panel -- the top stays
-     pinned above the viewport and permanently unreachable, since a
-     centered flex item overflows equally on both sides but a plain
-     scroll container only grows scrollHeight toward the end side.
-     flex-start plus auto vertical margins on the panel itself (below)
-     is the standard fix: the margins center the panel same as before
-     whenever it fits, but collapse to 0 instead of clipping once it's
-     taller than the viewport, so the whole panel -- title included --
-     stays scrollable into view on the shortest phones this breakpoint
-     covers. */
-  .game-over-screen {
-    align-items: flex-start;
-  }
-
-  .game-over-panel {
-    margin: auto 0;
   }
 
   /* rank-badge (added well after this breakpoint was last tuned)
@@ -2665,19 +2707,24 @@ body {
     font-size: 0.55rem;
   }
 
-  /* Stays a column (the base, portrait-style direction) since the
-     buttons now sit in their own grid column beside the results
-     panel (see .game-over-panel above) rather than below it --
-     width, not height, is the plentiful dimension in that column, so
-     unlike .about-buttons' row layout below there's no need to fight
-     for vertical space here. justify-content: center plus the grid
-     row's own align-items: center (set on .game-over-panel above)
-     centers the button stack against the taller title/badge/results
-     column beside it. Narrower than the base min(60vw, 260px) --
-     that width assumed the buttons were the widest thing in a
-     single centered column; here they only need to be as wide as a
-     comfortable tap target in half the panel. */
+  /* Column, not the row the desktop base rule now defaults to (this
+     breakpoint fires at any width once the window is short enough, so
+     a wide-but-short desktop window still lands here with width>900)
+     -- the buttons sit in their own narrow grid column beside the
+     results panel (see .game-over-panel above) rather than below it,
+     and three buttons in a row squeezed into that column's own
+     min(30vw, 200px) width wrap their labels in half. width, not
+     height, is the plentiful dimension in that column, so unlike
+     .about-buttons' row layout below there's no need to fight for
+     vertical space here. justify-content: center plus the grid row's
+     own align-items: center (set on .game-over-panel above) centers
+     the button stack against the taller title/badge/results column
+     beside it. Narrower than the base min(60vw, 260px) -- that width
+     assumed the buttons were the widest thing in a single centered
+     column; here they only need to be as wide as a comfortable tap
+     target in half the panel. */
   .game-over-buttons {
+    flex-direction: column;
     justify-content: center;
     width: min(30vw, 200px);
     gap: 0.6rem;

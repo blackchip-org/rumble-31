@@ -151,8 +151,53 @@
   --font-size-label: 0.68rem; /* seat label, pot label */
   --font-size-tag: 0.62rem; /* turn/eliminated/knocked/strike state tag */
   --font-size-score: 0.95rem; /* score box and action buttons */
-  --font-size-title: clamp(3rem, 8vw + 1rem, 6.5rem); /* main screen
-                                                            title */
+  /* Main screen vertical rhythm -- the panel's own title/buttons gap,
+     the gap between buttons, and each button's vertical padding.
+     Ceilings match the screen's original fixed values (2.5rem/1rem/
+     1rem) so nothing changes at 900px tall or above; below that each
+     shrinks linearly toward a still-legible floor by 500px tall, so a
+     short window has more than just the title (below) to give up
+     before falling back to .main-screen's overflow-y: auto scroll.
+     Below 500px tall, the orientation: landscape
+     breakpoint overrides .main-panel/.main-buttons directly with its
+     own values tuned for real phones, superseding these. */
+  --main-panel-gap: clamp(1rem, calc(7.5vh - 17.5px), 2.5rem);
+  --main-btn-gap: clamp(0.5rem, calc(2.5vh - 2.5px), 1rem);
+  --main-btn-pad-y: clamp(0.6rem, calc(2vh + 2px), 1rem);
+
+  /* Main screen title. The 8vw term alone only bounds width -- on a
+     wide-but-short desktop window (e.g. 1800x700) it can grow past
+     6.5rem's own vw-driven trigger while the title's two lines plus
+     Main's five buttons don't fit the shorter viewport, clipping both
+     the title and "About" with no margin. The min() term caps growth
+     by height too, solved for the title size T from 2.3T (two lines
+     at line-height 1.15) plus the panel gap, plus the five-button
+     block's real height -- 5 buttons at (2 * --main-btn-pad-y +
+     1.225rem of text/border per button) with 4 * --main-btn-gap
+     between them and a fixed 0.75rem break after the first button
+     (6.875rem of fixed terms total) -- plus a 5rem margin (4rem
+     matching .main-screen's own padding, 1rem genuine slack so the
+     fit isn't razor-thin against sub-pixel rounding) all <= 100vh.
+     Because --main-panel-gap/--main-btn-gap/--main-btn-pad-y (above)
+     are themselves shrinking below ~800px tall, this formula and the
+     actual rendered layout stay in lockstep as the window shortens,
+     rather than the title alone having to absorb every px of
+     shrinkage. Below 500px tall this is superseded by the
+     orientation: landscape breakpoint's own tighter override, tuned
+     for real phones rather than desktop windows. */
+  --font-size-title: clamp(
+    3rem,
+    min(
+      8vw + 1rem,
+      calc(
+        (
+            100vh - 11.875rem - var(--main-panel-gap) -
+              10 * var(--main-btn-pad-y) - 4 * var(--main-btn-gap)
+          ) / 2.3
+      )
+    ),
+    6.5rem
+  ); /* main screen title */
 
   --letter-spacing-label: 0.09em; /* seat label, pot label */
   --letter-spacing-tag: 0.08em; /* turn/eliminated/knocked/strike state
@@ -188,9 +233,49 @@
   /* ---------- game over screen (independently restylable) ---------- */
   --game-over-bg: var(--main-bg); /* game over screen background */
   --game-over-title-color: #fff; /* "You Won!"/"Game Over" text color */
-  --font-size-game-over-title: clamp(2.5rem, 4vw + 1.5rem, 4.5rem); /* game
-                                                                         over
-                                                                         title */
+
+  /* Vertical rhythm between the title, rank badge, results panel, and
+     buttons (.game-over-panel's own gap below). Ceiling matches the
+     screen's original fixed 2.5rem so nothing changes at 900px tall or
+     above; below that it shrinks toward a still-visible-as-a-gap floor
+     by 375px tall, buying back space for the title (below) well before
+     falling back to .game-over-screen's own overflow-y: auto scroll. */
+  --game-over-panel-gap: clamp(1rem, calc(5vh - 12px), 2rem);
+
+  /* Game over title. .game-over-title renders as a single line ("You
+     Won!"/"Game Over", white-space: nowrap in style.css) rather than
+     two stacked words, so unlike Main's own title formula this only
+     has to budget line-height 1.15 worth of height, not two lines'
+     worth. The 4vw term alone only bounds width -- on a short desktop
+     window it can grow past what's left once the rank badge, results
+     table/tally, and buttons below it are accounted for, clipping the
+     title and the buttons with no way to scroll to either. The min()
+     term caps growth by height too, solved for the title size T from
+     1.15T (line-height) plus 22.75rem -- the rank badge's, results
+     panel's (table + tally), and the buttons row's own combined
+     natural height (style.css's .game-over-buttons is a row at these
+     widths, not the stacked column phones get, so this is much
+     shorter than three button heights), all rem-based so this holds
+     regardless of the root font size -- plus 3 * --game-over-panel-gap
+     between the panel's four children, plus a 2rem margin (the fit
+     isn't razor-thin against sub-pixel rounding) all <= 100vh. Because
+     --game-over-panel-gap (above) is itself shrinking below ~900px
+     tall, this formula and the actual rendered layout stay in lockstep
+     as the window shortens, rather than the title alone having to
+     absorb every px of shrinkage. Below 500px tall this is superseded
+     by the orientation: landscape breakpoint's own tighter override,
+     tuned for real phones rather than desktop windows. */
+  --font-size-game-over-title: clamp(
+    2.5rem,
+    min(
+      4vw + 1.5rem,
+      calc(
+        (100vh - 22.75rem - 3 * var(--game-over-panel-gap) - 2rem) / 1.15
+      )
+    ),
+    4.5rem
+  ); /* game over title */
+
   --game-over-table-rule: var(--stats-table-rule); /* results table's
                                                         row dividers */
 

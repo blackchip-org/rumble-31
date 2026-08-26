@@ -5,8 +5,8 @@ to the next round, navigate to the game over screen. Background for now
 is black.
 
 The entire contents of the screen are in a panel that is centered both
-horizontally and vertically on the screen. In big white lettering, say either
-"You Won!" or "Game Over" with each word on its own line.
+horizontally and vertically on the screen. In big white lettering, say
+either "You Won!" or "Game Over" on a single line.
 
 Below the title is a badge with two lines: a small caption naming the
 difficulty the game was played at (specs/screens/difficulty.md's

@@ -378,8 +378,7 @@ const resetYesBtn = must<HTMLButtonElement>("reset-yes-btn");
 const resetNoBtn = must<HTMLButtonElement>("reset-no-btn");
 
 const gameOverScreenEl = must<HTMLElement>("game-over-screen");
-const gameOverLine1El = must<HTMLElement>("game-over-line1");
-const gameOverLine2El = must<HTMLElement>("game-over-line2");
+const gameOverTitleEl = must<HTMLElement>("game-over-title");
 
 const errorScreenEl = must<HTMLElement>("error-screen");
 const playAgainBtn = must<HTMLButtonElement>("play-again-btn");
@@ -1450,9 +1449,7 @@ function showHtpScreen(): void {
 // param, and false when restoring a saved "over" state on reload
 // (specs/state.md), so a restore stays silent.
 function showGameOverScreen(southWon: boolean, southPlace: 1 | 2 | 3 | 4, botResults: [BotResult, BotResult, BotResult], botLabels: [string, string, string], playSound: boolean): void {
-  const [line1, line2] = southWon ? ["You", "Won!"] : ["Game", "Over"];
-  gameOverLine1El.textContent = line1;
-  gameOverLine2El.textContent = line2;
+  gameOverTitleEl.textContent = southWon ? "You Won!" : "Game Over";
   renderOverResults(gameOverScreenEl, southPlace, botResults, botLabels, DIFFICULTY_LABELS[settings.difficulty]);
   hideAllScreens();
   gameOverScreenEl.hidden = false;
