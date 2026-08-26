@@ -22,10 +22,41 @@ every part stays reachable. Relying on this in a new or changed
 layout is a sign the layout needs another look, not a substitute for
 designing it to fit.
 
-When adjusting a screen's layout, check it at both desktop and mobile
-window sizes, and on mobile check both portrait and landscape
-orientation -- a change that fits one doesn't guarantee it fits the
-others.
+When adjusting a screen's layout, work through this checklist:
+
+- Check it at both desktop and mobile window sizes, and on mobile
+  check both portrait and landscape orientation -- a change that fits
+  one doesn't guarantee it fits the others.
+- Resize continuously rather than jumping between preset sizes. Try a
+  range of heights and widths, including combinations no breakpoint
+  specifically targets -- a wide-but-short desktop window, for
+  instance, is neither "mobile" nor a typical desktop size, and a fix
+  aimed at one class of device can leave that gap uncovered.
+- If a size scales with the viewport, check what happens when the
+  window is short as well as when it's narrow. A term keyed to `vw`
+  alone can keep growing in a wide-but-short window even though the
+  height available to hold it hasn't grown -- font sizes and spacing
+  driven by viewport size should be bounded by `vh` as well as `vw`.
+- Spread required shrinking across more than one property instead of
+  letting a single element (a title's font size, say) absorb all of
+  it. That keeps any one formula from being the sole, fragile thing
+  standing between a fit and an overflow, keeps the rest of the
+  layout in proportion as it shrinks, and leaves more for the layout
+  to give up before it has to fall back to scrolling.
+- Leave real slack in any calculation meant to make content fit
+  exactly, rather than solving right up to the pixel. Font metrics
+  and sub-pixel layout rounding mean a value computed to fit exactly
+  often overflows by a pixel or two in practice, and with
+  `overflow-y: auto` as the failsafe (above), even a 1px overflow
+  shows a visible scrollbar rather than a harmless, invisible clip.
+- Verify with real measurements, not a screenshot alone: compare an
+  element's `scrollHeight` to its `clientHeight` at several sizes (a
+  browser console, or the browser tools available to you). A thin
+  scrollbar or a 1px clip is easy to miss by eye but easy to catch
+  this way.
+- If the change touches a CSS custom property shared by more than one
+  screen, check its effect on every screen that reads it, not just
+  the one being changed.
 
 ## Mobile
 
