@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 11 - 2026-08-27
+
+**New**
+- The app now works fully offline after it's loaded once, including
+  when installed to your home screen.
+- New builds are applied automatically in the background — no manual
+  refresh needed to get the latest version.
+
 ## Version 10 - 2026-08-26
 
 **Fixed**
