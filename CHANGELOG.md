@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 10 - 2026-08-26
+
+**Fixed**
+- Game Over screen no longer overflows on short viewports, and its
+  buttons fit better at typical window sizes.
+- Settings screen no longer overflows on short viewports and its
+  content is centered correctly.
+
 ## Version 9 - 2026-08-25
 
 **New**
