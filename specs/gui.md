@@ -73,6 +73,11 @@ When adjusting a screen's layout, work through this checklist:
 For mobile devices, the GUI should expect that normal operation is with
 the phone in landscape mode.
 
+The app is installable to the home screen as a PWA (manifest and icons:
+[icons.md](icons.md)) and runs offline once loaded
+([offline.md](offline.md)). The Application Info Screen nudges qualifying
+mobile visitors to install it.
+
 A button that swaps to a different screen waits TAP_FEEDBACK_DELAY
 (specs/config.md) before actually swapping, so the button's
 pressed-down feedback has time to paint first -- otherwise a touch tap

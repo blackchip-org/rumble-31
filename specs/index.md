@@ -17,6 +17,8 @@
 - [icons.md](icons.md) — How the app's home-screen/PWA icons are
   designed and regenerated from their source SVGs.
 - [log.md](log.md) — What gets written to the game log and when.
+- [offline.md](offline.md) — The service worker that makes the app run
+  offline after first load.
 - [params.md](params.md) — URL parameters the web GUI accepts for
   debugging.
 - [rules.md](rules.md) — Rules of the Rumble 31 card game itself.

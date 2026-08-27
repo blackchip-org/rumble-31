@@ -3,3 +3,4 @@ src/buildstamp.ts
 src/web/licensesData.ts
 src/web/howToPlayData.ts
 dist/
+dev-dist/
