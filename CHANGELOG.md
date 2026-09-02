@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 12 - 2026-09-01
+
+- Leaving and reopening the app now only resumes an in-progress game, or
+  the game menu if it was open. Returning from any other screen — About,
+  Stats, Settings, the difficulty picker, or the Game Over results — now
+  opens the Main Menu instead of reopening that screen.
+
 ## Version 11 - 2026-08-27
 
 **New**
