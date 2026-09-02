@@ -17,7 +17,6 @@ function params(strikesRaw: string): DebugParams {
     showBots: false,
     seedStats: false,
     botLogBySeat: new Map(),
-    ageMinutes: undefined,
   };
 }
 

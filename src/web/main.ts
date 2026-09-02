@@ -40,7 +40,7 @@ import { parseDebugParams, type DebugParams, type ScreenId } from "./params.ts";
 import { renderStrikes, setDealer, setKnocker, setPanelState, setScore, setStruck, setWon } from "./panels.ts";
 import { loadSettings, saveSettings, type Settings } from "./settings.ts";
 import { assignBotSeats, baselineBotSeats, type BotSeats } from "./botAssignment.ts";
-import { clearState, loadState, saveState, type GameState, type OverState, type RoundCheckpoint, type SavedState, type SettingsOrigin } from "./state.ts";
+import { clearState, loadState, saveState, type GameState, type RoundCheckpoint } from "./state.ts";
 import { loadStats, saveStats, seedDebugStats, recordGameStarted, recordGameAbandoned, recordRoundElimination, recordRoundPlayed, recordGamePlace, recordGameCompleted, todayDateString, viewStats, type StatsStore } from "./stats.ts";
 import { runStartupMigrations } from "./statsMigration.ts";
 import { initStatsTabs, renderStatsScreen, scrollStatsToTop } from "./statsScreen.ts";
@@ -101,11 +101,10 @@ const winAudio = new SoundEffect(winSoundUrl);
 const loseAudio = new SoundEffect(loseSoundUrl);
 
 // Registered at module load, unconditionally, rather than only inside
-// main() — the Game Over screen can be reached directly (a saved
-// "over" state on reload, or specs/params.md's screen=over debug
-// param) without main() ever running, and its win/lose sound still
-// needs a prior gesture to unlock per resumeSoundsOnFirstGesture's own
-// comment.
+// main() — the Game Over screen can be reached directly via
+// specs/params.md's screen=over debug param without main() ever
+// running, and its win/lose sound still needs a prior gesture to
+// unlock per resumeSoundsOnFirstGesture's own comment.
 resumeSoundsOnFirstGesture();
 
 // Registered at module load, once, rather than inside main() — a card
@@ -146,9 +145,17 @@ let currentGameAbort: AbortController | undefined;
 // need to re-read it from storage.
 let currentMenuGame: GameState | undefined;
 
-// currentSettingsOrigin is which screen Settings was entered from
-// (specs/gui.md's Settings Screen section), driving its back button's
-// label/destination.
+// SettingsOrigin is which screen the Settings screen was entered from
+// (specs/gui.md's Settings Screen section): "main" shows the "Main
+// Menu" back button; "menu" shows the "Game Menu" back button and
+// carries the in-progress game to return to. Purely in-session state
+// now -- Settings itself is never persisted (specs/state.md); entered
+// from the Game Menu it persists as `menu`, entered from the Main Menu
+// as `main`.
+type SettingsOrigin = { from: "main" } | { from: "menu"; game: GameState };
+
+// currentSettingsOrigin is which screen Settings was entered from,
+// driving its back button's label/destination.
 let currentSettingsOrigin: SettingsOrigin = { from: "main" };
 
 // playDealSound plays deal.wav for one card being dealt, unless the
@@ -236,43 +243,23 @@ if (debugParams.seedStats) {
   saveStats(stats, localStorage);
 }
 
-// age (specs/params.md) exists to test the stale-Over-screen behavior
-// below against real saved state, which every other debug parameter
-// would otherwise wipe out — so it's the one exception to "any debug
-// parameter clears saved state": it's treated like a bare visit below,
-// but only when it's the only parameter present. Combined with any
-// other parameter, it's inert and normal clearing behavior applies.
-const searchWithoutAge = new URLSearchParams(window.location.search);
-searchWithoutAge.delete("age");
-const isBareVisitOrOnlyAge = searchWithoutAge.toString() === "";
+// isBareVisit is true for a plain visit with no query string at all --
+// the only kind of visit that resumes saved state (specs/state.md).
+const isBareVisit = window.location.search === "";
 
 // specs/state.md: a URL supplying any valid debug parameter clears
 // whatever was saved from a previous session first, so debugging never
 // resumes a leftover game — including a bare `screen=`, which carries
 // no game-seeding data of its own. An invalid parameter throws above,
 // before this line, leaving saved state untouched.
-if (!isBareVisitOrOnlyAge) {
+if (!isBareVisit) {
   clearState(localStorage);
 }
 
-// savedState is only consulted on a bare visit (or one with just age=
-// — see above) — any other debug parameter takes precedence, and
-// saved state was just cleared above in that case anyway.
-const savedState: SavedState | undefined = isBareVisitOrOnlyAge ? loadState(localStorage) : undefined;
-
-// specs/state.md: a saved Over screen older than this is treated as
-// though there were no saved state at all, so returning after a long
-// absence lands on the Main Screen instead of an already-stale result.
-// age (specs/params.md) overrides how old savedState is taken to be,
-// for testing this without waiting five real minutes.
-const OVER_SCREEN_STALE_AFTER_MS = 5 * 60 * 1000;
-const overScreenAgeMs =
-  savedState === undefined
-    ? undefined
-    : debugParams.ageMinutes !== undefined
-      ? debugParams.ageMinutes * 60 * 1000
-      : Date.now() - savedState.savedAt;
-const overScreenStale = savedState?.screen === "over" && overScreenAgeMs !== undefined && overScreenAgeMs > OVER_SCREEN_STALE_AFTER_MS;
+// savedState is only consulted on a bare visit — any debug parameter
+// takes precedence, and saved state was just cleared above in that
+// case anyway.
+const savedState = isBareVisit ? loadState(localStorage) : undefined;
 
 function must<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -333,7 +320,7 @@ const isStandaloneApp =
 // again without saved state being cleared some other way (e.g. a
 // debug parameter, which also short-circuits this via the bare-visit
 // check).
-const showAppInfo = window.location.search === "" && savedState === undefined && installPlatform !== "other" && !isStandaloneApp;
+const showAppInfo = isBareVisit && savedState === undefined && installPlatform !== "other" && !isStandaloneApp;
 
 const menuScreenEl = must<HTMLElement>("menu-screen");
 const menuResumeBtn = must<HTMLButtonElement>("menu-resume-btn");
@@ -745,7 +732,7 @@ function logLines(): string[] {
 }
 
 // restoreLogLines replaces the log panel's contents with lines saved
-// by logLines, for resuming a screen per specs/state.md.
+// by logLines, for resuming a game per specs/state.md.
 function restoreLogLines(lines: readonly string[]): void {
   logEl.replaceChildren();
   for (const line of lines) {
@@ -1108,11 +1095,12 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
     // the game hasn't actually ended.
     const gameOver = !g.active() || g.eliminated[0];
     if (gameOver) {
-      // Persisted here, before the pause, rather than as a "game"
-      // checkpoint for a round that no longer exists: resuming into a
-      // finished round would call playRound() again and double-apply
-      // its strikes. specs/state.md's Game Over screen state is saved
-      // directly instead, so a reload during the pause resumes there.
+      // The Game Over screen isn't resumable (specs/state.md), so the
+      // in-progress "game" checkpoint is replaced here, before the
+      // pause, with the plain "main" marker: a reload during or after
+      // the pause lands on the Main Screen rather than resuming a
+      // finished round (which would call playRound() again and
+      // double-apply its strikes).
       // More than one winner means the last contenders were eliminated
       // together (game.ts) -- a tie, not an outright win, so per
       // specs/log.md it's placed as if South alone had been eliminated
@@ -1126,24 +1114,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
       recordGameCompleted(stats, botVersion, settings.difficulty, southWonOutright, g.strikes[0] as number);
       saveStats(stats, localStorage);
       botResults = computeBotResults(g.eliminated, outcome.eliminated);
-      saveState(
-        {
-          screen: "over",
-          game: {
-            strikes: g.strikes,
-            eliminated: g.eliminated,
-            secondChance: g.secondChance,
-            roundNum: roundNum + 1,
-            dealerSeat: g.dealerSeat as number,
-            botSeats,
-            log: logLines(),
-            southWon: southWonOutright,
-            southPlace,
-            botResults,
-          },
-        },
-        localStorage,
-      );
+      saveState({ screen: "main" }, localStorage);
     } else {
       saveGameState({ strikes: g.strikes, eliminated: g.eliminated, secondChance: g.secondChance, roundNum: roundNum + 1, dealerSeat: g.dealerSeat as number, botSeats, checkpoint: undefined, log: logLines() });
     }
@@ -1172,7 +1143,7 @@ async function main(resume: GameState | undefined, signal: AbortSignal): Promise
   }
 
   const botLabels = botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
-  showGameOverScreen(southWonOutright, southPlace, botResults as [BotResult, BotResult, BotResult], botLabels, true);
+  showGameOverScreen(southWonOutright, southPlace, botResults as [BotResult, BotResult, BotResult], botLabels);
 }
 
 // hideAllScreens hides every top-level screen. Each show*Screen
@@ -1341,23 +1312,27 @@ function syncFocusFirstToggleBtn(): void {
 // button), rendering the current bot version's stats (stats.ts's
 // viewStats -- a read-only lookup, so just viewing this screen never
 // creates or saves a stats entry) and scrolling back to the top of
-// whichever tab was last active, and persists it as the screen to
-// resume (specs/state.md).
+// whichever tab was last active. Not a resumable screen (specs/
+// state.md): it persists the plain "main" marker, so a reload lands on
+// the Main Screen.
 function showStatsScreen(): void {
   scrollStatsToTop(statsCardEl);
   renderStatsScreen(statsScreenEl, viewStats(stats, botVersion));
   hideAllScreens();
   statsScreenEl.hidden = false;
-  saveState({ screen: "stats" }, localStorage);
+  saveState({ screen: "main" }, localStorage);
   focusScreenDefault();
 }
 
 // showSettingsScreen swaps whichever screen is up for the settings
 // screen (per specs/gui.md's Main Screen and Game Menu Screen
-// sections' "Settings" buttons), and persists it -- together with
-// origin -- as the screen to resume (specs/state.md). Entered from the
-// Game Menu, the back button reads "Game Menu" instead of "Main Menu"
-// (wired below, alongside the other menu/settings listeners).
+// sections' "Settings" buttons). Settings itself isn't a resumable
+// screen (specs/state.md): entered from the Game Menu it persists as
+// `menu` (the game paused behind it), so a reload returns to the Game
+// Menu; entered from the Main Menu it persists the plain "main"
+// marker. Entered from the Game Menu, the back button reads "Game
+// Menu" instead of "Main Menu" (wired below, alongside the other
+// menu/settings listeners).
 function showSettingsScreen(origin: SettingsOrigin): void {
   currentSettingsOrigin = origin;
   syncSoundsToggleBtn();
@@ -1368,31 +1343,33 @@ function showSettingsScreen(origin: SettingsOrigin): void {
   settingsBackBtn.textContent = fromMenu ? "Game Menu" : "Main Menu";
   hideAllScreens();
   settingsScreenEl.hidden = false;
-  saveState({ screen: "settings", ...origin }, localStorage);
+  saveState(fromMenu ? { screen: "menu", game: origin.game } : { screen: "main" }, localStorage);
   focusScreenDefault();
 }
 
 // showDifficultyScreen swaps whichever screen is up for the
 // difficulty screen (per specs/gui.md's Main Screen section's "New
-// Game" button), and persists it as the screen to resume
-// (specs/state.md).
+// Game" button). Not a resumable screen (specs/state.md): it persists
+// the plain "main" marker, so a reload lands on the Main Screen (the
+// chosen difficulty persists separately in Settings).
 function showDifficultyScreen(): void {
   hideAllScreens();
   difficultyScreenEl.hidden = false;
-  saveState({ screen: "difficulty" }, localStorage);
+  saveState({ screen: "main" }, localStorage);
   focusScreenDefault();
 }
 
 // showAboutScreen swaps whichever screen is up for the about screen
 // (per specs/gui.md's Main Screen section's "About" button), filling
-// in the version/build-date text it displays, and persists it as the
-// screen to resume (specs/state.md).
+// in the version/build-date text it displays. Not a resumable screen
+// (specs/state.md): it persists the plain "main" marker, so a reload
+// lands on the Main Screen.
 function showAboutScreen(): void {
   aboutVersionEl.textContent = `Version ${version}`;
   aboutBuildEl.textContent = `Built on ${buildTime}`;
   hideAllScreens();
   aboutScreenEl.hidden = false;
-  saveState({ screen: "about" }, localStorage);
+  saveState({ screen: "main" }, localStorage);
   focusScreenDefault();
 }
 
@@ -1408,7 +1385,8 @@ function syncLicenseText(): void {
 // screen (per specs/gui.md's About Screen section's "Licenses"
 // button), populating the list box alphabetically with the
 // "Rumble 31" entry selected by default (specs/gui.md's Licenses
-// section), and persists it as the screen to resume (specs/state.md).
+// section). Not a resumable screen (specs/state.md): it persists the
+// plain "main" marker, so a reload lands on the Main Screen.
 function showLicensesScreen(): void {
   licensesListEl.replaceChildren();
   for (const entry of sortedLicenses(licenses)) {
@@ -1422,20 +1400,21 @@ function showLicensesScreen(): void {
 
   hideAllScreens();
   licensesScreenEl.hidden = false;
-  saveState({ screen: "licenses" }, localStorage);
+  saveState({ screen: "main" }, localStorage);
   focusScreenDefault();
 }
 
 // showHtpScreen swaps whichever screen is up for the How to Play
 // screen (per specs/gui.md's How to Play section), populating the
 // text area with how-to-play.md's contents (baked in at build time by
-// scripts/gen-how-to-play.mjs), and persists it as the screen to
-// resume (specs/state.md).
+// scripts/gen-how-to-play.mjs). Not a resumable screen (specs/
+// state.md): it persists the plain "main" marker, so a reload lands on
+// the Main Screen.
 function showHtpScreen(): void {
   htpTextEl.value = howToPlayText;
   hideAllScreens();
   htpScreenEl.hidden = false;
-  saveState({ screen: "htp" }, localStorage);
+  saveState({ screen: "main" }, localStorage);
   focusScreenDefault();
 }
 
@@ -1443,19 +1422,17 @@ function showHtpScreen(): void {
 // screen, announcing South's win or loss per specs/gui.md's Game Over
 // Screen section: "You Won!"/"Game Over", one word per line, the rank
 // badge, and the results table and Win/Loss/Tie tally (overScreen.ts's
-// renderOverResults) below it. Plays win.wav/lose.wav per
-// specs/assets.md only when playSound is true -- callers pass true
-// for a live game finishing or specs/params.md's screen=over debug
-// param, and false when restoring a saved "over" state on reload
-// (specs/state.md), so a restore stays silent.
-function showGameOverScreen(southWon: boolean, southPlace: 1 | 2 | 3 | 4, botResults: [BotResult, BotResult, BotResult], botLabels: [string, string, string], playSound: boolean): void {
+// renderOverResults) below it, and plays win.wav/lose.wav per
+// specs/assets.md. The screen is only ever reached on arrival now -- a
+// live game finishing, or specs/params.md's screen=over debug param --
+// never restored from saved state (specs/state.md), so the sound
+// always plays.
+function showGameOverScreen(southWon: boolean, southPlace: 1 | 2 | 3 | 4, botResults: [BotResult, BotResult, BotResult], botLabels: [string, string, string]): void {
   gameOverTitleEl.textContent = southWon ? "You Won!" : "Game Over";
   renderOverResults(gameOverScreenEl, southPlace, botResults, botLabels, DIFFICULTY_LABELS[settings.difficulty]);
   hideAllScreens();
   gameOverScreenEl.hidden = false;
-  if (playSound) {
-    playGameOverSound(southWon);
-  }
+  playGameOverSound(southWon);
   focusScreenDefault();
 }
 
@@ -1481,34 +1458,7 @@ function showDebugGameOverScreen(params: DebugParams): void {
   const southPlace = (southWon ? 1 : 1 + botResults.filter((r) => r === "loss").length) as 1 | 2 | 3 | 4;
   const botSeats = baselineBotSeats(settings.difficulty);
   const botLabels = botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
-  saveState(
-    {
-      screen: "over",
-      game: {
-        strikes: params.initialStrikes.strikes,
-        eliminated,
-        secondChance: params.initialStrikes.secondChance,
-        roundNum: 1,
-        dealerSeat: 0,
-        botSeats,
-        log: logLines(),
-        southWon,
-        southPlace,
-        botResults,
-      },
-    },
-    localStorage,
-  );
-  showGameOverScreen(southWon, southPlace, botResults, botLabels, true);
-}
-
-// restoreGameOverScreen redraws the Game Over screen directly from
-// saved state (specs/state.md), with no game replayed and no
-// win/lose sound (that only plays on arrival, not on restore).
-function restoreGameOverScreen(game: OverState): void {
-  restoreLogLines(game.log);
-  const botLabels = game.botSeats.map((n) => BOT_LABELS[n]) as [string, string, string];
-  showGameOverScreen(game.southWon, game.southPlace, game.botResults, botLabels, false);
+  showGameOverScreen(southWon, southPlace, botResults, botLabels);
 }
 
 // downloadTextFile saves text as a local file named filename, via a
@@ -1716,8 +1666,11 @@ appinfoProceedBtn.addEventListener("click", onTap(showMainScreen));
 const initialScreen: ScreenId =
   debugParams.screen ??
   (showAppInfo ? "appinfo" : undefined) ??
-  (overScreenStale ? "main" : savedState?.screen) ??
-  (isBareVisitOrOnlyAge || (debugParams.clear && debugParams.initialDeal === undefined) ? "main" : "game");
+  // Only `game` and `menu` resume (specs/state.md); every other saved
+  // screen -- including the plain "main" marker -- lands on the Main
+  // Screen.
+  (savedState?.screen === "game" || savedState?.screen === "menu" ? savedState.screen : undefined) ??
+  (isBareVisit || (debugParams.clear && debugParams.initialDeal === undefined) ? "main" : "game");
 switch (initialScreen) {
   case "main":
     showMainScreen();
@@ -1729,7 +1682,7 @@ switch (initialScreen) {
     showAppInfoScreen();
     break;
   case "settings":
-    showSettingsScreen(savedState?.screen === "settings" ? savedState : { from: "main" });
+    showSettingsScreen({ from: "main" });
     break;
   case "about":
     showAboutScreen();
@@ -1744,11 +1697,7 @@ switch (initialScreen) {
     showStatsScreen();
     break;
   case "over":
-    if (savedState?.screen === "over") {
-      restoreGameOverScreen(savedState.game);
-    } else {
-      showDebugGameOverScreen(debugParams);
-    }
+    showDebugGameOverScreen(debugParams);
     break;
   case "error":
     hideAllScreens();

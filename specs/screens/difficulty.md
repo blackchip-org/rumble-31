@@ -29,3 +29,7 @@ The difficulty chosen here is saved to local storage, and is what
 game without returning to this screen -- except that choosing
 "Random" is also remembered, so each "Play Again" re-rolls a fresh
 random difficulty instead of reusing the one just played.
+
+This screen is not restored across a page leave/return
+(specs/state.md): a reload here returns to the Main Screen. The chosen
+difficulty is saved separately, as described above, and is not lost.

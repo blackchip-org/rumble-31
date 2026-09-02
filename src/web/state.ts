@@ -1,26 +1,25 @@
 // Persisted app/game state (specs/state.md), stored as a single
 // versioned JSON blob in a Storage (localStorage in the browser) —
-// mirrors settings.ts's own load/save pattern, but for which screen
-// the player is on and how far into a game they've gotten, rather
+// mirrors settings.ts's own load/save pattern, but for whether a game
+// is in progress and how far into it the player has gotten, rather
 // than their preferences.
 
 import type { BotSeats } from "./botAssignment.ts";
 import type { BotState } from "../bot/v4/factory.ts";
 import type { Hand, Pot } from "../game/types.ts";
-import type { BotResult } from "./overScreen.ts";
 
 const STORAGE_KEY = "rumble31.state";
-// Bumped to 11 when the web GUI switched from v3 to v4 bots (specs/
-// bots_v4.md) and RoundCheckpoint's botMemory (v3's cross-turn
-// opponent-tracking) was replaced with botState (v4's much smaller
-// round-scoped Knock bookkeeping) — an old save is simply treated as
-// absent (see loadState), no migration needed.
-const SCHEMA_VERSION = 11;
+// Bumped to 12 when restoration was narrowed to game-related screens
+// only (specs/state.md): the persisted shape lost its `over` and
+// per-menu-screen variants and its `savedAt` timestamp. An old save is
+// simply treated as absent (see loadState), no migration needed.
+const SCHEMA_VERSION = 12;
 
-// STATE_SCREEN_IDS are every screen this module ever records — every
-// screen in specs/gui.md except the error screen, which is never
-// persisted (specs/state.md's "Error screen" section).
-const STATE_SCREEN_IDS = ["main", "difficulty", "settings", "about", "licenses", "htp", "stats", "game", "over", "menu"] as const;
+// STATE_SCREEN_IDS are the only screens restoration ever navigates back
+// to (specs/state.md): a game being played, the Game Menu with a game
+// paused behind it, and `main` -- the marker every non-resumable screen
+// writes to say "there is nothing to resume".
+const STATE_SCREEN_IDS = ["main", "game", "menu"] as const;
 export type StateScreenId = (typeof STATE_SCREEN_IDS)[number];
 
 // RoundCheckpoint captures a round already in progress, enough to
@@ -63,55 +62,25 @@ export interface GameState {
   checkpoint?: RoundCheckpoint;
 }
 
-// OverState is what's needed to redraw the Game Over screen without
-// replaying anything: the final win/loss outcome, plus the same
-// fields as GameState so Save Log still works from that screen.
-export interface OverState extends GameState {
-  southWon: boolean;
-  // southPlace is South's 1-based finish (specs/screens/over.md's
-  // rank badge), the same value passed to log.ts's gameEndLines and
-  // stats.ts's recordGamePlace when the game ended, so a restored
-  // screen shows the same place without recomputing it.
-  southPlace: 1 | 2 | 3 | 4;
-  // botResults[i] is South's Win/Loss/Tie result against botSeats[i]
-  // (West/North/East), computed once at game-end time
-  // (overScreen.ts's computeBotResults) so the Over screen never has
-  // to recompute it, including on a restored/reloaded screen.
-  botResults: [BotResult, BotResult, BotResult];
-}
-
-// SettingsOrigin is which screen the Settings screen was entered from
-// (specs/gui.md): "main" shows the "Main Menu" back button; "menu"
-// shows the "Game Menu" back button, carrying the in-progress game to
-// return to.
-export type SettingsOrigin = { from: "main" } | { from: "menu"; game: GameState };
-
 export type PersistedState =
+  // `main` carries no data: it's what every non-resumable screen
+  // (Main, Difficulty, About, Licenses, How to Play, Stats, the Game
+  // Over screen, and Settings reached from the Main Menu) persists so a
+  // reload lands on the Main Screen rather than resuming that screen —
+  // see specs/state.md.
   | { screen: "main" }
-  | { screen: "difficulty" }
-  | ({ screen: "settings" } & SettingsOrigin)
-  | { screen: "about" }
-  | { screen: "licenses" }
-  | { screen: "htp" }
-  | { screen: "stats" }
   | { screen: "game"; game: GameState }
-  | { screen: "over"; game: OverState }
-  // Entering the Game Menu re-saves the most recently persisted `game`
-  // state under this tag rather than creating new game state — see
-  // specs/state.md.
+  // Entering the Game Menu (or Settings from it) re-saves the most
+  // recently persisted `game` state under this tag rather than creating
+  // new game state — see specs/state.md.
   | { screen: "menu"; game: GameState };
 
-// SavedState is PersistedState as it comes back out of loadState: with
-// savedAt, the epoch-millisecond time it was written, stamped on by
-// saveState itself rather than supplied by callers. Used by main.ts to
-// decide whether a saved Over screen is too stale to restore (see
-// specs/state.md).
-export type SavedState = PersistedState & { savedAt: number };
-
-// loadState reads SavedState from storage, returning undefined if
+// loadState reads PersistedState from storage, returning undefined if
 // nothing is stored, what's stored isn't valid JSON, its schema
-// version doesn't match, or its screen isn't recognized.
-export function loadState(storage: Storage): SavedState | undefined {
+// version doesn't match, or its screen isn't recognized (which
+// includes any save written by an older schema that still happened to
+// carry a matching version field).
+export function loadState(storage: Storage): PersistedState | undefined {
   const raw = storage.getItem(STORAGE_KEY);
   if (raw === null) {
     return undefined;
@@ -125,30 +94,26 @@ export function loadState(storage: Storage): SavedState | undefined {
     if (version !== SCHEMA_VERSION || typeof state !== "object" || state === null) {
       return undefined;
     }
-    const { screen, savedAt } = state as { screen?: unknown; savedAt?: unknown };
+    const { screen } = state as { screen?: unknown };
     if (typeof screen !== "string" || !(STATE_SCREEN_IDS as readonly string[]).includes(screen)) {
       return undefined;
     }
-    if (typeof savedAt !== "number") {
-      return undefined;
-    }
-    return state as SavedState;
+    return state as PersistedState;
   } catch {
     return undefined;
   }
 }
 
 // saveState writes state to storage as JSON, tagged with the current
-// schema version and the current time (overridable via now, mirroring
-// src/sim/cliParams.ts's own clock injection, for tests).
-export function saveState(state: PersistedState, storage: Storage, now: () => number = Date.now): void {
-  const savedState: SavedState = { ...state, savedAt: now() };
-  storage.setItem(STORAGE_KEY, JSON.stringify({ version: SCHEMA_VERSION, state: savedState }));
+// schema version.
+export function saveState(state: PersistedState, storage: Storage): void {
+  storage.setItem(STORAGE_KEY, JSON.stringify({ version: SCHEMA_VERSION, state }));
 }
 
-// clearState removes any saved state — per specs/state.md, called
-// whenever the URL supplies valid debug parameters, so debugging never
-// resumes a leftover session.
+// clearState removes any saved state — per specs/state.md, called only
+// when the URL supplies valid debug parameters, when the player
+// abandons a game from the Game Menu, and when Settings' Reset wipes
+// all local storage; never as a plain navigation side effect.
 export function clearState(storage: Storage): void {
   storage.removeItem(STORAGE_KEY);
 }

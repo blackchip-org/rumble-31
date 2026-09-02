@@ -66,3 +66,7 @@ from the Difficulty screen's "Random" button, a fresh random
 difficulty is rolled instead. Clicking on Main Menu returns the user
 to the Main screen. Clicking on Save Log lets the user save a text
 file containing the log from the game just played.
+
+This screen is not part of the saved state described in
+specs/state.md: leaving the page here (a reload, closing the tab)
+returns to the Main Screen on the next visit, not back to this screen.

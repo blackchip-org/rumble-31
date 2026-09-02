@@ -11,13 +11,12 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadState, type GameState, type OverState, type SavedState } from "./state.ts";
+import { loadState, type GameState, type PersistedState } from "./state.ts";
 import { loadStats, ratingFor, totalWinLossTie, gamesPlayedFor, sumPerDifficulty, recordGameStarted, recordGamePlace, type StatsStore } from "./stats.ts";
 import { loadSettings, type Settings } from "./settings.ts";
 import { DIFFICULTIES } from "../config.ts";
 import { SUIT_COLORS } from "./cardSheet.ts";
 import { FOCUS_FIRSTS } from "./focusNav.ts";
-import type { BotResult } from "./overScreen.ts";
 
 // memoryStorage returns a minimal in-memory Storage, same helper as the
 // other web/*.test.ts files -- Node's test runner has no browser
@@ -42,7 +41,7 @@ function memoryStorage(initial: Record<string, string> = {}): Storage {
 
 // STATE_SCREEN_IDS mirrors state.ts's own (unexported) list -- every
 // screen loadState is willing to hand back.
-const STATE_SCREEN_IDS = ["main", "difficulty", "settings", "about", "licenses", "htp", "stats", "game", "over", "menu"];
+const STATE_SCREEN_IDS = ["main", "game", "menu"];
 
 // A single-field mutation of some JSON-compatible value: either that
 // field deleted, or replaced with a value of an unrelated type.
@@ -123,34 +122,20 @@ const sampleGame: GameState = {
   },
 };
 
-const sampleOver: OverState = {
-  strikes: sampleGame.strikes,
-  eliminated: sampleGame.eliminated,
-  secondChance: sampleGame.secondChance,
-  roundNum: sampleGame.roundNum,
-  dealerSeat: sampleGame.dealerSeat,
-  botSeats: sampleGame.botSeats,
-  log: sampleGame.log,
-  southWon: true,
-  southPlace: 1,
-  botResults: ["win", "win", "win"] as [BotResult, BotResult, BotResult],
-};
-
-test("loadState never errors on a single-field-corrupted saved game/over screen -- it's accepted as-is or rejected outright, never thrown", () => {
+test("loadState never errors on a single-field-corrupted saved game/menu screen -- it's accepted as-is or rejected outright, never thrown", () => {
   const envelopes = [
-    { version: 11, state: { screen: "game", game: sampleGame, savedAt: 100 } },
-    { version: 11, state: { screen: "over", game: sampleOver, savedAt: 100 } },
+    { version: 12, state: { screen: "game", game: sampleGame } },
+    { version: 12, state: { screen: "menu", game: sampleGame } },
   ];
   for (const envelope of envelopes) {
     for (const mutation of singleFieldMutations(envelope)) {
       const storage = memoryStorage({ "rumble31.state": JSON.stringify(mutation.value) });
-      let got: SavedState | undefined;
+      let got: PersistedState | undefined;
       assert.doesNotThrow(() => {
         got = loadState(storage);
       }, mutation.path);
       if (got !== undefined) {
         assert.ok(STATE_SCREEN_IDS.includes(got.screen), `${mutation.path}: unrecognized screen ${JSON.stringify(got.screen)}`);
-        assert.equal(typeof got.savedAt, "number", mutation.path);
       }
     }
   }

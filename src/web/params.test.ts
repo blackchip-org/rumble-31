@@ -33,7 +33,6 @@ test("parseDebugParams: valid combinations", () => {
     wantShowBots?: boolean;
     wantSeedStats?: boolean;
     wantBotLogBySeat?: Array<[number, "summary" | "full"]>;
-    wantAgeMinutes?: number;
   }> = [
     {
       name: "no params at all",
@@ -319,31 +318,6 @@ test("parseDebugParams: valid combinations", () => {
       wantNoInitialDeal: true,
       wantBotLogBySeat: [[3, "summary"]],
     },
-    {
-      name: "age=10",
-      search: "age=10",
-      wantInitialStrikes: [0, 0, 0, 0],
-      wantSkipDealAnimation: false,
-      wantNoInitialDeal: true,
-      wantAgeMinutes: 10,
-    },
-    {
-      name: "age=0",
-      search: "age=0",
-      wantInitialStrikes: [0, 0, 0, 0],
-      wantSkipDealAnimation: false,
-      wantNoInitialDeal: true,
-      wantAgeMinutes: 0,
-    },
-    {
-      name: "age doesn't interfere with unrelated params",
-      search: "age=10&screen=main",
-      wantInitialStrikes: [0, 0, 0, 0],
-      wantSkipDealAnimation: false,
-      wantNoInitialDeal: true,
-      wantScreen: "main",
-      wantAgeMinutes: 10,
-    },
   ];
 
   for (const c of cases) {
@@ -357,7 +331,6 @@ test("parseDebugParams: valid combinations", () => {
     assert.equal(got.showBots, c.wantShowBots ?? false, `${c.name}: showBots`);
     assert.equal(got.seedStats, c.wantSeedStats ?? false, `${c.name}: seedStats`);
     assert.deepEqual(got.botLogBySeat, new Map(c.wantBotLogBySeat ?? []), `${c.name}: botLogBySeat`);
-    assert.equal(got.ageMinutes, c.wantAgeMinutes, `${c.name}: ageMinutes`);
 
     if (c.wantNoInitialDeal) {
       assert.equal(got.initialDeal, undefined, `${c.name}: initialDeal`);
@@ -396,8 +369,6 @@ test("parseDebugParams: invalid input throws", () => {
     { name: "seedStats is not true or false", search: "seedStats=yes" },
     { name: "botLog names an unknown seat", search: "botLog=northwest" },
     { name: "botLog has one valid and one invalid seat", search: "botLog=north,bogus" },
-    { name: "age is negative", search: "age=-1" },
-    { name: "age is not a number", search: "age=soon" },
   ];
 
   for (const { name, search } of cases) {

@@ -50,6 +50,11 @@ on which screen it came from. Clicking on that button will navigate back to
 that screen. If this screen was entered using a URL parameter, it shows
 the "Main Menu" button.
 
+This screen is not itself restored across a page leave/return
+(specs/state.md). Reached from the Game Menu, a reload returns to the
+Game Menu with the in-progress game preserved; reached from the Main
+Menu, a reload returns to the Main Screen.
+
 These settings should be saved and retrieved from local storage.
 
 ## Mobile

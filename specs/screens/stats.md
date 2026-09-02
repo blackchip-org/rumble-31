@@ -72,5 +72,5 @@ The screen shows stats for the bot version currently in effect
 (specs/bots_v3.md); merely viewing this screen never records or changes
 any stat.
 
-Which screen the player is on is saved and restored the same as every
-other screen (specs/state.md); the Stats screen is one of them.
+This screen is not restored across a page leave/return
+(specs/state.md): a reload here returns to the Main Screen.

@@ -1,6 +1,6 @@
 // Parses and validates the web GUI's debugging URL parameters, per
 // specs/params.md: strikes, north/south/east/west, pot, turn, screen,
-// clear, platform, showBots, botLog, and age. Every validation failure
+// clear, platform, showBots, and botLog. Every validation failure
 // throws a descriptive Error — there is no silent fallback for
 // malformed or self-contradictory debug input.
 
@@ -47,13 +47,6 @@ export interface DebugParams {
   // valued by the detail level their name's case selected. Seat 0
   // (South) is never a key, even if named -- it has no effect there.
   botLogBySeat: ReadonlyMap<number, "summary" | "full">;
-  // ageMinutes pretends that saved state was written this many
-  // minutes ago, for exercising specs/state.md's stale Over screen
-  // behavior without waiting or hand-editing local storage. Unlike
-  // every other debug parameter, main.ts only honors this (and only
-  // skips clearing saved state for it) when it's the only parameter
-  // present — see main.ts's own comment.
-  ageMinutes: number | undefined;
 }
 
 // parseDebugParams reads search (e.g. window.location.search) for the
@@ -174,17 +167,7 @@ export function parseDebugParams(search: string | URLSearchParams): DebugParams 
     }
   }
 
-  const ageRaw = q.get("age");
-  let ageMinutes: number | undefined;
-  if (ageRaw !== null) {
-    const parsed = Number(ageRaw);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      throw new Error(`params: age=${ageRaw} must be a non-negative number`);
-    }
-    ageMinutes = parsed;
-  }
-
-  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, showBots, seedStats, botLogBySeat, ageMinutes };
+  return { initialStrikes, initialDeal, skipDealAnimation, screen, clear, platform, showBots, seedStats, botLogBySeat };
 }
 
 // parseCardGroup parses paramName's raw value as exactly three

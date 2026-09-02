@@ -18,9 +18,9 @@ Main Menu.
 
 This screen is never itself saved as part of the state described in
 specs/state.md, and it is only ever shown when no saved state exists at
-all -- once the player proceeds, the Main Menu's own normal navigation
-saves state, so the screen is not shown again on a later visit. It is
-also skipped whenever the URL includes any of the debug parameters
-described in specs/params.md, the same way the Main Screen is
-(specs/screens/main.md) -- use `screen=appinfo` to reach it directly for
-debugging.
+all -- once the player proceeds, the Main Menu's own transition saves
+the `main` marker (specs/state.md), so the screen is not shown again on
+a later visit. It is also skipped whenever the URL includes any of the
+debug parameters described in specs/params.md, the same way the Main
+Screen is (specs/screens/main.md) -- use `screen=appinfo` to reach it
+directly for debugging.
